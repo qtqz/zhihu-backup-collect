@@ -1,0 +1,18 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "sourceType": "module"
+    },
+    "rules": {
+        "indent": [0, "space"]
+        //"quotes": ["error", "double"]
+    },
+    "extends": [
+        // "eslint:recommended"
+    ],
+    "ignorePatterns": [
+        "node_modules/",
+        "dist/",
+        "build/"
+    ]
+}
