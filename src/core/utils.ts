@@ -55,7 +55,7 @@ export const getTitle = (dom: HTMLElement, scene?: String, type?: String) => {
     }
     //想法
     else if (scene == "pin") {
-        return document.title.slice(0, 40).trim().replace(" ", "")
+        return document.title.slice(0, 36).trim().replace(" ", "")
     }
     else return "无标题"
 }
@@ -217,28 +217,13 @@ export const getCommentNum = (dom: HTMLElement, scene: String, type: String): nu
     //  }
     //}
 }
-
-
-/**
- * Make a button element.
- * @returns A button element.
- */
-export const MakeButton = (): HTMLButtonElement => {
-    const $button = document.createElement("button")
-    $button.setAttribute("type", "button")
-    $button.classList.add("zhihucopier-button")
-    $button.innerText = ""
-    $button.style.right = "0"
-    $button.style.top = "-2em"
-    $button.style.zIndex = "999"
-    $button.style.width = "120px"
-    $button.style.height = "2em"
-    $button.style.backgroundColor = "rgba(85, 85, 85, 0.9)"
-    $button.style.color = "white"
-    $button.style.outline = "none"
-    $button.style.cursor = "pointer"
-    $button.style.borderRadius = "1em"
-    $button.style.margin = "0 .2em 1em .2em"
-    $button.style.fontSize = ".8em"
-    return $button
+export const getRemark = (dom: HTMLElement, scene?: String, type?: String): String => {
+    let remark, p = getParent(dom, "ContentItem")//想法类型、文章页没有
+    if (!p) p = getParent(dom, "PinItem")
+    if (!p) p = getParent(dom, "Post-content")
+    if (p) remark = (p.querySelector(".to-remark input") as HTMLInputElement).value
+    if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
+    return remark
+    //  }
+    //}
 }

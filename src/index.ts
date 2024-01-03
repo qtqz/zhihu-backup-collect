@@ -2,7 +2,7 @@ import { lexer } from "./core/lexer"
 import { parser } from "./core/parser"
 import saveLex from "./core/savelex"
 import { saveAs } from "file-saver"
-import { MakeButton, getParent } from "./core/utils"
+import { getParent } from "./core/utils"
 import NormalItem from "./situation/NormalItem"
 import * as JSZip from "jszip"
 import PinItem from "./situation/PinItem"
@@ -27,6 +27,7 @@ import PinItem from "./situation/PinItem"
 
 /**
  * 下一步
+ * 添加保存备注
  * 适配收藏夹页
  * 尝试保存评论
  * 
@@ -43,7 +44,7 @@ const main = async () => {
             //console.log(RichText.children[0])
             if (RichText.parentElement.classList.contains("Editable")) continue
             //未展开的回答没有孩子
-            if (!RichText.children[0] || RichText.children[0].classList.contains("zhihucopier-button")) continue
+            if (!RichText.children[0] || RichText.children[0].classList.contains("zhihubackup-button")) continue
             //想法，未展开不显示
             if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
             if (getParent(RichText, "PinItem")) {
@@ -51,107 +52,143 @@ const main = async () => {
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue
             }
 
-            const ButtonContainer = document.createElement("div")
-            RichText.prepend(ButtonContainer)
-            ButtonContainer.classList.add("zhihucopier-button")
+            const ButtonContainer = document.createElement("div");
+            (getParent(RichText, "RichContent") as HTMLElement).prepend(ButtonContainer)
+            ButtonContainer.classList.add("zhihubackup-container")
 
             let result: {
                 markdown: string[],
                 zip: JSZip,
                 title: string,
             }
-
-            const ButtonZipDownload = MakeButton()
-            ButtonZipDownload.innerHTML = "下载全文为Zip"
-            ButtonZipDownload.style.borderRadius = "0 1em 1em 0"
-            ButtonZipDownload.style.width = "100px"
-            ButtonZipDownload.style.paddingRight = ".4em"
-            ButtonContainer.prepend(ButtonZipDownload)
-
-            ButtonZipDownload.addEventListener("click", async () => {
+            //按钮们
+            ButtonContainer.innerHTML = `
+                <button class="to-md Button VoteButton">复制为Markdown</button>
+                <button class="to-zip Button VoteButton">下载为Zip</button>
+                <button class="to-pdf Button VoteButton">剪藏为PDF</button>
+                <button class="to-png Button VoteButton">剪藏为PNG</button>
+                <button class="Button VoteButton">
+                    <input class="to-remark" type="text" placeholder="添加备注" style="
+                    width: 90%;
+                    background-color: #0000;
+                    font-size: 14px;
+                    color: #1772f6;
+                    border: unset;
+                    text-align: center;
+                " maxlength="12"></button>
+                <button class="Button VoteButton">
+                    <input type="checkbox" checked id="to-cm" style="
+                    border: 1px solid #777;
+                    background-color: #0000;
+                    font-size: 14px;
+                    color: #1772f6;
+                    border: unset;
+                    text-align: center;
+                    vertical-align: middle;
+                "><label for="to-cm"> 保存<br>当前页评论</label></button>`
+            
+            const ButtonMarkdown = document.querySelector(".to-md")
+            ButtonMarkdown.addEventListener("click", async () => {
                 try {
-                    if (getParent(RichText, "PinItem")) {
-                        console.log("想法", RichText)
-                        const res = await PinItem(RichText)
-                        result = {
-                            markdown: res.markdown,
-                            zip: res.zip,
-                            title: res.title,
-                        }
-                    } else {
-                        console.log("非想法", RichText)
-                        const res = await NormalItem(RichText)
-                        result = {
-                            markdown: res.markdown,
-                            zip: res.zip,
-                            title: res.title,
-                        }
+                    const res = await NormalItem(RichText)
+                    result = {
+                        markdown: res.markdown,
+                        zip: res.zip,
+                        title: res.title,
                     }
+                    navigator.clipboard.writeText(result.markdown.join("\n\n"))
+                    ButtonMarkdown.innerHTML = "复制成功✅"
+                    setTimeout(() => {
+                        ButtonMarkdown.innerHTML = "复制为Markdown"
+                    }, 3000)
+                } catch {
+                    ButtonMarkdown.innerHTML = "发生未知错误<br>请联系开发者"
+                    //ButtonCopyMarkdown.style.height = "4em"
+                    setTimeout(() => {
+                        //ButtonCopyMarkdown.style.height = "2em"
+                        ButtonMarkdown.innerHTML = "复制为Markdown"
+                    }, 3000)
+                }
+            })
 
+            const ButtonZip = document.querySelector(".to-zip")
+            ButtonZip.addEventListener("click", async () => {
+                try {
+                    const res = await NormalItem(RichText)
+                    result = {
+                        markdown: res.markdown,
+                        zip: res.zip,
+                        title: res.title,
+                    }
                     const blob = await result.zip.generateAsync({ type: "blob" })
                     saveAs(blob, result.title + ".zip")
-
-                    ButtonZipDownload.innerHTML = "下载成功✅"
+                    ButtonZip.innerHTML = "下载成功✅"
                     setTimeout(() => {
-                        ButtonZipDownload.innerHTML = "下载全文为Zip"
+                        ButtonZip.innerHTML = "下载全文为Zip"
                     }, 3000)
                 } catch (e) {
                     console.log(e)
-                    ButtonZipDownload.innerHTML = "发生未知错误<br>请联系开发者"
-                    ButtonZipDownload.style.height = "4em"
+                    ButtonZip.innerHTML = "发生未知错误<br>请联系开发者"
+                    //ButtonZip.style.height = "4em"
                     setTimeout(() => {
-                        ButtonZipDownload.style.height = "2em"
-                        ButtonZipDownload.innerHTML = "下载全文为Zip"
+                        ButtonZip.innerHTML = "下载全文为Zip"
+                        //ButtonZip.style.height = "2em"
                     }, 3000)
                 }
             })
 
-            const ButtonCopyMarkdown = MakeButton()
-            ButtonCopyMarkdown.innerHTML = "复制为Markdown"
-            ButtonCopyMarkdown.style.borderRadius = "1em 0 0 1em"
-            ButtonCopyMarkdown.style.paddingLeft = ".4em"
-            ButtonContainer.prepend(ButtonCopyMarkdown)
-
-            ButtonCopyMarkdown.addEventListener("click", async () => {
-                try {
-                    if (getParent(RichText, "PinItem")) {
-                        console.log("想法", RichText)
-                        const res = await PinItem(RichText)
-                        result = {
-                            markdown: res.markdown,
-                            zip: res.zip,
-                            title: res.title,
-                        }
-                    } else {
-                        console.log("回答", RichText)
-                        const res = await NormalItem(RichText)
-                        result = {
-                            markdown: res.markdown,
-                            zip: res.zip,
-                            title: res.title,
-                        }
-                    }
-
-                    navigator.clipboard.writeText(result.markdown.join("\n\n"))
-                    ButtonCopyMarkdown.innerHTML = "复制成功✅"
-                    setTimeout(() => {
-                        ButtonCopyMarkdown.innerHTML = "复制为Markdown"
-                    }, 3000)
-                } catch {
-                    ButtonCopyMarkdown.innerHTML = "发生未知错误<br>请联系开发者"
-                    ButtonCopyMarkdown.style.height = "4em"
-                    setTimeout(() => {
-                        ButtonCopyMarkdown.style.height = "2em"
-                        ButtonCopyMarkdown.innerHTML = "复制为Markdown"
-                    }, 3000)
-                }
-            })
-
+            /*
+            
+            */
         } catch (e) {
             console.log(e)
         }
     }
 }
+
+setTimeout(() => {
+    let node = document.createElement("style")//!important
+    node.appendChild(document.createTextNode(`
+    .RichContent {
+        position: relative;
+    }
+    .RichContent:hover .zhihubackup-container{
+        opacity: 1;
+        pointer-events: initial;
+    }
+    .zhihubackup-container {
+        opacity: 0;
+        transition: opacity 1s;
+        pointer-events: none;
+        position: absolute;
+        left: -10em;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        height: 22em;
+        width: 12em;
+    }
+    .zhihubackup-container button {
+        width: 8em;
+    }
+    .zhihubackup-container input{
+        width: 90%;
+        border: 1px solid #777;
+        background-color: #0000;
+        font-size: 14px;
+        color: #1772f6;
+        border: unset;
+        text-align: center;
+        outline:unset;        
+    }
+`))
+    let heads = document.getElementsByTagName("head");
+    if (heads.length > 0) {
+        heads[0].appendChild(node)
+    } else {
+        document.documentElement.appendChild(node)
+    }
+}, 30)
 
 setTimeout(main, 300)
 

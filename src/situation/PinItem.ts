@@ -13,6 +13,7 @@ export default async (dom: HTMLElement): Promise<{
     title: string,
 }> => {
     const lex = lexer(dom)
+    const markdown = parser(lex)
 
     const pinItem = utils.getParent(dom, "PinItem")
 
@@ -27,19 +28,12 @@ export default async (dom: HTMLElement): Promise<{
         })
     }
 
-    const markdown = parser(lex)
-
     const { zop, zaExtra } = (() => {
-        let el = utils.getParent(dom, "PinItem")
-
-        try {
-            if (el)
-                return {
-                    zop: JSON.parse(decodeURIComponent(el.getAttribute("data-zop"))),
-                    zaExtra: JSON.parse(decodeURIComponent(el.getAttribute("data-za-extra-module")))
-                }
-        } catch { }
-        return { zop: null, zaExtra: null }
+        let el = utils.getParent(dom, "PinItem") as HTMLElement
+        return {
+            zop: JSON.parse(decodeURIComponent(el.getAttribute("data-zop"))),
+            zaExtra: JSON.parse(decodeURIComponent(el.getAttribute("data-za-extra-module")))
+        }
     })()
 
     const author = utils.getAuthor(dom, "", ""),
