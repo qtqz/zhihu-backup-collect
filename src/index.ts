@@ -1,11 +1,11 @@
 import { lexer } from "./core/lexer"
 import { parser } from "./core/parser"
-import saveLex from "./core/savelex"
 import { saveAs } from "file-saver"
 import { getParent } from "./core/utils"
 import NormalItem from "./situation/NormalItem"
 import * as JSZip from "jszip"
-import PinItem from "./situation/PinItem"
+import { domToPng } from 'modern-screenshot'
+
 /**
  * 修改版
  * 
@@ -27,9 +27,12 @@ import PinItem from "./situation/PinItem"
 
 /**
  * 下一步
- * 添加保存备注
- * 适配收藏夹页
  * 尝试保存评论
+ * 测试转发的想法
+ * PDF
+ * 剪藏，显示与预期不一致问题：评论栏、标题
+ * 专栏的按钮的位置
+ * 添加保存时间？
  * 
  */
 
@@ -86,7 +89,7 @@ const main = async () => {
                     text-align: center;
                     vertical-align: middle;
                 "><label for="to-cm"> 保存<br>当前页评论</label></button>`
-            
+
             const ButtonMarkdown = document.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", async () => {
                 try {
@@ -102,10 +105,8 @@ const main = async () => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
                     }, 3000)
                 } catch {
-                    ButtonMarkdown.innerHTML = "发生未知错误<br>请联系开发者"
-                    //ButtonCopyMarkdown.style.height = "4em"
+                    ButtonMarkdown.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        //ButtonCopyMarkdown.style.height = "2em"
                         ButtonMarkdown.innerHTML = "复制为Markdown"
                     }, 3000)
                 }
@@ -124,21 +125,54 @@ const main = async () => {
                     saveAs(blob, result.title + ".zip")
                     ButtonZip.innerHTML = "下载成功✅"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载全文为Zip"
+                        ButtonZip.innerHTML = "下载为Zip"
                     }, 3000)
                 } catch (e) {
                     console.log(e)
-                    ButtonZip.innerHTML = "发生未知错误<br>请联系开发者"
-                    //ButtonZip.style.height = "4em"
+                    ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载全文为Zip"
-                        //ButtonZip.style.height = "2em"
+                        ButtonZip.innerHTML = "下载为Zip"
+                    }, 3000)
+                }
+            })
+
+            const ButtonPNG = document.querySelector(".to-png")
+            ButtonPNG.addEventListener("click", async () => {
+                try {
+                    const res = await NormalItem(RichText)
+                    result = {
+                        markdown: res.markdown,
+                        zip: res.zip,
+                        title: res.title,
+                    }
+                    let clip = document.querySelector("Card") ||
+                        document.querySelector("Post-content") ||
+                        document.querySelector("PinItem") ||
+                        document.querySelector("CollectionDetailPageItem")
+                    clip.classList.add("to-screenshot")
+                    domToPng(document.querySelector('#app')).then(dataUrl => {
+                        const link = document.createElement('a')
+                        link.download = result.title
+                        link.href = dataUrl
+                        link.click()
+                    })
+                    ButtonZip.innerHTML = "请稍待片刻✅"
+                    setTimeout(() => {
+                        clip.classList.remove("to-screenshot")
+                        ButtonZip.innerHTML = "剪藏为PNG"
+                    }, 3000)
+                } catch (e) {
+                    console.log(e)
+                    ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
+                    setTimeout(() => {
+                        ButtonZip.innerHTML = "剪藏为PNG"
                     }, 3000)
                 }
             })
 
             /*
             
+
             */
         } catch (e) {
             console.log(e)
@@ -172,7 +206,6 @@ setTimeout(() => {
         width: 8em;
     }
     .zhihubackup-container input{
-        width: 90%;
         border: 1px solid #777;
         background-color: #0000;
         font-size: 14px;
@@ -180,6 +213,20 @@ setTimeout(() => {
         border: unset;
         text-align: center;
         outline:unset;        
+    }
+    .to-screenshot .ContentItem-actions {
+        position:initial!important;
+        box-shadow:unset!important;
+    }
+    .to-screenshot .RichContent-actions {
+        position:initial!important;
+        box-shadow:unset!important;
+    }
+    .to-screenshot .css-m4psdq{
+        opacity:0;
+    }
+    .to-screenshot .AppHeader-profileAvatar{
+        opacity:0;
     }
 `))
     let heads = document.getElementsByTagName("head");

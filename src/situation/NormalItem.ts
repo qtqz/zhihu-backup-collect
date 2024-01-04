@@ -3,13 +3,12 @@ import { lexer } from "../core/lexer"
 import { LexType, TokenType, TokenFigure } from "../core/tokenTypes"
 import { parser } from "../core/parser"
 import { lexer as pinsLexer } from "../core/pinsLexer"
-import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum,getRemark } from "../core/utils"
+import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark } from "../core/utils"
 import savelex from "../core/savelex"
 import { log } from "console"
 
 
 export default async (dom: HTMLElement): Promise<{
-    lex: LexType[],
     markdown: string[],
     zip: JSZip,
     title: string,
@@ -22,6 +21,7 @@ export default async (dom: HTMLElement): Promise<{
     else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.match(/answer/)) scene = "answer"
     else if (window.location.pathname.slice(0, 4) == "/pin") scene = "pin"
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
+    else if (window.location.pathname.match(/collection/)) scene = "collection"
     else console.log("未知场景")
 
     //ContentItem
@@ -53,8 +53,14 @@ export default async (dom: HTMLElement): Promise<{
         time = await getTime(dom),//?????????
         url = getURL(dom, scene, type),
         upvote_num = getUpvote(dom, scene, type),
-        comment_num = getCommentNum(dom, scene, type),
-        remark= getRemark(dom)
+        comment_num = getCommentNum(dom, scene, type)
+    let remark = getRemark(dom)
+
+    if (remark === "非法备注") {
+        alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"))
+        return
+    }
+    remark ? remark = "_" + remark : 0
 
     const zopQuestion = (() => {
         let el = document.querySelector("[data-zop-question]")
@@ -82,9 +88,8 @@ export default async (dom: HTMLElement): Promise<{
         "zop-extra-module": zaExtra,
     }, null, 4))
     return {
-        lex,
         markdown,
         zip,
-        title: title + "_" + author.name + "_" + time.edited.slice(0, 10)
+        title: title + "_" + author.name + "_" + time.edited.slice(0, 10) + remark
     }
 }

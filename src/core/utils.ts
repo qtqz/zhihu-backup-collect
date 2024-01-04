@@ -37,13 +37,14 @@ export const getParent = (dom: HTMLElement, className: string): HTMLElement | fa
  * @param dom - The dom to get title.
  * @returns The title of the dom.
  */
-export const getTitle = (dom: HTMLElement, scene?: String, type?: String) => {
-    if (scene == "follow" || scene == "people") {
+export const getTitle = (dom: HTMLElement, scene: String, type: String) => {
+    if (scene == "follow" || scene == "people"|| scene =="collection") {
         if (type == "answer" || type == "article") {
             return ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
         }
-        //pin
-        //else
+        else {
+            return dom.innerText.slice(0, 36).trim().replace(" ", "").replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
+        }
     }
     //问题/回答
     else if (scene == "question" || scene == "answer") {
@@ -55,7 +56,7 @@ export const getTitle = (dom: HTMLElement, scene?: String, type?: String) => {
     }
     //想法
     else if (scene == "pin") {
-        return document.title.slice(0, 36).trim().replace(" ", "")
+        return document.title.slice(0, 36).trim().replace(" ", "").replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
     }
     else return "无标题"
 }
@@ -66,29 +67,21 @@ export const getTitle = (dom: HTMLElement, scene?: String, type?: String) => {
  * @returns The author of the dom.
  */
 export const getAuthor = (dom: HTMLElement, scene: String, type: String): AuthorType | null => {
-    let author, author_dom
+    let author_dom
     try {
         //寻找包含昵称+链接+签名的节点
 
-        //关注/个人/问题/回答页
-        if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {
-            if (type == "answer" || type == "article") {
-                let p = getParent(dom, "ContentItem") as HTMLElement
-                //关注页原创内容没有作者栏
-                author_dom = p.querySelector(".AuthorInfo-content") || (getParent(dom, "Feed") as HTMLElement).querySelector(".FeedSource-firstline")
-            }
-            //pin
-            //else
+        //关注/个人/问题/回答/想法/收藏夹
+        if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer"||scene == "pin"|| scene =="collection") {
+            let p = getParent(dom, "ContentItem") as HTMLElement
+            //关注页原创内容没有作者栏
+            author_dom = p.querySelector(".AuthorInfo-content") || (getParent(dom, "Feed") as HTMLElement).querySelector(".FeedSource-firstline")
         }
         //文章
         else if (scene == "article") {
             author_dom = (getParent(dom, "Post-Main") as HTMLElement).querySelector(".Post-Author")
         }
-        //想法
-        else if (scene == "pin") {
-            author_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".AuthorInfo-content")
-        }
-
+        
         if (author_dom) {
             let authorName_dom = author_dom.querySelector(".AuthorInfo-name .UserLink-link") as HTMLAnchorElement ||
                 author_dom.querySelector(".UserLink-link") as HTMLAnchorElement
@@ -120,7 +113,6 @@ export const getURL = (dom: HTMLElement, scene: String, type: String): string =>
         url = window.location.href
         let q = url.match(/\?/).index
         if (q) url = url.slice(0, q)
-        url ? 0 : console.error("无url")
         return url
     }
     //关注/个人/问题/等
@@ -144,11 +136,7 @@ export const getURL = (dom: HTMLElement, scene: String, type: String): string =>
 /**
  * 
  * 时间：
- * 关注时间线内回答在data-za-detail-view-path-index
- * 关注时间线内文章在data-za-extra-module>card>content>publish_timestamp
- * 个人主页时间线内回答无
- * 
- * 使用ContentItem下meta信息
+ * 使用内容下显示的时间
  * 
  */
 export const getTime = async (dom: HTMLElement, scene?: String, type?: String): Promise<{
@@ -217,12 +205,13 @@ export const getCommentNum = (dom: HTMLElement, scene: String, type: String): nu
     //  }
     //}
 }
+
 export const getRemark = (dom: HTMLElement, scene?: String, type?: String): String => {
-    let remark, p = getParent(dom, "ContentItem")//想法类型、文章页没有
+    let remark, p = getParent(dom, "ContentItem")//文章页没有remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
     if (!p) p = getParent(dom, "PinItem")
     if (!p) p = getParent(dom, "Post-content")
     if (p) remark = (p.querySelector(".to-remark input") as HTMLInputElement).value
-    if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
+    if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) return "非法备注"
     return remark
     //  }
     //}
