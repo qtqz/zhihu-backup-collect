@@ -33,6 +33,7 @@ import { domToPng } from 'modern-screenshot'
  * 剪藏，显示与预期不一致问题：评论栏、标题
  * 专栏的按钮的位置
  * 添加保存时间？
+ * 添加ip属地
  * 
  */
 
@@ -41,15 +42,28 @@ const main = async () => {
     console.log("Starting…")
     const RichTexts = Array.from(document.querySelectorAll(".RichText")) as HTMLElement[]
     for (let RichText of RichTexts) {
-
         try {
+            let result: {
+                markdown: string[],
+                zip: JSZip,
+                title: string,
+            }
+
             //console.log(RichText)
             //console.log(RichText.children[0])
             if (RichText.parentElement.classList.contains("Editable")) continue
-            //未展开的回答没有孩子
-            if (!RichText.children[0] || RichText.children[0].classList.contains("zhihubackup-button")) continue
-            //想法，未展开不显示
+            if (window.location.hostname.match(/zhuanlan/)) {
+                if ((getParent(RichText, "Post-Main") as HTMLElement).querySelector(".zhihubackup-container")) continue
+            }
+            else {
+                if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".zhihubackup-container")) continue
+                //未展开的回答
+                if (!RichText.children[0]) continue
+                if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
+            }
+            //想法，未展开不显示，被转发的不显示
             if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
+            if (getParent(RichText, "PinItem-content-originpin")) continue
             if (getParent(RichText, "PinItem")) {
                 const richInner = getParent(RichText, "RichContent-inner")
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue
@@ -59,11 +73,13 @@ const main = async () => {
             (getParent(RichText, "RichContent") as HTMLElement).prepend(ButtonContainer)
             ButtonContainer.classList.add("zhihubackup-container")
 
-            let result: {
-                markdown: string[],
-                zip: JSZip,
-                title: string,
-            }
+            //父级
+            let parent_dom = getParent(RichText, "List-item") as HTMLElement ||
+                getParent(RichText, "Post-content") as HTMLElement ||
+                getParent(RichText, "PinItem") as HTMLElement ||
+                getParent(RichText, "CollectionDetailPageItem") as HTMLElement ||
+                getParent(RichText, "Card") as HTMLElement
+
             //按钮们
             ButtonContainer.innerHTML = `
                 <button class="to-md Button VoteButton">复制为Markdown</button>
@@ -90,7 +106,7 @@ const main = async () => {
                     vertical-align: middle;
                 "><label for="to-cm"> 保存<br>当前页评论</label></button>`
 
-            const ButtonMarkdown = document.querySelector(".to-md")
+            const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", async () => {
                 try {
                     const res = await NormalItem(RichText)
@@ -112,7 +128,7 @@ const main = async () => {
                 }
             })
 
-            const ButtonZip = document.querySelector(".to-zip")
+            const ButtonZip = parent_dom.querySelector(".to-zip")
             ButtonZip.addEventListener("click", async () => {
                 try {
                     const res = await NormalItem(RichText)
@@ -136,7 +152,7 @@ const main = async () => {
                 }
             })
 
-            const ButtonPNG = document.querySelector(".to-png")
+            const ButtonPNG = parent_dom.querySelector(".to-png")
             ButtonPNG.addEventListener("click", async () => {
                 try {
                     const res = await NormalItem(RichText)
@@ -145,27 +161,24 @@ const main = async () => {
                         zip: res.zip,
                         title: res.title,
                     }
-                    let clip = document.querySelector("Card") ||
-                        document.querySelector("Post-content") ||
-                        document.querySelector("PinItem") ||
-                        document.querySelector("CollectionDetailPageItem")
+                    let clip = parent_dom
                     clip.classList.add("to-screenshot")
-                    domToPng(document.querySelector('#app')).then(dataUrl => {
+                    domToPng(clip).then(dataUrl => {
                         const link = document.createElement('a')
                         link.download = result.title
                         link.href = dataUrl
                         link.click()
                     })
-                    ButtonZip.innerHTML = "请稍待片刻✅"
+                    ButtonPNG.innerHTML = "请稍待片刻✅"
                     setTimeout(() => {
                         clip.classList.remove("to-screenshot")
-                        ButtonZip.innerHTML = "剪藏为PNG"
+                        ButtonPNG.innerHTML = "剪藏为PNG"
                     }, 3000)
                 } catch (e) {
                     console.log(e)
-                    ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
+                    ButtonPNG.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "剪藏为PNG"
+                        ButtonPNG.innerHTML = "剪藏为PNG"
                     }, 3000)
                 }
             })
@@ -192,7 +205,7 @@ setTimeout(() => {
     }
     .zhihubackup-container {
         opacity: 0;
-        transition: opacity 1s;
+        transition: opacity 0.5s;
         pointer-events: none;
         position: absolute;
         left: -10em;

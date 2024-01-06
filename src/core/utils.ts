@@ -7,12 +7,12 @@ import type { AuthorType } from "./types"
  * @returns The converted normal link.
  */
 export const ZhihuLink2NormalLink = (link: string): string => {
-    console.log(link)
+    //console.log(link)
     const url = new URL(link)
 
     if (url.hostname == "link.zhihu.com") {
         const target = new URLSearchParams(url.search).get("target")
-        console.log(decodeURIComponent(target))
+        //console.log(decodeURIComponent(target))
         return decodeURIComponent(target)
     }
     return link
@@ -37,7 +37,7 @@ export const getParent = (dom: HTMLElement, className: string): HTMLElement | fa
  * @param dom - The dom to get title.
  * @returns The title of the dom.
  */
-export const getTitle = (dom: HTMLElement, scene: String, type: String) => {
+export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
     if (scene == "follow" || scene == "people"|| scene =="collection") {
         if (type == "answer" || type == "article") {
             return ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
@@ -66,7 +66,7 @@ export const getTitle = (dom: HTMLElement, scene: String, type: String) => {
  * @param dom - The dom to get author.
  * @returns The author of the dom.
  */
-export const getAuthor = (dom: HTMLElement, scene: String, type: String): AuthorType | null => {
+export const getAuthor = (dom: HTMLElement, scene: string, type: string): AuthorType | null => {
     let author_dom
     try {
         //寻找包含昵称+链接+签名的节点
@@ -106,12 +106,12 @@ export const getAuthor = (dom: HTMLElement, scene: String, type: String): Author
  * @param dom - The dom to get URL.
  * @returns The URL of the dom.
  */
-export const getURL = (dom: HTMLElement, scene: String, type: String): string => {
+export const getURL = (dom: HTMLElement, scene: string, type: string): string => {
     let url
     //文章/想法/回答
     if (scene == "article" || scene == "pin" || scene == "answer") {
         url = window.location.href
-        let q = url.match(/\?/).index
+        let q = url.match(/\?/)?url.match(/\?/).index:0
         if (q) url = url.slice(0, q)
         return url
     }
@@ -139,9 +139,9 @@ export const getURL = (dom: HTMLElement, scene: String, type: String): string =>
  * 使用内容下显示的时间
  * 
  */
-export const getTime = async (dom: HTMLElement, scene?: String, type?: String): Promise<{
-    published: String,
-    edited: String
+export const getTime = async (dom: HTMLElement, scene?: string, type?: string): Promise<{
+    published: string,
+    edited: string
 }> => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
@@ -169,7 +169,7 @@ export const getTime = async (dom: HTMLElement, scene?: String, type?: String): 
 }
 
 
-export const getUpvote = (dom: HTMLElement, scene: String | null, type: String): number => {
+export const getUpvote = (dom: HTMLElement, scene: string | null, type: string): number => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     //up_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".VoteButton--up") as HTMLElement//\n赞同 5.6 万
@@ -188,7 +188,7 @@ export const getUpvote = (dom: HTMLElement, scene: String | null, type: String):
     //}
 }
 
-export const getCommentNum = (dom: HTMLElement, scene: String, type: String): number => {
+export const getCommentNum = (dom: HTMLElement, scene: string, type: string): number => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     let n, up_dom
@@ -206,11 +206,11 @@ export const getCommentNum = (dom: HTMLElement, scene: String, type: String): nu
     //}
 }
 
-export const getRemark = (dom: HTMLElement, scene?: String, type?: String): String => {
+export const getRemark = (dom: HTMLElement, scene?: string, type?: string): string => {
     let remark, p = getParent(dom, "ContentItem")//文章页没有remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
     if (!p) p = getParent(dom, "PinItem")
     if (!p) p = getParent(dom, "Post-content")
-    if (p) remark = (p.querySelector(".to-remark input") as HTMLInputElement).value
+    if (p) remark = (p.querySelector("input.to-remark") as HTMLInputElement).value
     if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) return "非法备注"
     return remark
     //  }

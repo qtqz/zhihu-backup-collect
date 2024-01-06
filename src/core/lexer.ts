@@ -303,6 +303,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 				}
 
 				case "a": {
+					console.log(el)
 					res.push({
 						type: TokenType.InlineLink,
 						text: el.textContent,

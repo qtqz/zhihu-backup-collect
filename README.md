@@ -12,7 +12,7 @@
 
 已支持的页面有关注页，个人主页，回答页，问题页，文章页，想法页，收藏夹页；已支持的内容有文章/回答/想法。
 
-此项目基于[github.com/Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，**感谢原作者的探索**。原作者实现了基础功能和Markdown相关，我进行优化并适配各种场景和内容类型，添加剪藏、备注和评论支持。
+此项目基于[github.com/Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，**感谢原作者的探索**。原作者实现了Markdown相关和zip下载，我进行优化并适配各种场景和内容类型，添加剪藏、备注和评论支持。
 
 ## Usage
 
@@ -20,7 +20,7 @@
 
 鼠标移到知乎内容上，会出现保存按钮，点击即可保存（到下载目录）。具体功能解释：
 
-* 复制Markdown：语法见
+* 复制Markdown：语法见[Markdown Reference](https://commonmark.org/help/)
 * 下载zip：将内容的图片、Markdown文本、信息（赞数、时间等）、当前页评论（如果启用）保存为zip，文件名格式`标题_作者_日期_备注.zip`
 * 剪藏PDF：**暂未实现**
 * 剪藏图片：将当前内容（和评论）截为PNG图片，会自动隐藏你的头像以保护隐私。

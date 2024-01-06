@@ -13,6 +13,7 @@ export default async (dom: HTMLElement): Promise<{
     zip: JSZip,
     title: string,
 }> => {
+    //console.log(dom)
     //确认场景
     let scene, type
     if (window.location.pathname == "/follow") scene = "follow"
@@ -21,7 +22,7 @@ export default async (dom: HTMLElement): Promise<{
     else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.match(/answer/)) scene = "answer"
     else if (window.location.pathname.slice(0, 4) == "/pin") scene = "pin"
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
-    else if (window.location.pathname.match(/collection/)) scene = "collection"
+    else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
     else console.log("未知场景")
 
     //ContentItem
@@ -31,6 +32,7 @@ export default async (dom: HTMLElement): Promise<{
     else console.log("未知内容")
 
     scene = "follow"
+    scene = "answer"
     if (!scene || !type) return
 
     const lex = type == "pin" ? pinsLexer(dom) : lexer(dom.childNodes as NodeListOf<Element>)
