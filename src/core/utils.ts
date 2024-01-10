@@ -38,27 +38,26 @@ export const getParent = (dom: HTMLElement, className: string): HTMLElement | fa
  * @returns The title of the dom.
  */
 export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
-    if (scene == "follow" || scene == "people"|| scene =="collection") {
+    let t
+    if (scene == "follow" || scene == "people" || scene == "collection" || scene == "pin") {
         if (type == "answer" || type == "article") {
-            return ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
+            t = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
         }
-        else {
-            return dom.innerText.slice(0, 36).trim().replace(" ", "").replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
+        else {//想法
+            t = "想法：" + dom.innerText.slice(0, 30).trim().replace(/\s/g, "")
         }
     }
     //问题/回答
     else if (scene == "question" || scene == "answer") {
-        return ((getParent(dom, "QuestionPage") as HTMLElement).querySelector("meta[itemprop=name]") as HTMLMetaElement).content
+        t = ((getParent(dom, "QuestionPage") as HTMLElement).querySelector("meta[itemprop=name]") as HTMLMetaElement).content
     }
     //文章
     else if (scene == "article") {
-        return ((getParent(dom, "Post-Main") as HTMLElement).querySelector("h1.Post-Title") as HTMLElement).innerText
+        t = ((getParent(dom, "Post-Main") as HTMLElement).querySelector("h1.Post-Title") as HTMLElement).innerText
     }
-    //想法
-    else if (scene == "pin") {
-        return document.title.slice(0, 36).trim().replace(" ", "").replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
-    }
-    else return "无标题"
+    else t = "无标题"
+    //替换英文问号为中文问号，因标题中间也可能有问号所以不去掉
+    return t.replace(/\?/g, "？").replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
 }
 
 /**
@@ -72,7 +71,7 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
         //寻找包含昵称+链接+签名的节点
 
         //关注/个人/问题/回答/想法/收藏夹
-        if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer"||scene == "pin"|| scene =="collection") {
+        if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer" || scene == "pin" || scene == "collection") {
             let p = getParent(dom, "ContentItem") as HTMLElement
             //关注页原创内容没有作者栏
             author_dom = p.querySelector(".AuthorInfo-content") || (getParent(dom, "Feed") as HTMLElement).querySelector(".FeedSource-firstline")
@@ -81,7 +80,7 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
         else if (scene == "article") {
             author_dom = (getParent(dom, "Post-Main") as HTMLElement).querySelector(".Post-Author")
         }
-        
+
         if (author_dom) {
             let authorName_dom = author_dom.querySelector(".AuthorInfo-name .UserLink-link") as HTMLAnchorElement ||
                 author_dom.querySelector(".UserLink-link") as HTMLAnchorElement
@@ -111,7 +110,7 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
     //文章/想法/回答
     if (scene == "article" || scene == "pin" || scene == "answer") {
         url = window.location.href
-        let q = url.match(/\?/)?url.match(/\?/).index:0
+        let q = url.match(/\?/) ? url.match(/\?/).index : 0
         if (q) url = url.slice(0, q)
         return url
     }
@@ -140,29 +139,29 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
  * 
  */
 export const getTime = async (dom: HTMLElement, scene?: string, type?: string): Promise<{
-    published: string,
-    edited: string
+    created: string,
+    modified: string
 }> => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     //  if (type != "" || type == "article") {
-    let published, edited, time_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-time") as HTMLElement
+    let created, modified, time_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-time") as HTMLElement
     if (time_dom.querySelector("span")) {
-        published = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
-        edited = time_dom.querySelector("span").innerText.slice(4)
-        return { published, edited }
+        created = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
+        modified = time_dom.querySelector("span").innerText.slice(4)
+        return { created, modified }
     }
     else {//文章
-        edited = time_dom.childNodes[0].textContent.slice(4)
+        modified = time_dom.childNodes[0].textContent.slice(4)
         time_dom.click()
         await new Promise<void>((resolve) => {
             setTimeout(() => {
                 resolve()
             }, 1000)
         })
-        published = time_dom.childNodes[0].textContent.slice(4)
+        created = time_dom.childNodes[0].textContent.slice(4)
         time_dom.click()
-        return { published, edited }
+        return { created, modified }
     }
     //  }
     //}
@@ -176,8 +175,8 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
     let upvote, up_dom
     if (type == "pin") {
         up_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions .ContentItem-actions") as HTMLElement).childNodes[0]
-        upvote = up_dom.textContent.slice(0, -4)
-        upvote ? 0 : upvote = "0"
+        upvote = up_dom.textContent.slice(0, -4).replace(/\u200B/g, '')
+        upvote ? 0 : upvote = 0
     }
     else {
         let zaedata = (getParent(dom, "ContentItem") as HTMLElement).getAttribute("data-za-extra-module")
@@ -194,8 +193,8 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
     let n, up_dom
     if (type == "pin") {
         up_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions .ContentItem-actions") as HTMLElement).childNodes[1]
-        n = up_dom.textContent.slice(0, -4).replace(",", "")
-        n ? 0 : n = "0"
+        n = up_dom.textContent.slice(0, -4).replace(/,|\u200B/g, "")
+        n ? 0 : n = 0
     }
     else {
         let zaedata = (getParent(dom, "ContentItem") as HTMLElement).getAttribute("data-za-extra-module")
@@ -207,12 +206,21 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
 }
 
 export const getRemark = (dom: HTMLElement, scene?: string, type?: string): string => {
-    let remark, p = getParent(dom, "ContentItem")//文章页没有remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
+    let remark, p = getParent(dom, "ContentItem")//文章页没有，remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
     if (!p) p = getParent(dom, "PinItem")
     if (!p) p = getParent(dom, "Post-content")
-    if (p) remark = (p.querySelector("input.to-remark") as HTMLInputElement).value
+    if (p) remark = (p.querySelector("input.to-remark") as HTMLInputElement).value.replace(/\s/g, "-")
     if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) return "非法备注"
     return remark
-    //  }
-    //}
+}
+
+/**
+ * 获取是否需要保存评论，用于截图，后续用于PDF，zip
+ */
+export const getCommentSwitch = (dom: HTMLElement, scene?: string, type?: string): boolean => {
+    let s, p = getParent(dom, "ContentItem")
+    if (!p) p = getParent(dom, "PinItem")
+    if (!p) p = getParent(dom, "Post-content")
+    if (p) s = (p.querySelector("input#to-cm") as HTMLInputElement).checked
+    return s
 }

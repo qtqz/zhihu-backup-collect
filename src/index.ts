@@ -4,7 +4,8 @@ import { saveAs } from "file-saver"
 import { getParent } from "./core/utils"
 import NormalItem from "./situation/NormalItem"
 import * as JSZip from "jszip"
-import { domToPng } from 'modern-screenshot'
+import { domToPng } from "modern-screenshot"
+import { getCommentSwitch } from "./core/utils"
 
 /**
  * 修改版
@@ -50,7 +51,6 @@ const main = async () => {
             }
 
             //console.log(RichText)
-            //console.log(RichText.children[0])
             if (RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.match(/zhuanlan/)) {
                 if ((getParent(RichText, "Post-Main") as HTMLElement).querySelector(".zhihubackup-container")) continue
@@ -71,7 +71,7 @@ const main = async () => {
 
             const ButtonContainer = document.createElement("div");
             (getParent(RichText, "RichContent") as HTMLElement).prepend(ButtonContainer)
-            ButtonContainer.classList.add("zhihubackup-container")
+            ButtonContainer.classList.add("zhihubackup-wrap")
 
             //父级
             let parent_dom = getParent(RichText, "List-item") as HTMLElement ||
@@ -81,31 +81,18 @@ const main = async () => {
                 getParent(RichText, "Card") as HTMLElement
 
             //按钮们
-            ButtonContainer.innerHTML = `
+            ButtonContainer.innerHTML = `<div class="zhihubackup-container">
                 <button class="to-md Button VoteButton">复制为Markdown</button>
                 <button class="to-zip Button VoteButton">下载为Zip</button>
                 <button class="to-pdf Button VoteButton">剪藏为PDF</button>
                 <button class="to-png Button VoteButton">剪藏为PNG</button>
                 <button class="Button VoteButton">
-                    <input class="to-remark" type="text" placeholder="添加备注" style="
-                    width: 90%;
-                    background-color: #0000;
-                    font-size: 14px;
-                    color: #1772f6;
-                    border: unset;
-                    text-align: center;
-                " maxlength="12"></button>
+                    <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="12">
+                </button>
                 <button class="Button VoteButton">
-                    <input type="checkbox" checked id="to-cm" style="
-                    border: 1px solid #777;
-                    background-color: #0000;
-                    font-size: 14px;
-                    color: #1772f6;
-                    border: unset;
-                    text-align: center;
-                    vertical-align: middle;
-                "><label for="to-cm"> 保存<br>当前页评论</label></button>`
-
+                    <input type="checkbox" checked id="to-cm">
+                    <label for="to-cm"> 保存<br>当前页评论</label>
+                </button></div>`
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", async () => {
                 try {
@@ -139,16 +126,16 @@ const main = async () => {
                     }
                     const blob = await result.zip.generateAsync({ type: "blob" })
                     saveAs(blob, result.title + ".zip")
-                    ButtonZip.innerHTML = "下载成功✅"
+                    ButtonZip.innerHTML = "下载成功✅<br>请查看浏览器下载记录"
                     setTimeout(() => {
                         ButtonZip.innerHTML = "下载为Zip"
-                    }, 3000)
+                    }, 5000)
                 } catch (e) {
                     console.log(e)
                     ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
                         ButtonZip.innerHTML = "下载为Zip"
-                    }, 3000)
+                    }, 5000)
                 }
             })
 
@@ -163,9 +150,18 @@ const main = async () => {
                     }
                     let clip = parent_dom
                     clip.classList.add("to-screenshot")
-                    domToPng(clip).then(dataUrl => {
+                    let saveCM = getCommentSwitch(RichText)
+                    !saveCM ? clip.classList.add("no-cm") : 0
+
+                    domToPng(clip, {
+                        backgroundColor: "#fff",
+                        /*filter: ((el: Node) => {
+                            if (el instanceof HTMLElement) return !el.classList.contains("Comments-container")
+                            else return true
+                        })*/
+                    }).then(dataUrl => {
                         const link = document.createElement('a')
-                        link.download = result.title
+                        link.download = result.title + ".png"
                         link.href = dataUrl
                         link.click()
                     })
@@ -179,7 +175,7 @@ const main = async () => {
                     ButtonPNG.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
                         ButtonPNG.innerHTML = "剪藏为PNG"
-                    }, 3000)
+                    }, 5000)
                 }
             })
 
@@ -199,27 +195,32 @@ setTimeout(() => {
     .RichContent {
         position: relative;
     }
-    .RichContent:hover .zhihubackup-container{
+    .RichContent:hover .zhihubackup-wrap{
         opacity: 1;
         pointer-events: initial;
     }
-    .zhihubackup-container {
+    .zhihubackup-wrap {
         opacity: 0;
-        transition: opacity 0.5s;
         pointer-events: none;
+        transition: opacity 0.5s;
         position: absolute;
         left: -10em;
-        display: flex;
+        height: 100%;
+    }
+    .zhihubackup-container {
+        position: sticky;
+        top: 120px;
+        /*display: flex;
         flex-direction: column;
         justify-content: space-around;
-        height: 22em;
+        height: 22em;*/
         width: 12em;
     }
     .zhihubackup-container button {
         width: 8em;
     }
     .zhihubackup-container input{
-        border: 1px solid #777;
+        /*border: 1px solid #777;*/
         background-color: #0000;
         font-size: 14px;
         color: #1772f6;

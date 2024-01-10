@@ -31,8 +31,10 @@ export default async (dom: HTMLElement): Promise<{
     else if (getParent(dom, "PinItem")) type = "pin"
     else console.log("未知内容")
 
-    scene = "follow"
-    scene = "answer"
+    if (!window.location.href.match(/http/)) {
+        scene = "follow"
+        scene = "answer"
+    }
     if (!scene || !type) return
 
     const lex = type == "pin" ? pinsLexer(dom) : lexer(dom.childNodes as NodeListOf<Element>)
@@ -41,15 +43,16 @@ export default async (dom: HTMLElement): Promise<{
     if (type == "pin") {
         // 获取图片
         const pinItem = getParent(dom, "PinItem") as HTMLElement
-        const imgs = Array.from(pinItem.querySelectorAll(".Image-PreviewVague > img")) as HTMLImageElement[]
-        imgs.forEach((img) => {
-            lex.push({
-                type: TokenType.Figure,
-                src: img.getAttribute("data-original") || img.getAttribute("data-actualsrc"),
-            } as TokenFigure)
-        })
+        if (pinItem.querySelector("img")) {
+            const imgs = Array.from(pinItem.querySelectorAll(".Image-PreviewVague > img")) as HTMLImageElement[]
+            imgs.forEach((img) => {
+                lex.push({
+                    type: TokenType.Figure,
+                    src: img.getAttribute("data-original") || img.getAttribute("data-actualsrc"),
+                } as TokenFigure)
+            })
+        }
     }
-
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
         time = await getTime(dom),//?????????
@@ -92,6 +95,6 @@ export default async (dom: HTMLElement): Promise<{
     return {
         markdown,
         zip,
-        title: title + "_" + author.name + "_" + time.edited.slice(0, 10) + remark
+        title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
     }
 }
