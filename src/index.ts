@@ -27,7 +27,7 @@ import { getCommentSwitch } from "./core/utils"
 /**
  * 下一步
  * 尝试保存评论
- * 测试转发的想法
+ * 处理复杂的想法：转发、带卡片链接、带@
  * 想法的链接未解析
  * PDF
  * 剪藏，显示与预期不一致问题：评论栏、标题
@@ -47,7 +47,6 @@ const main = async () => {
                 zip?: JSZip,
                 title: string,
             }
-            //if (navigator.userAgent.match(/msie|Trident/i)) alert('不支持IE浏览器')
             //console.log(RichText)
             if (RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.match(/zhuanlan/)) {
@@ -100,12 +99,14 @@ const main = async () => {
                         zip: res.zip,
                         title: res.title,
                     }
+                    console.log(result.markdown.join("\n\n"))
                     navigator.clipboard.writeText(result.markdown.join("\n\n"))
                     ButtonMarkdown.innerHTML = "复制成功✅"
                     setTimeout(() => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
                     }, 3000)
-                } catch {
+                } catch (e) {
+                    console.log(e)
                     ButtonMarkdown.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
@@ -137,27 +138,6 @@ const main = async () => {
                 }
             })
 
-            /*const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
-            ButtonGetFileName.addEventListener("click", async () => {
-                try {
-                    const res = await NormalItem(RichText, true)
-                    result = {
-                        title: res.title,
-                    }
-                    navigator.clipboard.writeText(result.title)
-                    ButtonGetFileName.innerHTML = "复制成功✅"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                } catch (e) {
-                    console.log(e)
-                    ButtonGetFileName.innerHTML = "发生错误❌<br>请打开控制台查看"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                }
-            })*/
-
             const ButtonPNG = parent_dom.querySelector(".to-png")
             ButtonPNG.addEventListener("click", async () => {
                 try {
@@ -174,11 +154,7 @@ const main = async () => {
                     svgDefs ? svgDefs.style.visibility = "visible" : 0
 
                     domToPng(clip, {
-                        backgroundColor: "#fff",
-                        /*filter: ((el: Node) => {
-                            if (el instanceof HTMLElement) return !el.classList.contains("Comments-container")
-                            else return true
-                        })*/
+                        backgroundColor: "#fff"
                     }).then(dataUrl => {
                         const link = document.createElement('a')
                         link.download = result.title + ".png"
@@ -202,7 +178,26 @@ const main = async () => {
             })
 
             /*
-            
+            const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
+            ButtonGetFileName.addEventListener("click", async () => {
+                try {
+                    const res = await NormalItem(RichText, true)
+                    result = {
+                        title: res.title,
+                    }
+                    navigator.clipboard.writeText(result.title)
+                    ButtonGetFileName.innerHTML = "复制成功✅"
+                    setTimeout(() => {
+                        ButtonGetFileName.innerHTML = "复制文件名"
+                    }, 5000)
+                } catch (e) {
+                    console.log(e)
+                    ButtonGetFileName.innerHTML = "发生错误❌<br>请打开控制台查看"
+                    setTimeout(() => {
+                        ButtonGetFileName.innerHTML = "复制文件名"
+                    }, 5000)
+                }
+            })
 
             */
         } catch (e) {

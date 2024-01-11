@@ -44,7 +44,7 @@ export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
             t = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
         }
         else {//想法
-            t = "想法：" + dom.innerText.slice(0, 30).trim().replace(/\s/g, "")
+            t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "")
         }
     }
     //问题/回答
@@ -174,7 +174,10 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
     //up_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".VoteButton--up") as HTMLElement//\n赞同 5.6 万
     let upvote, up_dom
     if (type == "pin") {
-        up_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions .ContentItem-actions") as HTMLElement).childNodes[0]
+        //个人页的想法有2层ContentItem-actions，想法页有1层
+        up_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
+            (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
+        up_dom = up_dom.childNodes[0]
         upvote = up_dom.textContent.slice(0, -4).replace(/\u200B/g, '')
         upvote ? 0 : upvote = 0
     }
@@ -192,7 +195,9 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     let n, up_dom
     if (type == "pin") {
-        up_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions .ContentItem-actions") as HTMLElement).childNodes[1]
+        up_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
+            (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
+        up_dom = up_dom.childNodes[1]
         n = up_dom.textContent.slice(0, -4).replace(/,|\u200B/g, "")
         n ? 0 : n = 0
     }

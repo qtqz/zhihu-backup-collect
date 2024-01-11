@@ -2,7 +2,6 @@ import * as JSZip from "jszip"
 import { lexer } from "../core/lexer"
 import { LexType, TokenType, TokenFigure } from "../core/tokenTypes"
 import { parser } from "../core/parser"
-import { lexer as pinsLexer } from "../core/pinsLexer"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark } from "../core/utils"
 import savelex from "../core/savelex"
 
@@ -30,9 +29,10 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     else if (getParent(dom, "PinItem")) type = "pin"
     else console.log("未知内容")
 
-    if (!window.location.href.match(/http/)) {
+    if (!window.location.href.match(/https/)) {
         scene = "follow"
-        scene = "answer"
+        if (window.location.pathname.match(/a/)) scene = "answer"
+        if (window.location.pathname.match(/pin/)) scene = "pin"
     }
     if (!scene || !type) return
 
@@ -46,7 +46,7 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
 
     if (remark === "非法备注") {
         alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"))
-        return
+        //return
     }
     remark ? remark = "_" + remark : 0
 
@@ -54,7 +54,8 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
         title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
     }
 
-    const lex = type == "pin" ? pinsLexer(dom) : lexer(dom.childNodes as NodeListOf<Element>)
+    const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
+    console.log("lex", lex)
     const markdown = parser(lex)
 
     if (type == "pin") {

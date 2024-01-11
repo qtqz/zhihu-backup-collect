@@ -32,11 +32,36 @@ import { ZhihuLink2NormalLink } from "./utils";
  * @param input - The NodeListOf<Element> to tokenize.
  * @returns An array of LexType tokens.
  */
-export const lexer = (input: NodeListOf<Element>): LexType[] => {
+export const lexer = (input: NodeListOf<Element> | Element[], type?: string): LexType[] => {
+
+	/**
+	 * 想法,文字没有节点，非标签链接被<br>隔开，是单独的一行
+	 * 将每一段转为p段落处理
+	 */
+	if (type == "pin") {
+		console.log(input)
+		let pinParagraphs: LexType[] = []//二级包-一级
+		
+		let dom = input[0].parentNode as Element
+		let blocks = dom.innerHTML.replace(/\n\s*/,"").split(/<br.{0,20}>/g)
+		for (let block of blocks) {
+			let p = document.createElement("p")
+			p.innerHTML = block
+			pinParagraphs.push({
+				type: TokenType.Text,
+				content: Tokenize(p),
+			})
+		}
+		console.log('pinParagraphs', pinParagraphs)
+		return pinParagraphs
+	}
+
+
 	const tokens: LexType[] = [];
 
 	for (let i = 0; i < input.length; i++) {
 		const node = input[i];
+		console.log(node)
 		const tagName = node.tagName.toLowerCase();
 
 		//console.log(node, tagName);
@@ -214,6 +239,7 @@ export const lexer = (input: NodeListOf<Element>): LexType[] => {
 
 /**
  * Tokenizes an HTML element or string into an array of TokenTextType objects.
+ * 处理行内内容
  * @param node The HTML element or string to tokenize.
  * @returns An array of TokenTextType objects representing the tokenized input.
  */
@@ -303,7 +329,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 				}
 
 				case "a": {
-					console.log(el)
+					//console.log(el)
 					res.push({
 						type: TokenType.InlineLink,
 						text: el.textContent,
