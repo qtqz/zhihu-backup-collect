@@ -5,12 +5,11 @@ import { parser } from "../core/parser"
 import { lexer as pinsLexer } from "../core/pinsLexer"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark } from "../core/utils"
 import savelex from "../core/savelex"
-import { log } from "console"
 
-
-export default async (dom: HTMLElement): Promise<{
-    markdown: string[],
-    zip: JSZip,
+String.toString
+export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
+    markdown?: string[],
+    zip?: JSZip,
     title: string,
 }> => {
     //console.log(dom)
@@ -37,6 +36,24 @@ export default async (dom: HTMLElement): Promise<{
     }
     if (!scene || !type) return
 
+    const title = getTitle(dom, scene, type),
+        author = getAuthor(dom, scene, type),
+        time = await getTime(dom),//?????????
+        url = getURL(dom, scene, type),
+        upvote_num = getUpvote(dom, scene, type),
+        comment_num = getCommentNum(dom, scene, type)
+    let remark = getRemark(dom)
+
+    if (remark === "非法备注") {
+        alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"))
+        return
+    }
+    remark ? remark = "_" + remark : 0
+
+    if (onlyTitle) return {
+        title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+    }
+
     const lex = type == "pin" ? pinsLexer(dom) : lexer(dom.childNodes as NodeListOf<Element>)
     const markdown = parser(lex)
 
@@ -53,19 +70,6 @@ export default async (dom: HTMLElement): Promise<{
             })
         }
     }
-    const title = getTitle(dom, scene, type),
-        author = getAuthor(dom, scene, type),
-        time = await getTime(dom),//?????????
-        url = getURL(dom, scene, type),
-        upvote_num = getUpvote(dom, scene, type),
-        comment_num = getCommentNum(dom, scene, type)
-    let remark = getRemark(dom)
-
-    if (remark === "非法备注") {
-        alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"))
-        return
-    }
-    remark ? remark = "_" + remark : 0
 
     const zopQuestion = (() => {
         let el = document.querySelector("[data-zop-question]")

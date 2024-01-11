@@ -1,5 +1,3 @@
-import { lexer } from "./core/lexer"
-import { parser } from "./core/parser"
 import { saveAs } from "file-saver"
 import { getParent } from "./core/utils"
 import NormalItem from "./situation/NormalItem"
@@ -30,10 +28,10 @@ import { getCommentSwitch } from "./core/utils"
  * 下一步
  * 尝试保存评论
  * 测试转发的想法
+ * 想法的链接未解析
  * PDF
  * 剪藏，显示与预期不一致问题：评论栏、标题
  * 专栏的按钮的位置
- * 添加保存时间？
  * 添加ip属地
  * 
  */
@@ -45,11 +43,11 @@ const main = async () => {
     for (let RichText of RichTexts) {
         try {
             let result: {
-                markdown: string[],
-                zip: JSZip,
+                markdown?: string[],
+                zip?: JSZip,
                 title: string,
             }
-
+            //if (navigator.userAgent.match(/msie|Trident/i)) alert('不支持IE浏览器')
             //console.log(RichText)
             if (RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.match(/zhuanlan/)) {
@@ -74,10 +72,10 @@ const main = async () => {
             ButtonContainer.classList.add("zhihubackup-wrap")
 
             //父级
-            let parent_dom = getParent(RichText, "List-item") as HTMLElement ||
-                getParent(RichText, "Post-content") as HTMLElement ||
-                getParent(RichText, "PinItem") as HTMLElement ||
-                getParent(RichText, "CollectionDetailPageItem") as HTMLElement ||
+            let parent_dom = getParent(RichText, "List-item") ||
+                getParent(RichText, "Post-content") ||
+                getParent(RichText, "PinItem") ||
+                getParent(RichText, "CollectionDetailPageItem") ||
                 getParent(RichText, "Card") as HTMLElement
 
             //按钮们
@@ -126,7 +124,7 @@ const main = async () => {
                     }
                     const blob = await result.zip.generateAsync({ type: "blob" })
                     saveAs(blob, result.title + ".zip")
-                    ButtonZip.innerHTML = "下载成功✅<br>请查看浏览器下载记录"
+                    ButtonZip.innerHTML = "下载成功✅<br>请查看下载记录"
                     setTimeout(() => {
                         ButtonZip.innerHTML = "下载为Zip"
                     }, 5000)
@@ -139,19 +137,41 @@ const main = async () => {
                 }
             })
 
+            /*const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
+            ButtonGetFileName.addEventListener("click", async () => {
+                try {
+                    const res = await NormalItem(RichText, true)
+                    result = {
+                        title: res.title,
+                    }
+                    navigator.clipboard.writeText(result.title)
+                    ButtonGetFileName.innerHTML = "复制成功✅"
+                    setTimeout(() => {
+                        ButtonGetFileName.innerHTML = "复制文件名"
+                    }, 5000)
+                } catch (e) {
+                    console.log(e)
+                    ButtonGetFileName.innerHTML = "发生错误❌<br>请打开控制台查看"
+                    setTimeout(() => {
+                        ButtonGetFileName.innerHTML = "复制文件名"
+                    }, 5000)
+                }
+            })*/
+
             const ButtonPNG = parent_dom.querySelector(".to-png")
             ButtonPNG.addEventListener("click", async () => {
                 try {
-                    const res = await NormalItem(RichText)
+                    const res = await NormalItem(RichText, true)
                     result = {
-                        markdown: res.markdown,
-                        zip: res.zip,
                         title: res.title,
                     }
+
                     let clip = parent_dom
                     clip.classList.add("to-screenshot")
                     let saveCM = getCommentSwitch(RichText)
                     !saveCM ? clip.classList.add("no-cm") : 0
+                    let svgDefs = document.querySelector("#MathJax_SVG_glyphs") as HTMLElement
+                    svgDefs ? svgDefs.style.visibility = "visible" : 0
 
                     domToPng(clip, {
                         backgroundColor: "#fff",
@@ -164,12 +184,14 @@ const main = async () => {
                         link.download = result.title + ".png"
                         link.href = dataUrl
                         link.click()
+                        setTimeout(() => {
+                            clip.classList.remove("to-screenshot")
+                            !saveCM ? clip.classList.remove("no-cm") : 0
+                            //svgDefs2.remove()
+                            ButtonPNG.innerHTML = "剪藏为PNG"
+                        }, 5000)
                     })
-                    ButtonPNG.innerHTML = "请稍待片刻✅"
-                    setTimeout(() => {
-                        clip.classList.remove("to-screenshot")
-                        ButtonPNG.innerHTML = "剪藏为PNG"
-                    }, 3000)
+                    ButtonPNG.innerHTML = "请稍待片刻✅<br>查看下载记录"
                 } catch (e) {
                     console.log(e)
                     ButtonPNG.innerHTML = "发生错误❌<br>请打开控制台查看"
@@ -218,6 +240,7 @@ setTimeout(() => {
     }
     .zhihubackup-container button {
         width: 8em;
+        margin-bottom: 8px;
     }
     .zhihubackup-container input{
         /*border: 1px solid #777;*/
@@ -226,21 +249,34 @@ setTimeout(() => {
         color: #1772f6;
         border: unset;
         text-align: center;
-        outline:unset;        
+        outline: unset;        
     }
     .to-screenshot .ContentItem-actions {
-        position:initial!important;
-        box-shadow:unset!important;
+        position: initial!important;
+        box-shadow: unset!important;
+        margin: 0 -20px -10px!important;
     }
-    .to-screenshot .RichContent-actions {
-        position:initial!important;
-        box-shadow:unset!important;
+    .to-screenshot .ContentItem-actions>.ContentItem-actions {
+        margin-top: -10px!important;/*想法*/
     }
     .to-screenshot .css-m4psdq{
-        opacity:0;
+        opacity: 0;
     }
     .to-screenshot .AppHeader-profileAvatar{
-        opacity:0;
+        opacity: 0;
+    }
+    .to-screenshot.no-cm .Comments-container{
+        display: none;
+    }
+    .to-screenshot noscript{
+        display: none;
+    }
+    .to-screenshot .RichText-LinkCardContainer{
+        display: flex;
+        justify-content: center;
+    }
+    .to-screenshot .LinkCard.new{
+        margin: 0!important;
     }
 `))
     let heads = document.getElementsByTagName("head");

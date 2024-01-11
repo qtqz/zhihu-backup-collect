@@ -1,6 +1,6 @@
 {
   "name": "zhihu-backup",
-  "version": "0.4.0",
+  "version": "0.5.3",
   "scripts": {
     "dev": "run-p build:test watch serve",
     "serve": "live-server ./dist",
