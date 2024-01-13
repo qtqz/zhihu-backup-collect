@@ -25,6 +25,7 @@ import type {
 
 import { TokenType } from "./tokenTypes";
 import { ZhihuLink2NormalLink } from "./utils";
+import { getParent } from "../core/utils"
 
 
 /**
@@ -35,15 +36,25 @@ import { ZhihuLink2NormalLink } from "./utils";
 export const lexer = (input: NodeListOf<Element> | Element[], type?: string): LexType[] => {
 
 	/**
-	 * 想法,文字没有节点，非标签链接被<br>隔开，是单独的一行
+	 * 想法,文字没有节点，非#标签和非@链接被<br>隔开，是单独的一行
 	 * 将每一段转为p段落处理
 	 */
 	if (type == "pin") {
 		console.log(input)
 		let pinParagraphs: LexType[] = []//二级包-一级
-		
-		let dom = input[0].parentNode as Element
-		let blocks = dom.innerHTML.replace(/\n\s*/,"").split(/<br.{0,20}>/g)
+		let dom = input[0].parentNode as HTMLElement//RichText
+
+		//被转发的想法，首行添加主人
+		if (getParent(dom, "PinItem-content-originpin")) {
+			let p = document.createElement("p")
+			p.innerHTML = (getParent(dom, "PinItem-content-originpin") as HTMLElement).firstElementChild.textContent
+			pinParagraphs.push({
+				type: TokenType.Text,
+				content: Tokenize(p),
+			})
+		}
+
+		let blocks = dom.innerHTML.replace(/\n\s*/g, "").split(/<br.{0,20}>/g)
 		for (let block of blocks) {
 			let p = document.createElement("p")
 			p.innerHTML = block
@@ -52,6 +63,38 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 				content: Tokenize(p),
 			})
 		}
+
+		//检查想法有无引用回答，仅检查当前层级
+		if (getParent(dom, "PinItem-content-originpin")) {
+			let a = (getParent(dom, "PinItem-content-originpin") as HTMLElement).querySelector("a.LinkCard") as HTMLAnchorElement
+			if (a) {
+				let p = document.createElement("p")
+				let a2 = document.createElement("a")
+				a2.href = a.href
+				a2.innerHTML = a.innerText.replace(/\n\s*/g, " ")
+				p.innerHTML = a2.outerHTML
+				pinParagraphs.push({
+					type: TokenType.Text,
+					content: Tokenize(p),
+				})
+			}
+		} else {
+			//此时dom不在源想法内
+			let parent = getParent(dom, "PinItem") as HTMLElement
+			if (!parent.querySelector(".PinItem-content-originpin") && parent.querySelector("a.LinkCard")) {
+				let a = parent.querySelector("a.LinkCard") as HTMLAnchorElement
+				let p = document.createElement("p")
+				let a2 = document.createElement("a")
+				a2.href = a.href
+				a2.innerHTML = a.innerText.replace(/\n\s*/g, " ")
+				p.innerHTML = a2.outerHTML
+				pinParagraphs.push({
+					type: TokenType.Text,
+					content: Tokenize(p),
+				})
+			}
+		}
+
 		console.log('pinParagraphs', pinParagraphs)
 		return pinParagraphs
 	}
@@ -316,14 +359,21 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 							content: el.getAttribute("data-tex"),
 							dom: el,
 						} as TokenTextInlineMath);
-					} else {
-						if (el.children[0].classList.contains("RichContent-EntityWord")) {
-							res.push({
-								type: TokenType.PlainText,
-								text: el.innerText,
-								dom: el,
-							} as TokenTextPlain);
-						}
+					} else if (el.children[0].classList.contains("RichContent-EntityWord")) {//搜索词
+						res.push({
+							type: TokenType.PlainText,
+							text: el.innerText,
+							dom: el,
+						} as TokenTextPlain)
+					}
+					else if (el.children[0].classList.contains("UserLink")) {//想法中的@
+						res.push({
+							type: TokenType.InlineLink,
+							text: el.innerText,
+							href: ZhihuLink2NormalLink((el.querySelector("a") as HTMLAnchorElement).href),
+							dom: el,
+						} as TokenTextLink)
+						break
 					}
 					break;
 				}

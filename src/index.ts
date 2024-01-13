@@ -34,6 +34,20 @@ import { getCommentSwitch } from "./core/utils"
  * 专栏的按钮的位置
  * 添加ip属地
  * 
+ * 路线图
+ * 
+ * 03-原版
+ * 04-接手
+ * 05-截图
+ * 054-想法
+ * 06-想法完全支持
+ * 
+ * 10-完全测试所有场景+类型
+ * -评论md解析
+ * -md添加frontmatter
+ * -pdf
+ * 
+ * 
  */
 
 const main = async () => {
@@ -53,17 +67,17 @@ const main = async () => {
                 if ((getParent(RichText, "Post-Main") as HTMLElement).querySelector(".zhihubackup-container")) continue
             }
             else {
+                if (getParent(RichText, "PinItem")) {
+                    if (!getParent(RichText, "RichContent-inner")) continue//每个带图想法有3个RichText，除掉图、假转发
+                    const richInner = getParent(RichText, "RichContent-inner")
+                    if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开想法
+                    //if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
+                    if (getParent(RichText, "PinItem-content-originpin")) continue//被转发想法
+                }
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".zhihubackup-container")) continue
                 //未展开的回答
                 if (!RichText.children[0]) continue
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
-            }
-            //想法，未展开不显示，被转发的不显示
-            if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
-            if (getParent(RichText, "PinItem-content-originpin")) continue
-            if (getParent(RichText, "PinItem")) {
-                const richInner = getParent(RichText, "RichContent-inner")
-                if (richInner && richInner.querySelector(".ContentItem-more")) continue
             }
 
             const ButtonContainer = document.createElement("div");
@@ -272,6 +286,14 @@ setTimeout(() => {
     }
     .to-screenshot .LinkCard.new{
         margin: 0!important;
+    }
+    .to-screenshot.PinItem{
+        margin: 16px 0;/*想法增加留白*/
+        padding: 0 16px;
+        width: 690px;
+    }
+    PinDetail:has(.to-screenshot){
+        max-width: 706px!important;
     }
 `))
     let heads = document.getElementsByTagName("head");

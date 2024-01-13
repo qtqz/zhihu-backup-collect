@@ -42,20 +42,16 @@ export default (env, argv) => {
         return {
             entry: "./src/entry.ts",
             module: {
-                rules: [
-                    {
-                        test: /\.ts$/,
-                        exclude: /node_modules/,
-                        use: [
-                            {
-                                loader: "ts-loader",
-                                options: {
-                                    transpileOnly: true
-                                }
-                            }
-                        ]
-                    },
-                ],
+                rules: [{
+                    test: /\.ts$/,
+                    exclude: /node_modules/,
+                    use: [{
+                        loader: "ts-loader",
+                        options: {
+                            transpileOnly: true
+                        }
+                    }]
+                }]
             },
             resolve: {
                 extensions: [".ts", ".js"],
@@ -68,9 +64,9 @@ export default (env, argv) => {
                 new UglifyJsPlugin({
                     uglifyOptions: {
                         compress: {
-                            drop_console: true,
+                            drop_console: false,
                             drop_debugger: true,
-                            pure_funcs: ["console.log"],
+                            //pure_funcs: ["console.log"],
                         },
                     },
                 }),
