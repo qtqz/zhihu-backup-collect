@@ -1,9 +1,9 @@
 import * as JSZip from "jszip"
-import { lexer } from "../core/lexer"
-import { LexType, TokenType, TokenFigure } from "../core/tokenTypes"
-import { parser } from "../core/parser"
-import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark } from "../core/utils"
-import savelex from "../core/savelex"
+import { lexer } from "./core/lexer"
+import { LexType, TokenType, TokenFigure } from "./core/tokenTypes"
+import { parser } from "./core/parser"
+import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
+import savelex from "./core/savelex"
 
 export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     markdown?: string[],
@@ -21,10 +21,11 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
     else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
     else console.log("未知场景")
-
+    console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem
     if (getParent(dom, "AnswerItem")) type = "answer"
     else if (getParent(dom, "ArticleItem")) type = "article"
+    else if (getParent(dom, "Post-content")) type = "article"
     else if (getParent(dom, "PinItem")) type = "pin"
     else console.log("未知内容")
 
@@ -33,12 +34,13 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
         if (window.location.pathname.match(/a/)) scene = "answer"
         if (window.location.pathname.match(/pin/)) scene = "pin"
         if (window.location.pathname.match(/peo/)) scene = "pin"
+        scene = "article"
     }
     if (!scene || !type) return
 
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
-        time = await getTime(dom),//?????????
+        time = await getTime(dom,scene),//?????????
         url = getURL(dom, scene, type),
         upvote_num = getUpvote(dom, scene, type),
         comment_num = getCommentNum(dom, scene, type)
@@ -99,6 +101,26 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     })()
 
     const zip = await savelex(lex)
+    zip.file("index.md", markdown.join("\n\n"))
+
+    let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
+    if (getCommentSwitch(dom) && openComment) {
+        let cm = document.createElement("div")
+        cm.innerHTML = document.querySelector(".Comments-container").innerHTML
+        try {
+            cm.querySelector(".css-1fo89v5").remove()//发评论
+            cm.querySelector(".css-kt4t4n").remove()//发评论
+            cm.querySelector(".css-1j8bif6").remove()//默认最新
+            cm.querySelector(".css-97fdvh").remove()//默认最新
+            cm.querySelectorAll(".css-1ij6qqc").forEach((e) => e.remove())//回复
+            cm.querySelectorAll(".css-1qe0v6x").forEach((e) => e.remove())//我关注的
+        } catch (e) {
+            console.log("a minor bug:",e)
+        }
+        cm.innerHTML = cm.innerHTML.replace(/></g, ">\n<").replace(/\n+/g, "\n")
+        let cmt = cm.innerText.replace(/,|\u200B/g, "").replace(/\n+/g, "\n").replace(/\n · \n/g, " · ").replace(/\n · \n/g, " · ").replace(/\n(?<n>\d+)\n/g, ' $<n>\n\n')
+        zip.file("comments.txt", cmt)
+    }
     zip.file("info.json", JSON.stringify({
         title, url, author, time, upvote_num, comment_num,
         zop,

@@ -1,6 +1,6 @@
 import { saveAs } from "file-saver"
 import { getParent } from "./core/utils"
-import NormalItem from "./situation/NormalItem"
+import dealItem from "./dealItem"
 import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
@@ -41,11 +41,13 @@ import { getCommentSwitch } from "./core/utils"
  * 05-截图
  * 054-想法
  * 06-想法完全支持
+ * 07-zip添加评论
+ * 071-测试
  * 
  * 10-完全测试所有场景+类型
  * -评论md解析
  * -md添加frontmatter
- * -pdf
+ * -快捷键
  * 
  * 
  */
@@ -69,19 +71,20 @@ const main = async () => {
             else {
                 if (getParent(RichText, "PinItem")) {
                     if (!getParent(RichText, "RichContent-inner")) continue//每个带图想法有3个RichText，除掉图、假转发
-                    const richInner = getParent(RichText, "RichContent-inner")
-                    if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开想法
                     //if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
                     if (getParent(RichText, "PinItem-content-originpin")) continue//被转发想法
                 }
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".zhihubackup-container")) continue
+                const richInner = getParent(RichText, "RichContent-inner")
+                if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
                 //未展开的回答
                 if (!RichText.children[0]) continue
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
             }
 
-            const ButtonContainer = document.createElement("div");
-            (getParent(RichText, "RichContent") as HTMLElement).prepend(ButtonContainer)
+            const ButtonContainer = document.createElement("div")
+            let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
+            p.prepend(ButtonContainer)
             ButtonContainer.classList.add("zhihubackup-wrap")
 
             //父级
@@ -107,7 +110,7 @@ const main = async () => {
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", async () => {
                 try {
-                    const res = await NormalItem(RichText)
+                    const res = await dealItem(RichText)
                     result = {
                         markdown: res.markdown,
                         zip: res.zip,
@@ -131,7 +134,7 @@ const main = async () => {
             const ButtonZip = parent_dom.querySelector(".to-zip")
             ButtonZip.addEventListener("click", async () => {
                 try {
-                    const res = await NormalItem(RichText)
+                    const res = await dealItem(RichText)
                     result = {
                         markdown: res.markdown,
                         zip: res.zip,
@@ -139,7 +142,7 @@ const main = async () => {
                     }
                     const blob = await result.zip.generateAsync({ type: "blob" })
                     saveAs(blob, result.title + ".zip")
-                    ButtonZip.innerHTML = "下载成功✅<br>请查看下载记录"
+                    ButtonZip.innerHTML = "下载成功✅<br>请看下载记录"
                     setTimeout(() => {
                         ButtonZip.innerHTML = "下载为Zip"
                     }, 5000)
@@ -155,7 +158,7 @@ const main = async () => {
             const ButtonPNG = parent_dom.querySelector(".to-png")
             ButtonPNG.addEventListener("click", async () => {
                 try {
-                    const res = await NormalItem(RichText, true)
+                    const res = await dealItem(RichText, true)
                     result = {
                         title: res.title,
                     }
@@ -226,7 +229,8 @@ setTimeout(() => {
     .RichContent {
         position: relative;
     }
-    .RichContent:hover .zhihubackup-wrap{
+    .RichContent:hover .zhihubackup-wrap,
+    .Post-RichTextContainer:hover .zhihubackup-wrap{
         opacity: 1;
         pointer-events: initial;
     }
@@ -292,8 +296,14 @@ setTimeout(() => {
         padding: 0 16px;
         width: 690px;
     }
-    PinDetail:has(.to-screenshot){
+    .PinDetail:has(.to-screenshot){
         max-width: 706px!important;
+    }
+    .to-screenshot .Recommendations-Main{
+        display: none;/*文章推荐阅读*/
+    }
+    .to-screenshot .css-kt4t4n{
+        display: none;/*下方黏性评论栏*/
     }
 `))
     let heads = document.getElementsByTagName("head");
@@ -312,5 +322,5 @@ window.addEventListener("scroll", () => {
     if (timer) {
         clearTimeout(timer)
     }
-    timer = setTimeout(main, 3000)
+    timer = setTimeout(main, 2000)
 })

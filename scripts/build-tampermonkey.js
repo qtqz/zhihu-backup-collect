@@ -21,10 +21,24 @@ const TampermonkeyConfig = Object.entries(UserScript).map(([key, value]) => {
 }).filter((val) => val).join("\n")
 
 // 更新日志
-const UpdateLog = fs.readFileSync("./UpdateLog.txt", "utf-8").toString().split("\n").map((line) => {
+const UpdateLog = fs.readFileSync("./changelog.txt", "utf-8").toString().split("\n").map((line) => {
     return ` * ${line}`
 }).join("\n")
 
+//readme
+const readme = fs.readFileSync("./README.md", "utf-8").toString().replace(/# .*?\n/s,'').replace(/## Dev.*?(?=##)/s,'').replace(/<!--.*-->/gs,'')
+fs.writeFileSync("./dist/tampermonkey.md", `
+源代码：https://github.com/qtqz/zhihu-backup-collect
+
+${readme}
+
+## 更新日志
+
+\`\`\`text
+${UpdateLog}
+\`\`\`
+
+`, "utf-8")
 
 fs.writeFileSync("./dist/tampermonkey-script.js", `// ==UserScript==
 ${TampermonkeyConfig}

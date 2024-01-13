@@ -42,9 +42,8 @@ export default async (
 
 	}
 	
-	const markdown = parser(lex).join("\n\n");
-
-	zip.file("index.md", markdown);
+	/*const markdown = parser(lex).join("\n\n");
+	zip.file("index.md", markdown);*/
 
 	return zip;
 };

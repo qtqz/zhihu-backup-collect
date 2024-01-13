@@ -40,7 +40,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 	 * 将每一段转为p段落处理
 	 */
 	if (type == "pin") {
-		console.log(input)
+		//console.log(input)
 		let pinParagraphs: LexType[] = []//二级包-一级
 		let dom = input[0].parentNode as HTMLElement//RichText
 
@@ -95,7 +95,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 			}
 		}
 
-		console.log('pinParagraphs', pinParagraphs)
+		//console.log('pinParagraphs', pinParagraphs)
 		return pinParagraphs
 	}
 
@@ -104,7 +104,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 
 	for (let i = 0; i < input.length; i++) {
 		const node = input[i];
-		console.log(node)
+		//console.log(node)
 		const tagName = node.tagName.toLowerCase();
 
 		//console.log(node, tagName);
@@ -310,7 +310,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 		if (child.nodeType == child.TEXT_NODE) {
 			res.push({
 				type: TokenType.PlainText,
-				text: child.textContent,
+				text: child.textContent.replace(/\u200B/g, ''),
 				dom: child,
 			} as TokenTextPlain);
 		} else {
