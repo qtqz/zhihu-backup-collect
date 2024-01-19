@@ -17,8 +17,8 @@ import { getCommentSwitch } from "./core/utils"
  * 点击按钮后才开始处理内容
  * 
  * 文件名添加作者名、时间
- * 保存为HTML/PDF/PNG
- * 
+ * 保存为HTML/PNG
+ * 适配复杂的想法：转发、带卡片链接、带@
  * 
  * 
  * 页：推送页，个人主页，回答页，问题页，文章页，想法页，收藏夹页
@@ -26,12 +26,7 @@ import { getCommentSwitch } from "./core/utils"
 
 /**
  * 下一步
- * 尝试保存评论
- * 处理复杂的想法：转发、带卡片链接、带@
- * 想法的链接未解析
- * PDF
- * 剪藏，显示与预期不一致问题：评论栏、标题
- * 专栏的按钮的位置
+ * 剪藏，显示与预期不一致问题：点赞栏、专栏
  * 添加ip属地
  * 
  * 路线图
@@ -43,11 +38,14 @@ import { getCommentSwitch } from "./core/utils"
  * 06-想法完全支持
  * 07-zip添加评论
  * 071-测试
+ * 072-预发布
+ * 073-修复文章截图
  * 
  * 10-完全测试所有场景+类型
  * -评论md解析
  * -md添加frontmatter
  * -快捷键
+ * -按钮节流
  * 
  * 
  */
@@ -97,8 +95,7 @@ const main = async () => {
             //按钮们
             ButtonContainer.innerHTML = `<div class="zhihubackup-container">
                 <button class="to-md Button VoteButton">复制为Markdown</button>
-                <button class="to-zip Button VoteButton">下载为Zip</button>
-                <button class="to-pdf Button VoteButton">剪藏为PDF</button>
+                <button class="to-zip Button VoteButton">下载为ZIP</button>
                 <button class="to-png Button VoteButton">剪藏为PNG</button>
                 <button class="Button VoteButton">
                     <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="12">
@@ -108,7 +105,7 @@ const main = async () => {
                     <label for="to-cm"> 保存<br>当前页评论</label>
                 </button></div>`
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
-            ButtonMarkdown.addEventListener("click", async () => {
+            ButtonMarkdown.addEventListener("click",throttle( async () => {
                 try {
                     const res = await dealItem(RichText)
                     result = {
@@ -129,10 +126,10 @@ const main = async () => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
                     }, 3000)
                 }
-            })
+            }))
 
             const ButtonZip = parent_dom.querySelector(".to-zip")
-            ButtonZip.addEventListener("click", async () => {
+            ButtonZip.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText)
                     result = {
@@ -153,10 +150,10 @@ const main = async () => {
                         ButtonZip.innerHTML = "下载为Zip"
                     }, 5000)
                 }
-            })
+            }))
 
             const ButtonPNG = parent_dom.querySelector(".to-png")
-            ButtonPNG.addEventListener("click", async () => {
+            ButtonPNG.addEventListener("click",throttle( async () => {
                 try {
                     const res = await dealItem(RichText, true)
                     result = {
@@ -192,7 +189,7 @@ const main = async () => {
                         ButtonPNG.innerHTML = "剪藏为PNG"
                     }, 5000)
                 }
-            })
+            }))
 
             /*
             const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
@@ -219,6 +216,20 @@ const main = async () => {
             */
         } catch (e) {
             console.log(e)
+        }
+    }
+}
+
+function throttle(fn: Function, delay?: number) {
+    let flag = true
+    delay ? 0 : delay = 1000
+    return function () {
+        if (flag) {
+            flag = false
+            setTimeout(() => {
+                flag = true
+            }, delay)
+            return fn()
         }
     }
 }
@@ -268,6 +279,25 @@ setTimeout(() => {
         position: initial!important;
         box-shadow: unset!important;
         margin: 0 -20px -10px!important;
+    }
+    .to-screenshot.Post-content .RichContent-actions {
+        position: initial!important;/*专栏*/
+        box-shadow: unset!important;
+    }
+    .to-screenshot.Post-content {
+        width: 780px;
+        margin: 0 auto;
+        min-width: unset!important;
+    }
+    .to-screenshot .Post-Main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .to-screenshot.PinItem .RichText>.RichText:has(a[data-first-child]) {
+        display: flex;/*想法-卡片链接*/
+        flex-direction: column;
+        align-items: center;
     }
     .to-screenshot .ContentItem-actions>.ContentItem-actions {
         margin-top: -10px!important;/*想法*/

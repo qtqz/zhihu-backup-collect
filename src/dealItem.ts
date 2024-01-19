@@ -29,12 +29,12 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     else if (getParent(dom, "PinItem")) type = "pin"
     else console.log("未知内容")
 
-    if (!window.location.href.match(/https/)) {
+    if (!window.location.href.match(/https/)) {//仅供测试
         scene = "follow"
+        scene = "article"
         if (window.location.pathname.match(/a/)) scene = "answer"
         if (window.location.pathname.match(/pin/)) scene = "pin"
-        if (window.location.pathname.match(/peo/)) scene = "pin"
-        scene = "article"
+        if (window.location.pathname.match(/peo/)) scene = "people"
     }
     if (!scene || !type) return
 
