@@ -82,8 +82,8 @@ const main = async () => {
 
             const ButtonContainer = document.createElement("div")
             let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
-            p.prepend(ButtonContainer)
             ButtonContainer.classList.add("zhihubackup-wrap")
+            p.prepend(ButtonContainer)
 
             //父级
             let parent_dom = getParent(RichText, "List-item") ||
@@ -104,16 +104,22 @@ const main = async () => {
                     <input type="checkbox" checked id="to-cm">
                     <label for="to-cm"> 保存<br>当前页评论</label>
                 </button></div>`
+            if (parent_dom.querySelector('.Catalog')) {
+                (ButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
+                (ButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
+                (ButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
+            }
+            
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
-            ButtonMarkdown.addEventListener("click",throttle( async () => {
+            ButtonMarkdown.addEventListener("click", throttle(async () => {
                 try {
-                    const res = await dealItem(RichText)
+                    const res = await dealItem(RichText, 'copy')
                     result = {
                         markdown: res.markdown,
                         zip: res.zip,
                         title: res.title,
                     }
-                    console.log(result.markdown.join("\n\n"))
+                    /*console.log(result.markdown.join("\n\n"))*/
                     navigator.clipboard.writeText(result.markdown.join("\n\n"))
                     ButtonMarkdown.innerHTML = "复制成功✅"
                     setTimeout(() => {
@@ -131,7 +137,7 @@ const main = async () => {
             const ButtonZip = parent_dom.querySelector(".to-zip")
             ButtonZip.addEventListener("click", throttle(async () => {
                 try {
-                    const res = await dealItem(RichText)
+                    const res = await dealItem(RichText, 'zip')
                     result = {
                         markdown: res.markdown,
                         zip: res.zip,
@@ -153,9 +159,9 @@ const main = async () => {
             }))
 
             const ButtonPNG = parent_dom.querySelector(".to-png")
-            ButtonPNG.addEventListener("click",throttle( async () => {
+            ButtonPNG.addEventListener("click", throttle(async () => {
                 try {
-                    const res = await dealItem(RichText, true)
+                    const res = await dealItem(RichText, 'png')
                     result = {
                         title: res.title,
                     }
@@ -169,7 +175,7 @@ const main = async () => {
 
                     domToPng(clip, {
                         backgroundColor: "#fff"
-                    }).then(dataUrl => {
+                    }).then((dataUrl: any) => {
                         const link = document.createElement('a')
                         link.download = result.title + ".png"
                         link.href = dataUrl
@@ -251,7 +257,9 @@ setTimeout(() => {
         transition: opacity 0.5s;
         position: absolute;
         left: -10em;
+        top: -50px;
         height: 100%;
+        z-index: 2;
     }
     .zhihubackup-container {
         position: sticky;

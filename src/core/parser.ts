@@ -81,7 +81,7 @@ export const parser = (input: LexType[]): string[] => {
 			};
 
 			case TokenType.Table: {
-				console.log(token);
+				//console.log(token);
 
 				const rows = token.content;
 				const cols = rows[0].length;

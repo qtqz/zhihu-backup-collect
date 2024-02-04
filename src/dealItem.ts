@@ -5,12 +5,11 @@ import { parser } from "./core/parser"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
 import savelex from "./core/savelex"
 
-export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
+export default async (dom: HTMLElement, button?: string): Promise<{
     markdown?: string[],
     zip?: JSZip,
-    title: string,
+    title?: string,
 }> => {
-    console.log(dom)
     //确认场景
     let scene, type
     if (window.location.pathname == "/follow") scene = "follow"
@@ -21,6 +20,7 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
     else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
     else console.log("未知场景")
+    console.log(dom)
     console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem
     if (getParent(dom, "AnswerItem")) type = "answer"
@@ -40,7 +40,7 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
 
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
-        time = await getTime(dom,scene),//?????????
+        time = await getTime(dom, scene),//?????????
         url = getURL(dom, scene, type),
         upvote_num = getUpvote(dom, scene, type),
         comment_num = getCommentNum(dom, scene, type)
@@ -52,13 +52,40 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
     }
     remark ? remark = "_" + remark : 0
 
-    if (onlyTitle) return {
+    if (button == 'png') return {
         title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
     }
 
+
+    /**
+     * 生成frontmatter
+     * 标题，链接，作者名，赞数，评论数，创建时间，修改时间
+     */
+    const getFrontmatter = (): string => {
+        let fm = '---'
+            + '\ntitle: ' + title
+            + '\nurl: ' + url
+            + '\nauthor: ' + author.name
+            + '\ncreated: ' + time.created
+            + '\nmodified: ' + time.modified
+            + '\nupvote_num: ' + upvote_num
+            + '\ncomment_num: ' + comment_num
+            + '\n---\n'
+        return fm
+    }
+
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
-    console.log("lex", lex)
-    let markdown = parser(lex)
+    //console.log("lex", lex)
+
+    if (button == 'copy') {
+        //放到剪贴板
+        var markdown = parser(lex)
+    }
+    else {
+        //对lex的再处理，保存资产，并将lex中链接改为本地
+        var { zip, localLex } = await savelex(lex)
+        markdown = parser(localLex)
+    }
 
     if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
         //是转发的想法，对原想法解析，并附加到新想法下面
@@ -82,6 +109,34 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
         }
     }
 
+    if (button == 'copy') {
+        return {
+            markdown
+        }
+    }
+
+    zip.file("index.md", getFrontmatter() + markdown.join("\n\n"))
+
+    //暂时：粗略解析评论
+    let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
+    if (getCommentSwitch(dom) && openComment) {
+        let cm = document.createElement("div")
+        cm.innerHTML = document.querySelector(".Comments-container").innerHTML
+        try {
+            cm.querySelector(".css-1fo89v5").remove()//发评论
+            cm.querySelector(".css-kt4t4n").remove()//发评论
+            cm.querySelector(".css-1j8bif6").remove()//默认最新
+            cm.querySelector(".css-97fdvh").remove()//默认最新
+            cm.querySelectorAll(".css-1ij6qqc").forEach((e) => e.remove())//回复
+            cm.querySelectorAll(".css-1qe0v6x").forEach((e) => e.remove())//我关注的
+        } catch (e) {
+            console.log("a minor bug:", e)
+        }
+        cm.innerHTML = cm.innerHTML.replace(/></g, ">\n<").replace(/\n+/g, "\n")
+        let cmt = cm.innerText.replace(/,|\u200B/g, "").replace(/\n+/g, "\n").replace(/\n · \n/g, " · ").replace(/\n · \n/g, " · ").replace(/\n(?<n>\d+)\n/g, ' $<n>\n\n')
+        zip.file("comments.txt", cmt)
+    }
+
     const zopQuestion = (() => {
         let el = document.querySelector("[data-zop-question]")
         if (el) return JSON.parse(decodeURIComponent(el.getAttribute("data-zop-question")))
@@ -100,33 +155,13 @@ export default async (dom: HTMLElement, onlyTitle?: boolean): Promise<{
         return null
     })()
 
-    const zip = await savelex(lex)
-    zip.file("index.md", markdown.join("\n\n"))
-
-    let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
-    if (getCommentSwitch(dom) && openComment) {
-        let cm = document.createElement("div")
-        cm.innerHTML = document.querySelector(".Comments-container").innerHTML
-        try {
-            cm.querySelector(".css-1fo89v5").remove()//发评论
-            cm.querySelector(".css-kt4t4n").remove()//发评论
-            cm.querySelector(".css-1j8bif6").remove()//默认最新
-            cm.querySelector(".css-97fdvh").remove()//默认最新
-            cm.querySelectorAll(".css-1ij6qqc").forEach((e) => e.remove())//回复
-            cm.querySelectorAll(".css-1qe0v6x").forEach((e) => e.remove())//我关注的
-        } catch (e) {
-            console.log("a minor bug:",e)
-        }
-        cm.innerHTML = cm.innerHTML.replace(/></g, ">\n<").replace(/\n+/g, "\n")
-        let cmt = cm.innerText.replace(/,|\u200B/g, "").replace(/\n+/g, "\n").replace(/\n · \n/g, " · ").replace(/\n · \n/g, " · ").replace(/\n(?<n>\d+)\n/g, ' $<n>\n\n')
-        zip.file("comments.txt", cmt)
-    }
     zip.file("info.json", JSON.stringify({
         title, url, author, time, upvote_num, comment_num,
         zop,
         "zop-question": zopQuestion,
         "zop-extra-module": zaExtra,
     }, null, 4))
+
     return {
         markdown,
         zip,

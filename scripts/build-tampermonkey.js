@@ -27,6 +27,7 @@ const UpdateLog = fs.readFileSync("./changelog.txt", "utf-8").toString().split("
 
 //readme
 const readme = fs.readFileSync("./README.md", "utf-8").toString().replace(/# .*?\n/s,'').replace(/## Dev.*?(?=##)/s,'').replace(/<!--.*-->/gs,'')
+
 fs.writeFileSync("./dist/tampermonkey.md", `
 源代码：https://github.com/qtqz/zhihu-backup-collect
 修改自：[知乎下载器](https://greasyfork.org/zh-CN/scripts/478608-%E7%9F%A5%E4%B9%8E%E4%B8%8B%E8%BD%BD%E5%99%A8)
@@ -49,5 +50,8 @@ ${TampermonkeyConfig}
 /** 更新日志
 ${UpdateLog}
  */
+
+/* 我使用了webpack打包，已经禁用了最小化：设置optimization: minimize: false且禁用了UglifyJsPlugin*/
+/* I used webpack packaging and have disabled minimization: set optimization: minimize: false and disabled UglifyJsPlugin*/
 
 ${UserScriptContent}`, "utf-8")

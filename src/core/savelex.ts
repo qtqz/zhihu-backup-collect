@@ -6,7 +6,7 @@ import { parser } from "./parser";
 export default async (
 	lex: LexType[],
 	assetsPath: string = "assets"
-): Promise<JSZip> => {
+): Promise<{ zip: JSZip, localLex: LexType[] }> => {
 
 	const zip = new JSZip();
 
@@ -41,9 +41,9 @@ export default async (
 		};
 
 	}
-	
+
 	/*const markdown = parser(lex).join("\n\n");
 	zip.file("index.md", markdown);*/
 
-	return zip;
+	return { zip: zip, localLex: lex }
 };

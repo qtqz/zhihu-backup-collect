@@ -44,7 +44,7 @@ export default (env, argv) => {
             module: {
                 rules: [{
                     test: /\.ts$/,
-                    exclude: /node_modules/,
+                    exclude: /node_modules|test/g,
                     use: [{
                         loader: "ts-loader",
                         options: {
@@ -61,16 +61,19 @@ export default (env, argv) => {
                 path: path.resolve(__dirname, "dist"),
             },
             plugins: [
-                new UglifyJsPlugin({
+                /*new UglifyJsPlugin({
                     uglifyOptions: {
-                        compress: {
+                        compress: false{
                             drop_console: false,
                             drop_debugger: true,
                             //pure_funcs: ["console.log"],
                         },
                     },
-                }),
-            ]
+                }),*/
+            ],
+            optimization: {
+                minimize: false
+            }
         };
     } else return devConfig;
 };
