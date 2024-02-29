@@ -20,11 +20,6 @@ const TampermonkeyConfig = Object.entries(UserScript).map(([key, value]) => {
 
 }).filter((val) => val).join("\n")
 
-// 更新日志
-const UpdateLog = fs.readFileSync("./changelog.txt", "utf-8").toString().split("\n").map((line) => {
-    return ` * ${line}`
-}).join("\n")
-
 //readme
 const readme = fs.readFileSync("./README.md", "utf-8").toString().replace(/# .*?\n/s,'').replace(/## Dev.*?(?=##)/s,'').replace(/<!--.*-->/gs,'')
 
@@ -34,24 +29,15 @@ fs.writeFileSync("./dist/tampermonkey.md", `
 
 ${readme}
 
-## 更新日志
-
-\`\`\`text
-${UpdateLog}
-\`\`\`
-
 `, "utf-8")
 
-
+//?(?=(##)?)
 fs.writeFileSync("./dist/tampermonkey-script.js", `// ==UserScript==
 ${TampermonkeyConfig}
 // ==/UserScript==
 
-/** 更新日志
-${UpdateLog}
+/** 
+${readme.match(/## Changelog.*/s)[0]}
  */
-
-/* 我使用了webpack打包，已经禁用了最小化：设置optimization: minimize: false且禁用了UglifyJsPlugin*/
-/* I used webpack packaging and have disabled minimization: set optimization: minimize: false and disabled UglifyJsPlugin*/
 
 ${UserScriptContent}`, "utf-8")

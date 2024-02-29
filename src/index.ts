@@ -75,8 +75,6 @@ const main = async () => {
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".zhihubackup-container")) continue
                 const richInner = getParent(RichText, "RichContent-inner")
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
-                //未展开的回答
-                if (!RichText.children[0]) continue
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
             }
 
@@ -98,7 +96,7 @@ const main = async () => {
                 <button class="to-zip Button VoteButton">下载为ZIP</button>
                 <button class="to-png Button VoteButton">剪藏为PNG</button>
                 <button class="Button VoteButton">
-                    <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="12">
+                    <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="60">
                 </button>
                 <button class="Button VoteButton">
                     <input type="checkbox" checked id="to-cm">
@@ -342,6 +340,9 @@ setTimeout(() => {
     }
     .to-screenshot .css-kt4t4n{
         display: none;/*下方黏性评论栏*/
+    }
+    .to-screenshot .zhihubackup-container{
+        /*display: none;*/
     }
 `))
     let heads = document.getElementsByTagName("head");

@@ -147,10 +147,13 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         let el = getParent(dom, "ContentItem")//想法类型、文章页没有
         if (!el) el = getParent(dom, "PinItem")
         if (!el) el = getParent(dom, "Post-content")
-
-        if (el) return {
-            zop: JSON.parse(decodeURIComponent(el.getAttribute("data-zop"))),
-            zaExtra: JSON.parse(decodeURIComponent(el.getAttribute("data-za-extra-module")))
+        try {
+            if (el) return {
+                zop: JSON.parse(el.getAttribute("data-zop")),
+                zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
+            }
+        } catch (e) {
+            console.error(e)
         }
         return null
     })()
