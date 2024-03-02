@@ -1,7 +1,7 @@
 import * as JSZip from "jszip"
-import { lexer } from "./core/lexer"
+import { lexer,lexerComment } from "./core/lexer"
 import { LexType, TokenType, TokenFigure } from "./core/tokenTypes"
-import { parser } from "./core/parser"
+import { parser,parserComment } from "./core/parser"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
 import savelex from "./core/savelex"
 
@@ -20,8 +20,8 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
     else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
     else console.log("未知场景")
-    console.log(dom)
-    console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
+    //console.log(dom)
+    //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem
     if (getParent(dom, "AnswerItem")) type = "answer"
     else if (getParent(dom, "ArticleItem")) type = "article"
@@ -76,7 +76,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
     //console.log("lex", lex)
-
+//alert(11)
     if (button == 'copy') {
         //放到剪贴板
         var markdown = parser(lex)
@@ -110,6 +110,10 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     }
 
     if (button == 'copy') {
+        let p=getParent(dom,'ContentItem')as HTMLElement
+        let l=lexerComment(p.querySelector('.Comments-container').childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>)
+        let m=parserComment(l)
+        console.log(l,m.join(''))
         return {
             markdown
         }

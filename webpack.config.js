@@ -13,7 +13,7 @@ const devConfig = {
             {
                 test: /\.ts$/,
                 use: "ts-loader",
-                exclude: /node_modules/,
+                exclude: /node_modules|test|dist/g,
             }
         ],
     },
@@ -25,7 +25,7 @@ const devConfig = {
         path: path.resolve(__dirname, "dist"),
     },
     plugins: [
-        ...fs.readdirSync("./test").map((file) => {
+        /*...fs.readdirSync("./test").map((file) => {
             console.log(file)
             if (file.endsWith(".html")) {
                 return new HtmlWebpackPlugin({
@@ -33,8 +33,12 @@ const devConfig = {
                     template: `./test/${file}`,
                 });
             }
-        }),
+        }),*/
     ],
+    optimization: {
+        minimize: false
+    },
+    devtool: "eval-source-map",
 };
 
 export default (env, argv) => {

@@ -21,8 +21,35 @@ export enum TokenType {
     Link,
     Table,
     Video,
+    Comment,
+    CommentReply
 }
 
+
+/**
+ * major comments.
+ */
+export type TokenComment = {
+    type: TokenType.Comment,
+    content: TokenCommentReply[],
+    dom?: HTMLElement,
+}
+/**
+ * a comment reply, contain name(and replyee), content, time, area, upvote.
+ */
+export type TokenCommentReply = {
+    type: TokenType.CommentReply,
+    level: 1 | 2, 
+    content:{
+        name:string,
+        text:string|string[],
+        likes:number,
+        time:string,
+        location:string,
+        img?:1
+    }|string,
+    dom?: HTMLElement
+}
 
 /**
  * Represents a token of italic text.
@@ -252,5 +279,6 @@ export type LexType =
     TokenLink |
     TokenTable |
     TokenVideo |
-    TokenGif
-    ;
+    TokenGif |
+    TokenComment |
+    TokenCommentReply

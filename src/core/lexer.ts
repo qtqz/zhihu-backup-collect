@@ -21,6 +21,8 @@ import type {
 	TokenTable,
 	TokenVideo,
 	TokenGif,
+	TokenComment,
+	TokenCommentReply,
 } from "./tokenTypes";
 
 import { TokenType } from "./tokenTypes";
@@ -152,6 +154,15 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 						local: false,
 						dom: node
 					} as TokenVideo);
+				} else if (node.classList.contains("RichText-ADLinkCardContainer")) {
+					tokens.push({
+						type: TokenType.Text,
+						content: [{
+							type: TokenType.PlainText,
+							text: node.textContent
+						}],
+						dom: node
+					} as TokenText);
 				}
 				break;
 			}
@@ -257,7 +268,6 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 
 					return res;
 				};
-
 				const table = table2array(el);
 
 				tokens.push({
@@ -269,16 +279,103 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 				break;
 			}
 		}
-
-
-		//console.log(tokens);
 	}
-
 	//console.log(tokens);
 
 	return tokens;
 };
 
+export const lexerComment = (input: NodeListOf<Element>, type?: string): TokenComment[] => {
+
+	const tokens: TokenComment[] = []
+
+	for (let i = 0; i < input.length; i++) {
+		const node = input[i]
+		//console.log(node)
+
+		if (node.getAttribute('data-id')) {
+			tokens.push({
+				type: TokenType.Comment,
+				content: getCommentReplys(node),
+				dom: node,
+			} as TokenComment)
+		}
+	}
+	return tokens
+}
+
+const getCommentReplys = (node: Element): TokenCommentReply[] => {
+	const res = [] as TokenCommentReply[]
+	const nodes = node.childNodes//顶层id号评论的下层
+
+	for (let i = 0; i < nodes.length; i++) {
+		const reply = nodes[i] as HTMLElement
+		let tgt
+		if (reply.tagName == 'BUTTON') res.push({
+			type: TokenType.CommentReply,
+			level: 2,
+			content: reply.textContent
+		})
+		else if (!reply.getAttribute('data-id')) {
+			tgt = reply
+			res.push(getCommentReplyInfo(tgt, 1))
+		} else {
+			tgt = reply.childNodes[0] as HTMLElement
+			res.push(getCommentReplyInfo(tgt, 2))
+		}
+	}
+	return res
+}
+
+const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentReply => {
+	//console.log(reply)
+	let name = '';
+	(reply.childNodes[1].childNodes[0] as HTMLElement).querySelectorAll('a').forEach((e, i) => {
+		i ? name += ' › ' : 0
+		name += e.textContent
+	})
+
+	let textContent = reply.childNodes[1].childNodes[1]
+	let textContents = textContent.childNodes
+	let picture = ''
+	if ((textContent as HTMLElement).querySelector('.comment_img')) {
+		picture = (textContent as HTMLElement).querySelector('.comment_img>img').getAttribute('data-original')
+	}
+	let textContentPlain: string | string[] = ''
+
+	textContents.forEach(e => {
+		if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt
+		else if (e.nodeName == 'A') {
+			let link = ZhihuLink2NormalLink((e as HTMLAnchorElement).href)
+			textContentPlain += '[' + link + '](' + link + ')'
+		}
+		else if (e.nodeName == 'BR') textContentPlain += '\n'
+		else textContentPlain += e.textContent
+		if (picture) textContentPlain += '![图片]' + '(' + picture + ')'
+	})
+	//多行评论
+	if ((textContentPlain as string).match('\n')) {
+		textContentPlain = (textContentPlain as string).split('\n')
+	}
+
+	let info = reply.childNodes[1].childNodes[2]
+	let time = info.childNodes[0].childNodes[0].childNodes[0].textContent
+	let location = info.childNodes[0].childNodes[0].childNodes[2].textContent.replace('IP 属地', '')
+	let likes = info.childNodes[1].childNodes[1].textContent.replace('喜欢', '0').match(/\d+/)[0]
+
+	return {
+		type: TokenType.CommentReply,
+		level: level,
+		content: {
+			name: name,
+			text: textContentPlain,
+			likes: parseInt(likes),
+			time: time,
+			location: location,
+			img: 1
+		}
+	}
+}
 
 /**
  * Tokenizes an HTML element or string into an array of TokenTextType objects.

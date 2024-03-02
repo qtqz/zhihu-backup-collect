@@ -31,27 +31,28 @@
 * 能否批量保存某答主/问题？不能，请找爬蟲
 * 已知问题：保存图片时部分样式（点赞栏等）轻微异常
 * 已知问题：未适配带视频的内容
-* 已知问题：偶现报错，控制台显示`false false false`，请刷新页面
+* 已知问题：收起又展开内容后保存报错，控制台显示`false false false`或`未知内容`，请不要收起又展开
 
 其他推荐：*SingleFile*，浏览器扩展，扩展商店自寻，可以将网页的全部或部分保存为`html`单文件。
 
 ## Dev
 
-1. 安装依赖
+安装依赖
 
 ```bash
 pnpm i
 ```
 
-2. 测试
+测试
 
-```bash
-pnpm dev
-```
+`0.7.11+`已启用更方便的测试：
 
-需要在`/test`文件夹中放入测试html（F12-复制html节点获取）
+1. 允许脚本管理器 Tampermonkey 访问文件网址 右键插件图标-插件管理页面-访问文件网址 或者参照官方 [faq](https://tampermonkey.net/faq.php?ext=dhdg#Q204)
+2. 在脚本管理器中安装`scripts/dev.js`，并且修改其`@require `为正确的路径。它会调用本地的`dist/bundle.js`。
+3. `pnpm dev`
+4. 刷新目标网页
 
-3. 打包
+打包
 
 ```bash
 pnpm build
@@ -71,16 +72,21 @@ pnpm build
 - [ ] 下载文章时同时包含头图
 - [ ] TOC解析
 - [ ] Markdown纯文本转义
-- [ ] 解析当前页评论为Markdown
+- [X] 解析当前页评论为Markdown
 - [X] 为Markdown添加frontmatter
 - [ ] 考虑移除info.json
+- [ ] 适配搜索结果页
 
 ## Changelog
 
+* 24.3.2（0.8.0）:
+    - 更方便的测试
+    - 解析评论为Markdown
+    - 
 * 24.2.29（0.7.10）:
     - 备注改为最长60字
     - 修复个人页无法保存想法问题
-    - 修复保存zip可能出错问题
+    - 修复保存zip处理评论可能出错问题
 * 24.2.4（0.7.7）:
     - 为Markdown添加frontmatter
     - 修正下载md内的图片路径为本地路径
