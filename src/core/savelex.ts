@@ -13,12 +13,11 @@ export default async (
 	let FigureFlag = false;
 
 	for (let token of lex) {
-		if (token.type === TokenType.Figure) {
+		if (token.type == TokenType.Figure || TokenType.Video || TokenType.Gif) {
 			FigureFlag = true;
 			break;
 		};
 	};
-
 	if (FigureFlag) {
 
 		const assetsFolder = zip.folder(assetsPath);
@@ -29,9 +28,13 @@ export default async (
 				token.localSrc = `./${assetsPath}/${file_name}`;
 				token.local = true;
 			} else if (token.type === TokenType.Video) {
-				const { file_name } = await downloadAndZip(token.src, assetsFolder);
-				token.localSrc = `./${assetsPath}/${file_name}`;
-				token.local = true;
+				try {
+					const { file_name } = await downloadAndZip(token.src, assetsFolder);
+					token.localSrc = `./${assetsPath}/${file_name}`;
+					token.local = true;
+				} catch (e) {
+					console.error('视频', e)
+				}
 			} else if (token.type === TokenType.Gif) {
 				const { file_name } = await downloadAndZip(token.src, assetsFolder);
 				token.localSrc = `./${assetsPath}/${file_name}`;

@@ -3,6 +3,11 @@ import {
 	TokenComment,
 } from "./tokenTypes";
 
+/**
+ * 
+ * @param input 每条顶级评论的数组
+ * @returns 1行1项，无需\n连接
+ */
 export const parserComment = (input: TokenComment[]): string[] => {
 	const output: string[] = []
 	let h3 = '### '

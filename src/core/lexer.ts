@@ -285,9 +285,15 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 	return tokens;
 };
 
-export const lexerComment = (input: NodeListOf<Element>, type?: string): TokenComment[] => {
-
+/**
+ * 解析评论的入口
+ * @param input 子级们应为评论序列，嵌套子评论
+ * @param type 暂未使用
+ * @returns 评论的数组，和评论带的图的数组
+ */
+export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenComment[], string[]] => {
 	const tokens: TokenComment[] = []
+	commentImg = []
 
 	for (let i = 0; i < input.length; i++) {
 		const node = input[i]
@@ -301,9 +307,17 @@ export const lexerComment = (input: NodeListOf<Element>, type?: string): TokenCo
 			} as TokenComment)
 		}
 	}
-	return tokens
+	console.log(commentImg)
+	return [tokens, commentImg]
 }
 
+let commentImg: string[] = []
+
+/**
+ * 解析具体每一条评论元素（带id号），不嵌套子评论
+ * @param node 带id号元素
+ * @returns 评论信息
+ */
 const getCommentReplys = (node: Element): TokenCommentReply[] => {
 	const res = [] as TokenCommentReply[]
 	const nodes = node.childNodes//顶层id号评论的下层
@@ -327,6 +341,12 @@ const getCommentReplys = (node: Element): TokenCommentReply[] => {
 	return res
 }
 
+/**
+ * 获取每条评论信息
+ * @param reply 包含3行信息的元素
+ * @param level 深度
+ * @returns 评论信息对象
+ */
 const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentReply => {
 	//console.log(reply)
 	let name = '';
@@ -350,8 +370,11 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 			textContentPlain += '[' + link + '](' + link + ')'
 		}
 		else if (e.nodeName == 'BR') textContentPlain += '\n'
-		else textContentPlain += e.textContent
-		if (picture) textContentPlain += '![图片]' + '(' + picture + ')'
+		else textContentPlain += '**' + e.textContent + '**'
+		if (picture) {
+			textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
+			commentImg.push(picture)
+		}
 	})
 	//多行评论
 	if ((textContentPlain as string).match('\n')) {
@@ -371,8 +394,7 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 			text: textContentPlain,
 			likes: parseInt(likes),
 			time: time,
-			location: location,
-			img: 1
+			location: location
 		}
 	}
 }

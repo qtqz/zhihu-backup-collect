@@ -45,8 +45,7 @@ export type TokenCommentReply = {
         text:string|string[],
         likes:number,
         time:string,
-        location:string,
-        img?:1
+        location:string
     }|string,
     dom?: HTMLElement
 }

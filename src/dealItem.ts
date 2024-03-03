@@ -1,7 +1,7 @@
 import * as JSZip from "jszip"
-import { lexer,lexerComment } from "./core/lexer"
+import { lexer, lexerComment } from "./core/lexer"
 import { LexType, TokenType, TokenFigure } from "./core/tokenTypes"
-import { parser,parserComment } from "./core/parser"
+import { parser, parserComment } from "./core/parser"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
 import savelex from "./core/savelex"
 
@@ -19,6 +19,8 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (window.location.pathname.slice(0, 4) == "/pin") scene = "pin"
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
     else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
+    else if (window.location.pathname.slice(0, 11) == "/search") scene = "collection"
+    else if (window.location.href == "https://www.zhihu.com/") scene = "collection"//搜索、推荐、收藏夹似乎一样
     else console.log("未知场景")
     //console.log(dom)
     //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
@@ -76,7 +78,6 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
     //console.log("lex", lex)
-//alert(11)
     if (button == 'copy') {
         //放到剪贴板
         var markdown = parser(lex)
@@ -109,36 +110,40 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         }
     }
 
-    if (button == 'copy') {
-        let p=getParent(dom,'ContentItem')as HTMLElement
-        let l=lexerComment(p.querySelector('.Comments-container').childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>)
-        let m=parserComment(l)
-        console.log(l,m.join(''))
-        return {
-            markdown
-        }
+    if (button == 'copy') return {
+        markdown
     }
 
     zip.file("index.md", getFrontmatter() + markdown.join("\n\n"))
 
-    //暂时：粗略解析评论
-    let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
-    if (getCommentSwitch(dom) && openComment) {
-        let cm = document.createElement("div")
-        cm.innerHTML = document.querySelector(".Comments-container").innerHTML
-        try {
-            cm.querySelector(".css-1fo89v5").remove()//发评论
-            cm.querySelector(".css-kt4t4n").remove()//发评论
-            cm.querySelector(".css-1j8bif6").remove()//默认最新
-            cm.querySelector(".css-97fdvh").remove()//默认最新
-            cm.querySelectorAll(".css-1ij6qqc").forEach((e) => e.remove())//回复
-            cm.querySelectorAll(".css-1qe0v6x").forEach((e) => e.remove())//我关注的
-        } catch (e) {
-            console.log("a minor bug:", e)
+    //解析评论
+    try {
+        let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
+        if (getCommentSwitch(dom) && openComment) {
+            if (openComment.querySelector('.css-189h5o3')) {
+                zip.file("comments.md", `**${openComment.querySelector('.css-189h5o3').textContent}**`)
+            }
+            else {
+                let num_text = openComment.childNodes[0].childNodes[1].childNodes[0].childNodes[0].textContent
+                let c = openComment.childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>
+                let res = lexerComment(c), l = res[0], imgs = res[1]
+                let m = parserComment(l)
+                //console.log(l, m.join(''))
+                zip.file("comments.md", num_text + '\n\n' + m.join(''))
+                if (imgs) {
+                    imgs.forEach(async e => {
+                        const response = await fetch(e)
+                        const arrayBuffer = await response.arrayBuffer()
+                        const fileName = e.replace(/\?.*?$/g, "").split("/").pop()
+                        zip.file(`assets/${fileName}`, arrayBuffer)
+                    })
+                }
+
+            }
         }
-        cm.innerHTML = cm.innerHTML.replace(/></g, ">\n<").replace(/\n+/g, "\n")
-        let cmt = cm.innerText.replace(/,|\u200B/g, "").replace(/\n+/g, "\n").replace(/\n · \n/g, " · ").replace(/\n · \n/g, " · ").replace(/\n(?<n>\d+)\n/g, ' $<n>\n\n')
-        zip.file("comments.txt", cmt)
+    } catch (e) {
+        console.log("评论:", e)
+        alert('主要工作已完成，但是评论保存出错了')
     }
 
     const zopQuestion = (() => {

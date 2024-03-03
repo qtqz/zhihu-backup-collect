@@ -271,6 +271,7 @@ setTimeout(() => {
     .zhihubackup-container button {
         width: 8em;
         margin-bottom: 8px;
+        line-height: 32px!important;
     }
     .zhihubackup-container input{
         /*border: 1px solid #777;*/
