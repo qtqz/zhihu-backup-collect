@@ -78,15 +78,6 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
     //console.log("lex", lex)
-    if (button == 'copy') {
-        //放到剪贴板
-        var markdown = parser(lex)
-    }
-    else {
-        //对lex的再处理，保存资产，并将lex中链接改为本地
-        var { zip, localLex } = await savelex(lex)
-        markdown = parser(localLex)
-    }
 
     if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
         //是转发的想法，对原想法解析，并附加到新想法下面
@@ -95,12 +86,18 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         //markdown = markdown.concat(parser(lex2).map((l) => "> " + l))
         markdown.push(parser(lex2).map((l) => "> " + l).join("\n> \n"))
     }
-
     if (type == "pin") {
-        // 获取图片
+        // 获取图片/标题
         const pinItem = getParent(dom, "PinItem") as HTMLElement
-        if (pinItem.querySelector("img")) {
-            const imgs = Array.from(pinItem.querySelectorAll(".Image-PreviewVague > img")) as HTMLImageElement[]
+        if (pinItem.querySelector(".ContentItem-title")) lex.unshift({
+            type: TokenType.Text,
+            content: [{
+                type: TokenType.PlainText,
+                text: pinItem.querySelector(".ContentItem-title").textContent
+            }]
+        })
+        if (pinItem.querySelector(".Image-PreviewVague")) {
+            const imgs = pinItem.querySelectorAll(".Image-PreviewVague > img")
             imgs.forEach((img) => {
                 lex.push({
                     type: TokenType.Figure,
@@ -110,6 +107,14 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         }
     }
 
+    if (button == 'copy') {
+        //放到剪贴板
+        var markdown = parser(lex)
+    } else {
+        //对lex的再处理，保存资产，并将lex中链接改为本地
+        var { zip, localLex } = await savelex(lex)
+        markdown = parser(localLex)
+    }
     if (button == 'copy') return {
         markdown
     }
@@ -122,8 +127,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         if (getCommentSwitch(dom) && openComment) {
             if (openComment.querySelector('.css-189h5o3')) {
                 zip.file("comments.md", `**${openComment.querySelector('.css-189h5o3').textContent}**`)
-            }
-            else {
+            } else {
                 let num_text = openComment.childNodes[0].childNodes[1].childNodes[0].childNodes[0].textContent
                 let c = openComment.childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>
                 let res = lexerComment(c), l = res[0], imgs = res[1]
@@ -131,14 +135,14 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                 //console.log(l, m.join(''))
                 zip.file("comments.md", num_text + '\n\n' + m.join(''))
                 if (imgs) {
-                    imgs.forEach(async e => {
-                        const response = await fetch(e)
+                    const assetsFolder = zip.folder('assets')
+                    for (let i = 0; i < imgs.length; i++) {
+                        const response = await fetch(imgs[i])
                         const arrayBuffer = await response.arrayBuffer()
-                        const fileName = e.replace(/\?.*?$/g, "").split("/").pop()
-                        zip.file(`assets/${fileName}`, arrayBuffer)
-                    })
+                        const fileName = imgs[i].replace(/\?.*?$/g, "").split("/").pop()
+                        assetsFolder.file(fileName, arrayBuffer)
+                    }
                 }
-
             }
         }
     } catch (e) {
@@ -152,24 +156,26 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         return null
     })()
 
-    const { zop, zaExtra } = (() => {
+    const { zop, zaExtra, location } = (() => {
         let el = getParent(dom, "ContentItem")//想法类型、文章页没有
         if (!el) el = getParent(dom, "PinItem")
         if (!el) el = getParent(dom, "Post-content")
         try {
             if (el) return {
                 zop: JSON.parse(el.getAttribute("data-zop")),
-                zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
+                zaExtra: JSON.parse(el.getAttribute("data-za-extra-module")),
+                location: el.querySelector('.ContentItem-time').childNodes[1]?.textContent.slice(6)
             }
         } catch (e) {
-            console.error(e)
+            console.error('zop, zaExtra ,location', e)
+            alert('保存zop, zaExtra ,location出错')
         }
         return null
     })()
 
     zip.file("info.json", JSON.stringify({
         title, url, author, time, upvote_num, comment_num,
-        zop,
+        zop, location,
         "zop-question": zopQuestion,
         "zop-extra-module": zaExtra,
     }, null, 4))

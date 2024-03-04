@@ -370,7 +370,7 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 			textContentPlain += '[' + link + '](' + link + ')'
 		}
 		else if (e.nodeName == 'BR') textContentPlain += '\n'
-		else textContentPlain += '**' + e.textContent + '**'
+		else textContentPlain += e.textContent
 		if (picture) {
 			textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
 			commentImg.push(picture)
@@ -380,10 +380,14 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 	if ((textContentPlain as string).match('\n')) {
 		textContentPlain = (textContentPlain as string).split('\n')
 	}
-
 	let info = reply.childNodes[1].childNodes[2]
 	let time = info.childNodes[0].childNodes[0].childNodes[0].textContent
-	let location = info.childNodes[0].childNodes[0].childNodes[2].textContent.replace('IP 属地', '')
+	let location = ''
+	try {
+		location = info.childNodes[0].childNodes[0].childNodes[2].textContent.replace('IP 属地', '')
+	} catch (e) {
+		console.error('location', e)
+	}
 	let likes = info.childNodes[1].childNodes[1].textContent.replace('喜欢', '0').match(/\d+/)[0]
 
 	return {

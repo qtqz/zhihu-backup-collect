@@ -257,7 +257,7 @@ setTimeout(() => {
         left: -10em;
         top: -50px;
         height: 100%;
-        z-index: 2;
+        /*z-index: 2;*/
     }
     .zhihubackup-container {
         position: sticky;
