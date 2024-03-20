@@ -29,7 +29,10 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (getParent(dom, "ArticleItem")) type = "article"
     else if (getParent(dom, "Post-content")) type = "article"
     else if (getParent(dom, "PinItem")) type = "pin"
-    else console.log("未知内容")
+    else {
+        console.log("未知内容")
+        alert('请勿收起又展开内容，否则会保存失败。请刷新页面。')
+}
 
     if (!window.location.href.match(/https/)) {//仅供测试
         scene = "follow"
@@ -132,7 +135,9 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                 let c = openComment.childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>
                 let res = lexerComment(c), l = res[0], imgs = res[1]
                 let m = parserComment(l)
-                //console.log(l, m.join(''))
+                if (openComment.querySelector('.css-1tdhe7b')) {
+                    m.unshift('**评论内容由作者筛选后展示**\n\n')
+                }
                 zip.file("comments.md", num_text + '\n\n' + m.join(''))
                 if (imgs) {
                     const assetsFolder = zip.folder('assets')

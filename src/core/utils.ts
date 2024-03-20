@@ -83,8 +83,9 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
 
     if (author_dom) {
         let authorName_dom = author_dom.querySelector(".AuthorInfo-name .UserLink-link") as HTMLAnchorElement ||
-            author_dom.querySelector(".UserLink-link") as HTMLAnchorElement
-        let authorBadge_dom = author_dom.querySelector(".AuthorInfo-badgeText") as HTMLDivElement
+            author_dom.querySelector(".UserLink-link") as HTMLAnchorElement ||
+            author_dom.querySelector(".UserLink.AuthorInfo-name")//匿名用户
+        let authorBadge_dom = author_dom.querySelector(".AuthorInfo-badge") as HTMLDivElement
         //console.log("authorName_dom", authorName_dom)
         return {
             name: authorName_dom.innerText || authorName_dom.children[0].getAttribute("alt"),
