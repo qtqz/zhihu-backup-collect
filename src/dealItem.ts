@@ -31,8 +31,11 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (getParent(dom, "PinItem")) type = "pin"
     else {
         console.log("未知内容")
-        alert('请勿收起又展开内容，否则会保存失败。请刷新页面。')
-}
+        alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
+        document.querySelectorAll('.zhihubackup-wrap').forEach((w) => {
+            w.remove()
+        })
+    }
 
     if (!window.location.href.match(/https/)) {//仅供测试
         scene = "follow"
