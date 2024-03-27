@@ -7,12 +7,14 @@ import type { AuthorType } from "./types"
  */
 export const ZhihuLink2NormalLink = (link: string): string => {
     const url = new URL(link)
-
     if (url.hostname == "link.zhihu.com") {
         const target = new URLSearchParams(url.search).get("target")
         return decodeURIComponent(target)
     }
-    return link
+    else {
+        if (link.match(/#/)) return '#' + link.split('#')[1]
+        else return link
+    }
 }
 
 /**
@@ -116,9 +118,8 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
     else {
         if (type == "answer" || type == "article") {
             let p = getParent(dom, "ContentItem") as HTMLElement
-            url = (p.querySelector("meta[itemprop=url]") as HTMLMetaElement).content
+            url = (p.querySelector(".ContentItem>meta[itemprop=url]") as HTMLMetaElement).content
             if (url.slice(0, 5) != "https") url = "https:" + url
-            url ? 0 : console.error("无url")
             return url
         }
         //pin

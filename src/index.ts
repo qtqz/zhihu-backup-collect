@@ -137,7 +137,6 @@ const main = async () => {
                 try {
                     const res = await dealItem(RichText, 'zip')
                     result = {
-                        markdown: res.markdown,
                         zip: res.zip,
                         title: res.title,
                     }
@@ -257,7 +256,7 @@ setTimeout(() => {
         left: -10em;
         top: -50px;
         height: 100%;
-        /*z-index: 2;*/
+        z-index: 2;
     }
     .zhihubackup-container {
         position: sticky;

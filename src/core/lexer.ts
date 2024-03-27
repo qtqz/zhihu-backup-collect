@@ -1,6 +1,6 @@
 import type {
-	TokenH1,
 	TokenH2,
+	TokenH3,
 	TokenCode,
 	TokenText,
 	TokenUList,
@@ -105,29 +105,27 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 	const tokens: LexType[] = [];
 
 	for (let i = 0; i < input.length; i++) {
-		const node = input[i];
+		const node = input[i]
 		//console.log(node)
-		const tagName = node.tagName.toLowerCase();
-
-		//console.log(node, tagName);
+		const tagName = node.nodeName.toLowerCase()
 
 		switch (tagName) {
 
 			case "h2": {
 				tokens.push({
-					type: TokenType.H1,
+					type: TokenType.H2,
 					text: node.textContent,
 					dom: node
-				} as TokenH1);
+				} as TokenH2);
 				break;
 			}
 
 			case "h3": {
 				tokens.push({
-					type: TokenType.H2,
+					type: TokenType.H3,
 					text: node.textContent,
 					dom: node
-				} as TokenH2);
+				} as TokenH3);
 				break;
 			}
 
@@ -263,7 +261,13 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 
 					for (let row of rows) {
 						const cells = Array.from(row.cells);
-						res.push(cells.map((cell) => cell.innerHTML));
+						res.push(cells.map((cell) => cell.innerHTML.replace(
+							/<a.*?href.*?>(.*?)<svg.*?>.*?<\/svg><\/a>/gms,
+							"$1"
+						).replace(
+							/<span>(.*?)<\/span>/gms,
+							"$1"
+						)))
 					}
 
 					return res;
@@ -476,29 +480,37 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 				}
 
 				case "span": {
-					if (el.classList.contains("ztext-math")) {
-						res.push({
-							type: TokenType.Math,
-							content: el.getAttribute("data-tex"),
-							dom: el,
-						} as TokenTextInlineMath);
-					} else if (el.children[0].classList.contains("RichContent-EntityWord")) {//搜索词
+					try {
+						if (el.classList.contains("ztext-math")) {
+							res.push({
+								type: TokenType.Math,
+								content: el.getAttribute("data-tex"),
+								dom: el,
+							} as TokenTextInlineMath);
+						} else if (el.children[0].classList.contains("RichContent-EntityWord")) {//搜索词
+							res.push({
+								type: TokenType.PlainText,
+								text: el.innerText,
+								dom: el,
+							} as TokenTextPlain)
+						}
+						else if (el.children[0].classList.contains("UserLink")) {//想法中的@
+							res.push({
+								type: TokenType.InlineLink,
+								text: el.innerText,
+								href: ZhihuLink2NormalLink((el.querySelector("a") as HTMLAnchorElement).href),
+								dom: el,
+							} as TokenTextLink)
+						}
+					} catch (e) {
 						res.push({
 							type: TokenType.PlainText,
 							text: el.innerText,
 							dom: el,
-						} as TokenTextPlain)
+						} as TokenTextPlain);
+						//console.error(el, el.innerText)
 					}
-					else if (el.children[0].classList.contains("UserLink")) {//想法中的@
-						res.push({
-							type: TokenType.InlineLink,
-							text: el.innerText,
-							href: ZhihuLink2NormalLink((el.querySelector("a") as HTMLAnchorElement).href),
-							dom: el,
-						} as TokenTextLink)
-						break
-					}
-					break;
+					break
 				}
 
 				case "a": {
@@ -508,6 +520,17 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 						text: el.textContent,
 						href: ZhihuLink2NormalLink((el as HTMLAnchorElement).href),
 						dom: el,
+					} as TokenTextLink);
+					break;
+				}
+
+				case "sup": {
+					//参考文献引用
+					res.push({
+						type: TokenType.InlineLink,
+						text: el.firstElementChild.textContent,
+						href: ZhihuLink2NormalLink((el.firstElementChild as HTMLAnchorElement).href),
+						dom: el.firstElementChild,
 					} as TokenTextLink);
 					break;
 				}

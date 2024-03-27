@@ -2,7 +2,7 @@
  * Enum representing the different types of tokens in the parsed markdown.
  */
 export enum TokenType {
-    H1, H2,
+    H2, H3,
     Text,
     Figure,
     Gif,
@@ -199,8 +199,8 @@ export type TokenLink = {
 /**
  * Represents a token of type H1.
  */
-export type TokenH1 = {
-    type: TokenType.H1;
+export type TokenH2 = {
+    type: TokenType.H2;
     text: string;
     dom?: HTMLHeadingElement;
 };
@@ -209,8 +209,8 @@ export type TokenH1 = {
 /**
  * Represents a token of type H2.
  */
-export type TokenH2 = {
-    type: TokenType.H2;
+export type TokenH3 = {
+    type: TokenType.H3;
     text: string;
     dom?: HTMLHeadingElement;
 };
@@ -266,8 +266,8 @@ export type TokenVideo = {
  * Represents a token of all kinds of lex.
  */
 export type LexType =
-    TokenH1 |
     TokenH2 |
+    TokenH3 |
     TokenCode |
     TokenText |
     TokenUList |

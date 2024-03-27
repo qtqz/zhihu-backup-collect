@@ -73,13 +73,13 @@ export const parser = (input: LexType[]): string[] => {
 				break;
 			};
 
-			case TokenType.H1: {
-				output.push(`# ${token.text}`);
+			case TokenType.H2: {
+				output.push(`## ${token.text}`);
 				break;
 			};
 
-			case TokenType.H2: {
-				output.push(`## ${token.text}`);
+			case TokenType.H3: {
+				output.push(`### ${token.text}`);
 				break;
 			};
 

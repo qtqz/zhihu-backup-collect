@@ -13,7 +13,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     //确认场景
     let scene, type
     if (window.location.pathname == "/follow") scene = "follow"
-    else if (window.location.pathname.slice(0, 7) == "/people") scene = "people"
+    else if (window.location.pathname.slice(0, 7) == "/people" || window.location.pathname.slice(0, 4) == "/org") scene = "people"
     else if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.match(/answer/)) scene = "question"
     else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.match(/answer/)) scene = "answer"
     else if (window.location.pathname.slice(0, 4) == "/pin") scene = "pin"
@@ -32,18 +32,9 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else {
         console.log("未知内容")
         alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
-        document.querySelectorAll('.zhihubackup-wrap').forEach((w) => {
-            w.remove()
-        })
+        document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
     }
 
-    if (!window.location.href.match(/https/)) {//仅供测试
-        scene = "follow"
-        scene = "article"
-        if (window.location.pathname.match(/a/)) scene = "answer"
-        if (window.location.pathname.match(/pin/)) scene = "pin"
-        if (window.location.pathname.match(/peo/)) scene = "people"
-    }
     if (!scene || !type) return
 
     const title = getTitle(dom, scene, type),
@@ -82,8 +73,31 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         return fm
     }
 
+    /**
+     * 生成目录
+     */
+    const getTOC = (): string[] | null => {
+        let toc = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Catalog-content")
+        let items: string[] = []
+        if (toc) {
+            let i = 1, j = 1
+            toc.childNodes.forEach((e) => {
+                if ((e as HTMLElement).classList.contains('Catalog-FirstLevelTitle')) {
+                    items.push(i++ + '. ' + e.textContent)
+                    j = 1
+                }
+                else {
+                    items.push('    ' + j++ + '. ' + e.textContent)
+                }
+            })
+            return ['## 目录', items.join('\n')]
+        }
+        else return null
+    }
+
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
     //console.log("lex", lex)
+    var markdown = []
 
     if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
         //是转发的想法，对原想法解析，并附加到新想法下面
@@ -114,18 +128,18 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     }
 
     if (button == 'copy') {
-        //放到剪贴板
-        var markdown = parser(lex)
+        //放到剪贴板，string[]
+        return {
+            markdown: getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
+
+        }
     } else {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
         markdown = parser(localLex)
     }
-    if (button == 'copy') return {
-        markdown
-    }
 
-    zip.file("index.md", getFrontmatter() + markdown.join("\n\n"))
+    zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
 
     //解析评论
     try {
@@ -159,9 +173,14 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     }
 
     const zopQuestion = (() => {
-        let el = document.querySelector("[data-zop-question]")
-        if (el) return JSON.parse(decodeURIComponent(el.getAttribute("data-zop-question")))
-        return null
+        try {
+            let el = document.querySelector("[data-zop-question]")
+            if (el) return JSON.parse(el.getAttribute("data-zop-question"))
+            return null
+        } catch (e) {
+            console.error('data-zop-question', e)
+            alert('保存data-zop-question出错')
+        }
     })()
 
     const { zop, zaExtra, location } = (() => {
@@ -189,7 +208,6 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     }, null, 4))
 
     return {
-        markdown,
         zip,
         title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
     }
