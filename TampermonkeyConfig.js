@@ -17,6 +17,7 @@ export const UserScript = {
         "https:\/\/www.zhihu.com/follow",
         "https:\/\/www.zhihu.com/pin/*",
         "https:\/\/www.zhihu.com/people/*",
+        "https:\/\/www.zhihu.com/org/*",
         "https:\/\/www.zhihu.com/question/*",
         "https:\/\/www.zhihu.com/answer/*",
         "https:\/\/www.zhihu.com/collection/*",

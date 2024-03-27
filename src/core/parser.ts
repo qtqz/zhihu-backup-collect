@@ -1,7 +1,7 @@
 import {
-	type LexType, TokenType, TokenText, TokenTextType, TokenTextCode, TokenTextInlineMath,
-	TokenComment,
-} from "./tokenTypes";
+    type LexType, TokenType, TokenText, TokenTextType, TokenTextCode, TokenTextInlineMath,
+    TokenComment,
+} from "./tokenTypes"
 
 /**
  * 
@@ -9,38 +9,38 @@ import {
  * @returns 1行1项，无需\n连接
  */
 export const parserComment = (input: TokenComment[]): string[] => {
-	const output: string[] = []
-	let h3 = '### '
-	let h4 = '#### '
-	for (let i = 0; i < input.length; i++) {
-		const replys = input[i].content
-		for (let i = 0; i < replys.length; i++) {
-			const reply = replys[i]
-			let pre = ''
-			if (reply.level == 2) pre = '> '
-			if (typeof reply.content != 'string') {
-				if (reply.level == 1) output.push(pre + h3 + reply.content.name)
-				else output.push(pre + h4 + reply.content.name)
+    const output: string[] = []
+    let h3 = '### '
+    let h4 = '#### '
+    for (let i = 0; i < input.length; i++) {
+        const replys = input[i].content
+        for (let i = 0; i < replys.length; i++) {
+            const reply = replys[i]
+            let pre = ''
+            if (reply.level == 2) pre = '> '
+            if (typeof reply.content != 'string') {
+                if (reply.level == 1) output.push(pre + h3 + reply.content.name)
+                else output.push(pre + h4 + reply.content.name)
 
-				if (typeof reply.content.text == 'object') {
-					reply.content.text.forEach(e => {
-						output.push(pre + e)
-					})
-				} else output.push(pre + reply.content.text)
+                if (typeof reply.content.text == 'object') {
+                    reply.content.text.forEach(e => {
+                        output.push(pre + e)
+                    })
+                } else output.push(pre + reply.content.text)
 
-				output.push(pre + reply.content.time + ' '
-					+ reply.content.location + ' '
-					+ reply.content.likes + ' 赞')
-			} else output.push(pre + reply.content)
-		}
-	}
-	const newOutput=output.flatMap(e => {
-		if (e.slice(0, 2) == '> ') return [e, '\n', '> ', '\n']
-		else return [e, '\n', '\n']
-	})
+                output.push(pre + reply.content.time + ' '
+                    + reply.content.location + ' '
+                    + reply.content.likes + ' 赞')
+            } else output.push(pre + reply.content)
+        }
+    }
+    const newOutput = output.flatMap(e => {
+        if (e.slice(0, 2) == '> ') return [e, '\n', '> ', '\n']
+        else return [e, '\n', '\n']
+    })
 
-	//console.log(output,newOutput)
-	return newOutput
+    //console.log(output,newOutput)
+    return newOutput
 }
 
 
@@ -50,134 +50,125 @@ export const parserComment = (input: TokenComment[]): string[] => {
  * @returns An array of strings representing the parsed output.
  */
 export const parser = (input: LexType[]): string[] => {
-	const output: string[] = [];
+    const output: string[] = []
 
-	for (let i = 0; i < input.length; i++) {
-		const token = input[i];
+    for (let i = 0; i < input.length; i++) {
+        const token = input[i]
 
-		switch (token.type) {
+        switch (token.type) {
+            case TokenType.Code: {
+                output.push(`\`\`\`${token.language ? token.language : ""}\n${token.content}${token.content.endsWith("\n") ? "" : "\n"
+                    }\`\`\``)
+                break
+            }
 
-			case TokenType.Code: {
-				output.push(`\`\`\`${token.language ? token.language : ""}\n${token.content}${token.content.endsWith("\n") ? "" : "\n"
-					}\`\`\``);
-				break;
-			};
+            case TokenType.UList: {
+                output.push(token.content.map((item) => `- ${renderRich(item)}`).join("\n"))
+                break
+            }
 
-			case TokenType.UList: {
-				output.push(token.content.map((item) => `- ${renderRich(item)}`).join("\n"));
-				break;
-			};
+            case TokenType.Olist: {
+                output.push(token.content.map((item, index) => `${index + 1}. ${renderRich(item)}`).join("\n"))
+                break
+            }
 
-			case TokenType.Olist: {
-				output.push(token.content.map((item, index) => `${index + 1}. ${renderRich(item)}`).join("\n"));
-				break;
-			};
+            case TokenType.H2: {
+                output.push(`## ${token.text}`)
+                break
+            }
 
-			case TokenType.H2: {
-				output.push(`## ${token.text}`);
-				break;
-			};
+            case TokenType.H3: {
+                output.push(`### ${token.text}`)
+                break
+            }
 
-			case TokenType.H3: {
-				output.push(`### ${token.text}`);
-				break;
-			};
+            case TokenType.Blockquote: {
+                output.push(renderRich(token.content, "> "))
+                break
+            }
 
-			case TokenType.Blockquote: {
-				output.push(renderRich(token.content, "> "));
-				break;
-			};
+            case TokenType.Text: {
+                output.push(renderRich(token.content))
+                break
+            }
 
-			case TokenType.Text: {
-				output.push(renderRich(token.content));
-				break;
-			};
+            case TokenType.HR: {
+                output.push("\n---\n")
+                break
+            }
 
-			case TokenType.HR: {
-				output.push("\n---\n");
-				break;
-			};
+            case TokenType.Link: {
+                output.push(`[${token.text}](${token.href})`)
+                break
+            }
 
-			case TokenType.Link: {
-				output.push(`[${token.text}](${token.href})`);
-				break;
-			};
+            case TokenType.Figure: {
+                output.push(`![](${token.local ? token.localSrc : token.src})`)
+                break
+            }
 
-			case TokenType.Figure: {
-				output.push(`![](${token.local ? token.localSrc : token.src})`);
-				break;
-			};
+            case TokenType.Gif: {
+                output.push(`![](${token.local ? token.localSrc : token.src})`)
+                break
+            }
 
-			case TokenType.Gif: {
-				output.push(`![](${token.local ? token.localSrc : token.src})`);
-				break;
-			};
+            case TokenType.Video: {
+                // 创建一个虚拟的 DOM 节点
+                const dom = document.createElement("video")
+                dom.setAttribute("src", token.local ? token.localSrc : token.src)
+                if (!token.local) dom.setAttribute("data-info", "文件还未下载，随时可能失效，请使用`下载全文为Zip`将视频一同下载下来")
 
-			case TokenType.Video: {
-				// 创建一个虚拟的 DOM 节点
-				const dom = document.createElement("video");
-				dom.setAttribute("src", token.local ? token.localSrc : token.src)
-				if (!token.local) dom.setAttribute("data-info", "文件还未下载，随时可能失效，请使用`下载全文为Zip`将视频一同下载下来");
+                output.push(dom.outerHTML)
+                break
+            }
 
-				output.push(dom.outerHTML);
-				break;
-			};
+            case TokenType.Table: {
+                //console.log(token)
 
-			case TokenType.Table: {
-				//console.log(token);
+                const rows = token.content
+                const cols = rows[0].length
+                const widths = new Array(cols).fill(0)
+                const res = []
 
-				const rows = token.content;
-				const cols = rows[0].length;
-				const widths = new Array(cols).fill(0);
+                for (let i in rows) {
+                    for (let j in rows[i]) {
+                        widths[j] = Math.max(widths[j], rows[i][j].length)
+                    }
+                }
 
-				const res = [];
+                const renderRow = (row: string[]): string => {
+                    let res = ""
+                    for (let i = 0; i < cols; i++) {
+                        res += `| ${row[i].padEnd(widths[i])} `
+                    }
+                    res += "|"
+                    return res
+                }
 
-				for (let i in rows) {
-					for (let j in rows[i]) {
-						widths[j] = Math.max(widths[j], rows[i][j].length);
-					}
-				}
+                const renderSep = (): string => {
+                    let res = ""
+                    for (let i = 0; i < cols; i++) {
+                        res += `| ${"-".repeat(widths[i])} `
+                    }
+                    res += "|"
+                    return res
+                }
 
-				const renderRow = (row: string[]): string => {
-					let res = "";
+                res.push(renderRow(rows[0]))
+                res.push(renderSep())
 
-					for (let i = 0; i < cols; i++) {
-						res += `| ${row[i].padEnd(widths[i])} `;
-					}
+                for (let i = 1; i < rows.length; i++) {
+                    res.push(renderRow(rows[i]))
+                }
+                output.push(res.join("\n"))
 
-					res += "|";
+                break
+            }
+        }
+    }
 
-					return res;
-				};
-
-				const renderSep = (): string => {
-					let res = "";
-
-					for (let i = 0; i < cols; i++) {
-						res += `| ${"-".repeat(widths[i])} `;
-					}
-
-					res += "|";
-
-					return res;
-				};
-
-				res.push(renderRow(rows[0]));
-				res.push(renderSep());
-
-				for (let i = 1; i < rows.length; i++) {
-					res.push(renderRow(rows[i]));
-				}
-
-				output.push(res.join("\n"));
-
-				break;
-			};
-		}
-	}
-
-	return output;
-};
+    return output
+}
 
 
 /**
@@ -187,47 +178,47 @@ export const parser = (input: LexType[]): string[] => {
  * @returns A string representing the rendered rich text.
  */
 const renderRich = (input: TokenTextType[], joint: string = ""): string => {
-	let res = "";
+    let res = ""
 
-	for (let el of input) {
-		switch (el.type) {
-			case TokenType.Bold: {
-				res += `**${renderRich(el.content)}**`;
-				break;
-			};
+    for (let el of input) {
+        switch (el.type) {
+            case TokenType.Bold: {
+                res += `**${renderRich(el.content)}**`
+                break
+            }
 
-			case TokenType.Italic: {
-				res += `*${renderRich(el.content)}*`;
-				break;
-			};
+            case TokenType.Italic: {
+                res += `*${renderRich(el.content)}*`
+                break
+            }
 
-			case TokenType.InlineLink: {
-				res += `[${el.text}](${el.href})`;
-				break;
-			};
+            case TokenType.InlineLink: {
+                res += `[${el.text}](${el.href})`
+                break
+            }
 
-			case TokenType.PlainText: {
-				res += el.text;
-				break;
-			};
+            case TokenType.PlainText: {
+                res += el.text
+                break
+            }
 
-			case TokenType.BR: {
-				res += "\n" + joint;
-				break;
-			};
+            case TokenType.BR: {
+                res += "\n" + joint
+                break
+            }
 
-			case TokenType.InlineCode: {
-				res += `\`${(el as TokenTextCode).content}\``;
-				break;
-			};
+            case TokenType.InlineCode: {
+                res += `\`${(el as TokenTextCode).content}\``
+                break
+            }
 
-			case TokenType.Math: {
-				if (input.length == 1) res += `$$\n${(el as TokenTextInlineMath).content}\n$$`;
-				else res += `$${(el as TokenTextInlineMath).content}$`;
-				break;
-			};
-		}
-	}
+            case TokenType.Math: {
+                if (input.length == 1) res += `$$\n${(el as TokenTextInlineMath).content}\n$$`
+                else res += `$${(el as TokenTextInlineMath).content}$`
+                break
+            }
+        }
+    }
 
-	return joint + res;
-};
+    return joint + res
+}

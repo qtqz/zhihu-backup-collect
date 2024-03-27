@@ -8,6 +8,7 @@
 // @match        https://www.zhihu.com/follow
 // @match        https://www.zhihu.com/pin/*
 // @match        https://www.zhihu.com/people/*
+// @match        https://www.zhihu.com/org/*
 // @match        https://www.zhihu.com/question/*
 // @match        https://www.zhihu.com/answer/*
 // @match        https://www.zhihu.com/collection/*
