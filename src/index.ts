@@ -99,8 +99,7 @@ const main = async () => {
                     <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="60">
                 </button>
                 <button class="Button VoteButton">
-                    <input type="checkbox" checked id="to-cm">
-                    <label for="to-cm"> 保存<br>当前页评论</label>
+                    <label><input type="checkbox" checked> 保存<br>当前页评论</label>
                 </button></div>`
             if (parent_dom.querySelector('.Catalog')) {
                 (ButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
@@ -256,7 +255,8 @@ setTimeout(() => {
         left: -10em;
         top: -50px;
         height: 100%;
-        z-index: 2;
+        user-select: none;
+        width: 12em;
     }
     .zhihubackup-container {
         position: sticky;
@@ -265,7 +265,8 @@ setTimeout(() => {
         flex-direction: column;
         justify-content: space-around;
         height: 22em;*/
-        width: 12em;
+        width: min-content;
+        z-index: 2;
     }
     .zhihubackup-container button {
         width: 8em;
@@ -343,6 +344,10 @@ setTimeout(() => {
     }
     .to-screenshot .zhihubackup-container{
         /*display: none;*/
+    }
+    .RichContent:has(.ContentItem-more) .zhihubackup-wrap,
+    .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
+        display:none;
     }
 `))
     let heads = document.getElementsByTagName("head");

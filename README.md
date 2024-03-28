@@ -10,7 +10,7 @@
 
 注：此项目**非**爬蟲，仅用于用户**日常保存喜欢的内容**。请尊重内容作者权利，切勿用于抄袭与盈利。
 
-此项目基于[Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，感谢原作者的探索。原作者实现了基本的 Markdown 相关和 zip 下载，咱进行优化并适配各种场景和内容类型，添加存图、备注和评论支持。若想赞赏支持可前往各作者 github 主页。
+此项目基于[Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，感谢原作者的探索。原作者实现了基本的 Markdown 相关和 zip 下载，咱进行优化并适配各种场景和内容类型，添加存图、备注和评论支持。若想**赞赏支持**可前往咱和他 github 主页。
 
 ## Usage
 
@@ -36,13 +36,9 @@
 
 ## Dev
 
-安装依赖
-
 ```bash
 pnpm i
 ```
-
-测试
 
 `0.7.11+`已启用更方便的测试：
 
@@ -51,13 +47,9 @@ pnpm i
 3. `pnpm dev`
 4. 刷新目标网页
 
-打包
-
 ```bash
 pnpm build
 ```
-
-`dist/tampermonkey-script.js` 即为脚本，复制到油猴即可使用。
 
 ## 原理
 
@@ -72,10 +64,15 @@ pnpm build
 - [X] TOC解析
 - [X] 解析当前页评论为Markdown
 - [X] 为Markdown添加frontmatter
-- [ ] 考虑移除info.json
+- ~~[ ] 考虑移除info.json~~
 
 ## Changelog
 
+* 24.3.28（0.8.22）:
+    - 隐藏已折叠内容下的按钮
+    - 修复保存无名用户内容出错
+    - 修复按钮干扰选择文字的问题
+    - 修复点击保存评论时奇怪的跳转问题
 * 24.3.27（0.8.18）:
     - 保存失败时给予补救机会
     - 修复按钮被目录遮挡无法点击
@@ -85,7 +82,7 @@ pnpm build
     - 解析参考文献
     - 解析目录
 * 24.3.20（0.8.8）:
-    - 修复无法保存匿名用户的内容
+    - 修复保存匿名用户内容出错
     - 增加保存失败原因提示
 * 24.3.4（0.8.7）:
     - 更方便的测试
@@ -106,7 +103,7 @@ pnpm build
     - 修正下载md内的图片路径为本地路径
     - 对于有目录的内容，减轻按钮与目录的重叠
 * 24.1.19（0.7.4）:
-    - 截图适配专栏
+    - 截图适配专栏文章
 * 24.1.13（0.7.x）:
     - 粗略解析评论并添加到zip
     - 修复大量bug
