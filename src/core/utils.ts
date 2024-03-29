@@ -229,12 +229,12 @@ export const getRemark = (dom: HTMLElement): string => {
 }
 
 /**
- * 获取是否需要保存评论，用于截图，后续用于PDF，zip
+ * 获取是否需要保存评论，用于截图，zip
  */
 export const getCommentSwitch = (dom: HTMLElement): boolean => {
     let s, p = getParent(dom, "ContentItem")
     if (!p) p = getParent(dom, "PinItem")
     if (!p) p = getParent(dom, "Post-content")
-    if (p) s = (p.querySelector("input#to-cm") as HTMLInputElement).checked
+    if (p) s = (p.querySelector("input.to-cm") as HTMLInputElement).checked
     return s
 }

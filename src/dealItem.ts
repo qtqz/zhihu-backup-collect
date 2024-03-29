@@ -96,6 +96,18 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     }
 
     const lex = lexer(dom.childNodes as NodeListOf<Element>, type)
+    //保存文章头图
+    let headImg = document.querySelector('span>picture>img')
+    if (scene == 'article' && headImg) {
+        const src = headImg.getAttribute("src")
+        if (src) lex.unshift({
+            type: TokenType.Figure,
+            src,
+            local: false,
+            dom: headImg
+        } as TokenFigure)
+    }
+
     //console.log("lex", lex)
     var markdown = []
 

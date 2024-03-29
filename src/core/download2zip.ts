@@ -10,7 +10,8 @@ export async function downloadAndZip(url: string, zip: JSZip): Promise<{ zip: JS
 
     const response = await fetch(url)
     const arrayBuffer = await response.arrayBuffer()
-    const fileName = url.replace(/\?.*?$/g, "").split("/").pop()
+    let fileName = url.replace(/\?.*?$/g, "").split("/").pop()
+    fileName.endsWith('.image') ? fileName += '.jpg' : 0
 
     // 添加到zip文件
     zip.file(fileName, arrayBuffer)

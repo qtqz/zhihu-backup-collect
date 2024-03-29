@@ -99,7 +99,7 @@ const main = async () => {
                     <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="60">
                 </button>
                 <button class="Button VoteButton">
-                    <label><input type="checkbox" checked> 保存<br>当前页评论</label>
+                    <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
                 </button></div>`
             if (parent_dom.querySelector('.Catalog')) {
                 (ButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';

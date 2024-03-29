@@ -305,7 +305,7 @@ export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenC
             } as TokenComment)
         }
     }
-    console.log(commentImg)
+    //console.log(commentImg)
     return [tokens, commentImg]
 }
 
