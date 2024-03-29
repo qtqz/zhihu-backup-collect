@@ -168,7 +168,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                     m.unshift('**评论内容由作者筛选后展示**\n\n')
                 }
                 zip.file("comments.md", num_text + '\n\n' + m.join(''))
-                if (imgs) {
+                if (imgs.length) {
                     const assetsFolder = zip.folder('assets')
                     for (let i = 0; i < imgs.length; i++) {
                         const response = await fetch(imgs[i])
