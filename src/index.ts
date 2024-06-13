@@ -48,6 +48,16 @@ import { getCommentSwitch } from "./core/utils"
  * -按钮节流
  * 
  * 
+ * 自定义配置以及更多
+ * 保存为纯文本
+ * zip内改index.md为zip文件名
+ * 评论合并到主md内
+ * 添加笔记
+ * 不保存图片
+ * 
+ * 
+ * 
+ * 
  */
 
 const main = async () => {
@@ -59,6 +69,7 @@ const main = async () => {
             let result: {
                 markdown?: string[],
                 zip?: JSZip,
+                textString?: string,
                 title: string,
             }
             //console.log(RichText)
@@ -93,8 +104,9 @@ const main = async () => {
             //按钮们
             ButtonContainer.innerHTML = `<div class="zhihubackup-container">
                 <button class="to-md Button VoteButton">复制为Markdown</button>
-                <button class="to-zip Button VoteButton">下载为ZIP</button>
-                <button class="to-png Button VoteButton">剪藏为PNG</button>
+                <button class="to-zip Button VoteButton">下载为 ZIP</button>
+                <button class="to-text Button VoteButton">下载为纯文本</button>
+                <button class="to-png Button VoteButton">剪藏为 PNG</button>
                 <button class="Button VoteButton">
                     <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="60">
                 </button>
@@ -106,7 +118,7 @@ const main = async () => {
                 (ButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
                 (ButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
             }
-            
+
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", throttle(async () => {
                 try {
@@ -143,13 +155,13 @@ const main = async () => {
                     saveAs(blob, result.title + ".zip")
                     ButtonZip.innerHTML = "下载成功✅<br>请看下载记录"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为Zip"
+                        ButtonZip.innerHTML = "下载为 Zip"
                     }, 5000)
                 } catch (e) {
                     console.log(e)
                     ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为Zip"
+                        ButtonZip.innerHTML = "下载为 Zip"
                     }, 5000)
                 }
             }))
@@ -170,7 +182,11 @@ const main = async () => {
                     svgDefs ? svgDefs.style.visibility = "visible" : 0
 
                     domToPng(clip, {
-                        backgroundColor: "#fff"
+                        backgroundColor: "#fff",
+                        filter(el) {
+                            if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
+                            else return true
+                        },
                     }).then((dataUrl: any) => {
                         const link = document.createElement('a')
                         link.download = result.title + ".png"
@@ -180,7 +196,7 @@ const main = async () => {
                             clip.classList.remove("to-screenshot")
                             !saveCM ? clip.classList.remove("no-cm") : 0
                             //svgDefs2.remove()
-                            ButtonPNG.innerHTML = "剪藏为PNG"
+                            ButtonPNG.innerHTML = "剪藏为 PNG"
                         }, 5000)
                     })
                     ButtonPNG.innerHTML = "请稍待片刻✅<br>查看下载记录"
@@ -188,7 +204,30 @@ const main = async () => {
                     console.log(e)
                     ButtonPNG.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        ButtonPNG.innerHTML = "剪藏为PNG"
+                        ButtonPNG.innerHTML = "剪藏为 PNG"
+                    }, 5000)
+                }
+            }))
+
+            const ButtonText = parent_dom.querySelector(".to-text")
+            ButtonText.addEventListener("click", throttle(async () => {
+                try {
+                    const res = await dealItem(RichText, 'text')
+                    result = {
+                        textString: res.textString,
+                        title: res.title,
+                    }
+                    const blob = new Blob([result.textString], { type: 'text/plain' })
+                    saveAs(blob, result.title + ".md")
+                    ButtonText.innerHTML = "下载成功✅<br>请看下载记录，以文本方式打开"
+                    setTimeout(() => {
+                        ButtonText.innerHTML = "下载为纯文本"
+                    }, 5000)
+                } catch (e) {
+                    console.log(e)
+                    ButtonText.innerHTML = "发生错误❌<br>请打开控制台查看"
+                    setTimeout(() => {
+                        ButtonText.innerHTML = "下载为纯文本"
                     }, 5000)
                 }
             }))
@@ -266,12 +305,14 @@ setTimeout(() => {
         justify-content: space-around;
         height: 22em;*/
         width: min-content;
+        max-width: 8em;
         z-index: 2;
     }
     .zhihubackup-container button {
         width: 8em;
         margin-bottom: 8px;
-        line-height: 32px!important;
+        line-height: 24px !important;
+        padding: 4px 10px;
     }
     .zhihubackup-container input{
         /*border: 1px solid #777;*/
@@ -281,6 +322,10 @@ setTimeout(() => {
         border: unset;
         text-align: center;
         outline: unset;        
+    }
+    button.Button.VoteButton:has(input:focus)  {
+        resize: both;
+        overflow: hidden;
     }
     .to-screenshot .ContentItem-actions {
         position: initial!important;

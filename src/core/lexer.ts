@@ -104,7 +104,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 
     const tokens: LexType[] = []
 
-    for (let i = 0; i < input.length ;i++) {
+    for (let i = 0; i < input.length; i++) {
         const node = input[i]
         //console.log(node)
         const tagName = node.nodeName.toLowerCase()
@@ -293,7 +293,7 @@ export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenC
     const tokens: TokenComment[] = []
     commentImg = []
 
-    for (let i = 0; i < input.length ;i++) {
+    for (let i = 0; i < input.length; i++) {
         const node = input[i]
         //console.log(node)
 
@@ -320,7 +320,7 @@ const getCommentReplys = (node: Element): TokenCommentReply[] => {
     const res = [] as TokenCommentReply[]
     const nodes = node.childNodes//顶层id号评论的下层
 
-    for (let i = 0 ;i < nodes.length ;i++) {
+    for (let i = 0; i < nodes.length; i++) {
         const reply = nodes[i] as HTMLElement
         let tgt
         if (reply.tagName == 'BUTTON') res.push({
@@ -355,14 +355,14 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 
     let textContent = reply.childNodes[1].childNodes[1]
     let textContents = textContent.childNodes
-    let picture = ''
-    if ((textContent as HTMLElement).querySelector('.comment_img')) {
-        picture = (textContent as HTMLElement).querySelector('.comment_img>img').getAttribute('data-original')
-    }
     let textContentPlain: string | string[] = ''
 
-    textContents.forEach(e => {
-        if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt
+    textContents.forEach(e => {//评论内容最小元素
+        let picture = ''
+        if (e.nodeName == 'DIV') if ((e as HTMLElement).classList.contains('comment_img') || (e as HTMLElement).classList.contains('comment_sticker')) {
+            picture = (e as HTMLElement).querySelector('img').getAttribute('data-original')
+        }
+        if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt//表情
         else if (e.nodeName == 'A') {
             let link = ZhihuLink2NormalLink((e as HTMLAnchorElement).href)
             textContentPlain += '[' + link + '](' + link + ')'
@@ -370,8 +370,12 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
         else if (e.nodeName == 'BR') textContentPlain += '\n'
         else textContentPlain += e.textContent
         if (picture) {
-            textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
-            commentImg.push(picture)
+            if ((window as any).commentImage == 'online') {
+                textContentPlain += '![图片](' + picture + ')'
+            } else {
+                textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
+                commentImg.push(picture)
+            }
         }
     })
     //多行评论

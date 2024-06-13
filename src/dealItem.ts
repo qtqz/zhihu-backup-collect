@@ -8,6 +8,7 @@ import savelex from "./core/savelex"
 export default async (dom: HTMLElement, button?: string): Promise<{
     markdown?: string[],
     zip?: JSZip,
+    textString?: string,
     title?: string,
 }> => {
     //确认场景
@@ -143,22 +144,39 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         //放到剪贴板，string[]
         return {
             markdown: getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
-
         }
-    } else {
+    } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
         markdown = parser(localLex)
+        zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
     }
 
-    zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
+    let commentText = ''
 
     //解析评论
     try {
         let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
         if (getCommentSwitch(dom) && openComment) {
+            if (button == 'text') {
+                Object.defineProperty(window, 'commentImage', {
+                    value: 'online',
+                    writable: true,
+                    enumerable: true,
+                    configurable: true,
+                })
+            }else{
+                Object.defineProperty(window, 'commentImage', {
+                    value: 'local',
+                    writable: true,
+                    enumerable: true,
+                    configurable: true,
+                })
+                
+            }
             if (openComment.querySelector('.css-189h5o3')) {
-                zip.file("comments.md", `**${openComment.querySelector('.css-189h5o3').textContent}**`)
+                if (button == 'text') commentText = `**${openComment.querySelector('.css-189h5o3').textContent}**`
+                else zip.file("comments.md", `**${openComment.querySelector('.css-189h5o3').textContent}**`)
             } else {
                 let num_text = openComment.childNodes[0].childNodes[1].childNodes[0].childNodes[0].textContent
                 let c = openComment.childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>
@@ -167,14 +185,17 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                 if (openComment.querySelector('.css-1tdhe7b')) {
                     m.unshift('**评论内容由作者筛选后展示**\n\n')
                 }
-                zip.file("comments.md", num_text + '\n\n' + m.join(''))
-                if (imgs.length) {
-                    const assetsFolder = zip.folder('assets')
-                    for (let i = 0; i < imgs.length; i++) {
-                        const response = await fetch(imgs[i])
-                        const arrayBuffer = await response.arrayBuffer()
-                        const fileName = imgs[i].replace(/\?.*?$/g, "").split("/").pop()
-                        assetsFolder.file(fileName, arrayBuffer)
+                if (button == 'text') commentText = num_text + '\n\n' + m.join('')
+                else {
+                    zip.file("comments.md", num_text + '\n\n' + m.join(''))
+                    if (imgs.length) {
+                        const assetsFolder = zip.folder('assets')
+                        for (let i = 0; i < imgs.length; i++) {
+                            const response = await fetch(imgs[i])
+                            const arrayBuffer = await response.arrayBuffer()
+                            const fileName = imgs[i].replace(/\?.*?$/g, "").split("/").pop()
+                            assetsFolder.file(fileName, arrayBuffer)
+                        }
                     }
                 }
             }
@@ -182,6 +203,14 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     } catch (e) {
         console.log("评论:", e)
         alert('主要工作已完成，但是评论保存出错了')
+    }
+
+    if (button == 'text') {
+        commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
+        return {
+            textString: getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + commentText,
+            title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+        }
     }
 
     const zopQuestion = (() => {

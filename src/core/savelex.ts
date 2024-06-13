@@ -12,7 +12,7 @@ export default async (
     let FigureFlag = false
 
     for (let token of lex) {
-        if (token.type == TokenType.Figure || TokenType.Video || TokenType.Gif) {
+        if (token.type == TokenType.Figure || token.type == TokenType.Video || token.type == TokenType.Gif) {
             FigureFlag = true
             break
         }
