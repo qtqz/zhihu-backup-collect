@@ -38,7 +38,11 @@ export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
     let t
     if (scene == "follow" || scene == "people" || scene == "collection" || scene == "pin") {
         if (type == "answer" || type == "article") {
-            t = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement).innerText
+            let title_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement)
+            //搜索结果页最新讨论
+            !title_dom ? title_dom = ((getParent(dom, "HotLanding-contentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement) : 0
+            t = title_dom.innerText
+
         }
         else {//想法
             t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "")
@@ -117,8 +121,19 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
     // if (scene == "follow" || scene == "people" || scene == "question")
     else {
         if (type == "answer" || type == "article") {
+            //普通
             let p = getParent(dom, "ContentItem") as HTMLElement
-            url = (p.querySelector(".ContentItem>meta[itemprop=url]") as HTMLMetaElement).content
+            let url_dom = (p.querySelector(".ContentItem>meta[itemprop=url]") as any)
+            //搜索结果页
+            if (!url_dom) {
+                url_dom = p.querySelector(".ContentItem h2 a")
+            }
+            //搜索结果页最新讨论
+            if (!url_dom) {
+                p = getParent(dom, "HotLanding-contentItem") as HTMLElement
+                url_dom = p.querySelector(".ContentItem h2 a")
+            }
+            url = url_dom.content || (url_dom.href)
             if (url.slice(0, 5) != "https") url = "https:" + url
             return url
         }
@@ -187,7 +202,11 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
     }
     else {
         let zaedata = (getParent(dom, "ContentItem") as HTMLElement).getAttribute("data-za-extra-module")
-        upvote = JSON.parse(zaedata).card.content.upvote_num
+        //搜索结果页
+        if (window.location.href.match('/search?')) {
+            upvote = (getParent(dom, "RichContent") as HTMLElement).querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0
+        }
+        else upvote = JSON.parse(zaedata).card.content.upvote_num
     }
     return parseInt(upvote)
     //  }
@@ -197,8 +216,14 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
 export const getCommentNum = (dom: HTMLElement, scene: string, type: string): number => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
-    let cm, cm_dom
-    if (type == "pin") {
+    let cm, cm_dom, p
+    //被展开的评论区
+    p = (getParent(dom, "ContentItem") as HTMLElement)
+    p ? cm_dom = p.querySelector(".css-1k10w8f") : 0
+    if (cm_dom) {
+        cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
+    }
+    else if (type == "pin") {
         cm_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
             (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
         cm_dom = cm_dom.childNodes[1]
@@ -212,7 +237,12 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
     }
     else {
         let zaedata = (getParent(dom, "ContentItem") as HTMLElement).getAttribute("data-za-extra-module")
-        cm = JSON.parse(zaedata).card.content.comment_num
+        //搜索结果页
+        if (window.location.href.match('/search?')) {
+            cm_dom = (getParent(dom, "RichContent") as HTMLElement).querySelector("button.ContentItem-action")
+            cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
+        }
+        else cm = JSON.parse(zaedata).card.content.comment_num
     }
     return parseInt(cm)
     //  }
@@ -223,7 +253,7 @@ export const getRemark = (dom: HTMLElement): string => {
     let remark, p = getParent(dom, "ContentItem")//文章页没有，remark = remark.replace(/\/|\\|<|>|"|\*|\?|\||\:/g, "-")
     if (!p) p = getParent(dom, "PinItem")
     if (!p) p = getParent(dom, "Post-content")
-    if (p) remark = (p.querySelector("input.to-remark") as HTMLInputElement).value.replace(/\s/g, "-")
+    if (p) remark = (p.querySelector("textarea.to-remark") as HTMLInputElement).value.replace(/\s/g, "-")
     if (remark.match(/\/|\\|<|>|"|\*|\?|\||\:/g)) return "非法备注"
     return remark
 }

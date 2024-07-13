@@ -13,7 +13,7 @@ import { getCommentSwitch } from "./core/utils"
  * 代码风格：大部分改为空格缩进、无分号
  * 
  * 优化逻辑与性能，减少多余操作：
- * 无限循环改为每3秒监听滚动
+ * 无限循环改为每1秒监听滚动
  * 点击按钮后才开始处理内容
  * 
  * 文件名添加作者名、时间
@@ -21,7 +21,7 @@ import { getCommentSwitch } from "./core/utils"
  * 适配复杂的想法：转发、带卡片链接、带@
  * 
  * 
- * 页：推送页，个人主页，回答页，问题页，文章页，想法页，收藏夹页
+ * 页：推送页，个人/机构主页，回答页，问题页，文章页，想法页，收藏夹页，搜索结果页
  */
 
 /**
@@ -55,10 +55,37 @@ import { getCommentSwitch } from "./core/utils"
  * 添加笔记
  * 不保存图片
  * 
- * 
+ * 更多见 readme
  * 
  * 
  */
+
+
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant    GM_registerMenuCommand
+// @grant    GM_unregisterMenuCommand
+
+try {
+    // @ts-ignore
+    let menuComment = GM_registerMenuCommand(
+        "【开发中，暂时无效】保存前自动展开评论区",
+        function () {
+            // @ts-ignore
+            let ac = GM_getValue("autoComment"), c
+            !ac ? c = confirm("当你勾选保存评论时，在保存前，若你未展开评论，会自动帮你展开评论区，你是否继续？") : alert('已取消保存前自动展开评论区')
+            if (c) {
+                // @ts-ignore
+                GM_setValue("autoComment", true)
+                // @ts-ignore
+            } else GM_setValue("autoComment", false)
+        },
+        "h"
+    )
+} catch (e) {
+    console.warn(e)
+}
+
 
 const main = async () => {
 
@@ -108,7 +135,7 @@ const main = async () => {
                 <button class="to-text Button VoteButton">下载为纯文本</button>
                 <button class="to-png Button VoteButton">剪藏为 PNG</button>
                 <button class="Button VoteButton">
-                    <input class="to-remark" type="text" placeholder="添加备注" style="width: 90%;" maxlength="60">
+                    <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
                 </button>
                 <button class="Button VoteButton">
                     <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
@@ -312,18 +339,24 @@ setTimeout(() => {
         width: 8em;
         margin-bottom: 8px;
         line-height: 24px !important;
-        padding: 4px 10px;
+        padding: 4px 10px!important;
     }
-    .zhihubackup-container input{
+    .zhihubackup-container input,
+    .zhihubackup-container textarea {
         /*border: 1px solid #777;*/
         background-color: #0000;
         font-size: 14px;
         color: #1772f6;
         border: unset;
         text-align: center;
-        outline: unset;        
+        outline: unset;
+        height: 15px;
+        resize: none;
+        overflow: hidden;
+        vertical-align: middle;
     }
-    button.Button.VoteButton:has(input:focus)  {
+    button.Button.VoteButton:has(input:focus),
+    button.Button.VoteButton:has(textarea:focus) {
         resize: both;
         overflow: hidden;
     }
