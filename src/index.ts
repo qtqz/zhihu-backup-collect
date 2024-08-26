@@ -350,10 +350,9 @@ setTimeout(() => {
         border: unset;
         text-align: center;
         outline: unset;
-        height: 15px;
+        height: 16px;
         resize: none;
         overflow: hidden;
-        vertical-align: middle;
     }
     button.Button.VoteButton:has(input:focus),
     button.Button.VoteButton:has(textarea:focus) {

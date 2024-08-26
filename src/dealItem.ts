@@ -66,6 +66,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
             + '\ntitle: ' + title
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
+            + '\nauthor_badge: ' + author.badge
             + '\ncreated: ' + time.created
             + '\nmodified: ' + time.modified
             + '\nupvote_num: ' + upvote_num
@@ -142,13 +143,20 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     if (button == 'copy') {
         //放到剪贴板，string[]
+        let md = getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
+        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+            md = md.concat(markdown) //解决保存转发的想法异常
+        }
         return {
-            markdown: getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
+            markdown: md
         }
     } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
-        markdown = parser(localLex)
+        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+            markdown = parser(localLex).concat(markdown)
+        }
+        else markdown = parser(localLex)
         zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
     }
 
@@ -165,14 +173,14 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                     enumerable: true,
                     configurable: true,
                 })
-            }else{
+            } else {
                 Object.defineProperty(window, 'commentImage', {
                     value: 'local',
                     writable: true,
                     enumerable: true,
                     configurable: true,
                 })
-                
+
             }
             if (openComment.querySelector('.css-189h5o3')) {
                 if (button == 'text') commentText = `**${openComment.querySelector('.css-189h5o3').textContent}**`
@@ -207,8 +215,12 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     if (button == 'text') {
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
+        let md2: string[] = []
+        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+            md2 = markdown
+        }
         return {
-            textString: getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + commentText,
+            textString: getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + md2.join("\n\n") + commentText,
             title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         }
     }

@@ -192,7 +192,7 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
         up_dom = (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
             (getParent(dom, "ContentItem") as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
         up_dom = up_dom.childNodes[0]
-        upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(0, -4)
+        upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(3)//0, -4
         upvote ? 0 : upvote = 0
     }
     else if (scene == "article") {
