@@ -189,7 +189,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
                         } as TokenGif)
                     }
                 } else {
-                    const src = img.getAttribute("data-actualsrc") || img.getAttribute("data-original")
+                    const src = img.getAttribute("data-actualsrc") || img.getAttribute("data-original") || img.src
                     if (src) {
                         tokens.push({
                             type: TokenType.Figure,
@@ -198,6 +198,19 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
                             dom: node as HTMLElement
                         } as TokenFigure)
                     }
+                }
+                //保存图片题注Tokenize(text),
+                const text = node.querySelector("figcaption")
+                if (text) {
+                    tokens.push({
+                        type: TokenType.Text,
+                        content: [{
+                            type: TokenType.Italic,
+                            content: Tokenize(text),
+                            dom: text,
+                        }],
+                        dom: text
+                    } as TokenText)
                 }
                 break
             }
@@ -416,7 +429,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
     if (typeof node == "string") {
         return [{
             type: TokenType.PlainText,
-            text: node,
+            text: node.trimStart(), // 修复被误识别为代码块
         } as TokenTextPlain]
     }
 
@@ -424,8 +437,8 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
     const res: TokenTextType[] = []
 
     // 处理 <blockquote><p></p></blockquote> 的奇观
-    try {
-        if (childs.length == 1 && (childs[0] as HTMLElement).tagName.toLowerCase() == "p") {
+    try {// || node.innerHTML.match(/<br>/)
+        if ((childs.length == 1 && (childs[0] as HTMLElement).tagName.toLowerCase() == "p")) {
             childs = Array.from((childs[0] as HTMLElement).childNodes)
         }
     } catch { }
@@ -435,7 +448,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
         if (child.nodeType == child.TEXT_NODE) {
             res.push({
                 type: TokenType.PlainText,
-                text: child.textContent.replace(/\u200B/g, ''),
+                text: child.textContent.replace(/\u200B/g, '').trimStart(), // 修复被误识别为代码块
                 dom: child,
             } as TokenTextPlain)
         } else {
@@ -535,6 +548,6 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
             }
         }
     }
-
+    //console.log(res)
     return res
 }

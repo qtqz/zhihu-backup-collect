@@ -147,9 +147,15 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
             md = md.concat(markdown) //解决保存转发的想法异常
         }
-        return {
-            markdown: md
-        }
+        if (type != 'pin') {
+            return {
+                markdown: [title].concat(md) //复制内容增加标题
+            }
+
+        } else
+            return {
+                markdown: md
+            }
     } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)

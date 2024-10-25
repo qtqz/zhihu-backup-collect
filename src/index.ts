@@ -350,12 +350,15 @@ setTimeout(() => {
         border: unset;
         text-align: center;
         outline: unset;
-        height: 16px;
+        height: 100%;
         resize: none;
         overflow: hidden;
+        line-height: 1.5em;
+        vertical-align: middle;
     }
     button.Button.VoteButton:has(input:focus),
-    button.Button.VoteButton:has(textarea:focus) {
+    button.Button.VoteButton:has(textarea:focus),
+    button.Button.VoteButton:has(textarea:hover) {
         resize: both;
         overflow: hidden;
     }
@@ -443,5 +446,5 @@ window.addEventListener("scroll", () => {
     if (timer) {
         clearTimeout(timer)
     }
-    timer = setTimeout(main, 2000)
+    timer = setTimeout(main, 1000)
 })

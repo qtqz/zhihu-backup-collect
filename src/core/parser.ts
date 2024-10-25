@@ -83,7 +83,7 @@ export const parser = (input: LexType[]): string[] => {
             }
 
             case TokenType.Blockquote: {
-                output.push(renderRich(token.content, "> "))
+                output.push(renderRich(token.content, "> ").replace(/\n/g,'\n> \n')) // 修复部分引用不分段问题
                 break
             }
 
@@ -183,7 +183,7 @@ const renderRich = (input: TokenTextType[], joint: string = ""): string => {
     for (let el of input) {
         switch (el.type) {
             case TokenType.Bold: {
-                res += `**${renderRich(el.content)}**`
+                res += `**${renderRich(el.content)}** ` // 修复md阅读器识别带标点符号的加粗内容有误问题
                 break
             }
 
@@ -219,6 +219,6 @@ const renderRich = (input: TokenTextType[], joint: string = ""): string => {
             }
         }
     }
-
+    //console.log(joint +res)
     return joint + res
 }
