@@ -437,8 +437,8 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
     const res: TokenTextType[] = []
 
     // 处理 <blockquote><p></p></blockquote> 的奇观
-    try {// || node.innerHTML.match(/<br>/)
-        if ((childs.length == 1 && (childs[0] as HTMLElement).tagName.toLowerCase() == "p")) {
+    try {
+        if (childs.length == 1 && (childs[0] as HTMLElement).tagName.toLowerCase() == "p") {
             childs = Array.from((childs[0] as HTMLElement).childNodes)
         }
     } catch { }

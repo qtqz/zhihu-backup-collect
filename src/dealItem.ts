@@ -23,6 +23,8 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (window.location.pathname.slice(0, 11) == "/search") scene = "collection"
     else if (window.location.href == "https://www.zhihu.com/") scene = "collection"//搜索、推荐、收藏夹似乎一样
     else console.log("未知场景")
+    //https://www.zhihu.com/question/2377606804/answers/updated 按时间排序的问题
+    if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.match(/updated/)) scene = "question"
     //console.log(dom)
     //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem

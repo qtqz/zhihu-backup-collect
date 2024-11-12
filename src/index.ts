@@ -429,12 +429,27 @@ setTimeout(() => {
     .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
         display:none;
     }
-`))
-    let heads = document.getElementsByTagName("head");
-    if (heads.length > 0) {
-        heads[0].appendChild(node)
-    } else {
-        document.documentElement.appendChild(node)
+    `))
+    let head = document.querySelector("head")
+    head.appendChild(node)
+    
+    if (window.innerWidth < 1275) {
+        let node2 = document.createElement("style")
+        node2.appendChild(document.createTextNode(`
+        .zhihubackup-wrap {
+            left: unset;
+            right: -10em;
+            z-index: 2;
+        }
+        .zhihubackup-container {
+            float: right;
+            background-color: rgb(244, 246, 249);
+        }
+        .RichContent {
+            z-index: 2;
+        }
+        `))
+        head.appendChild(node2)
     }
 }, 30)
 
