@@ -408,6 +408,15 @@ setTimeout(() => {
     .to-screenshot .LinkCard.new{
         margin: 0!important;
     }
+    .to-screenshot .FeedSource{
+        margin-bottom: 14px !important;
+    }
+    .to-screenshot .Comments-container>div>div{
+        margin-bottom: 10px !important;
+    }
+    .to-screenshot .Comments-container{
+        margin: 0 !important;
+    }
     .to-screenshot.PinItem{
         margin: 16px 0;/*想法增加留白*/
         padding: 0 16px;
