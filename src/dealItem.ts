@@ -62,6 +62,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     /**
      * 生成frontmatter
      * 标题，链接，作者名，赞数，评论数，创建时间，修改时间
+     * (author.badge ? ('\nauthor_badge: ' + author.badge) : '')
      */
     const getFrontmatter = (): string => {
         let fm = '---'
@@ -145,9 +146,18 @@ export default async (dom: HTMLElement, button?: string): Promise<{
 
     if (button == 'copy') {
         //放到剪贴板，string[]
+        try {
+            // @ts-ignore
+            var copy_save_fm = GM_getValue("copy_save_fm")//false
+        } catch (e) {
+            console.warn(e)
+        }
         let md = getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
         if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
             md = md.concat(markdown) //解决保存转发的想法异常
+        }
+        if (copy_save_fm) {
+            md = [getFrontmatter()].concat(md)
         }
         if (type != 'pin') {
             return {

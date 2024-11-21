@@ -68,19 +68,35 @@ import { getCommentSwitch } from "./core/utils"
 
 try {
     // @ts-ignore
-    let menuComment = GM_registerMenuCommand(
+    /*let menuComment = GM_registerMenuCommand(
         "【开发中，暂时无效】保存前自动展开评论区",
         function () {
             // @ts-ignore
-            let ac = GM_getValue("autoComment"), c
+            let ac = GM_getValue("open_comment"), c
             !ac ? c = confirm("当你勾选保存评论时，在保存前，若你未展开评论，会自动帮你展开评论区，你是否继续？") : alert('已取消保存前自动展开评论区')
             if (c) {
                 // @ts-ignore
-                GM_setValue("autoComment", true)
+                GM_setValue("open_comment", true)
                 // @ts-ignore
-            } else GM_setValue("autoComment", false)
+            } else GM_setValue("open_comment", false)
         },
         "h"
+    )*/
+    // @ts-ignore
+    let menuFM = GM_registerMenuCommand(
+        "复制内容时添加fm元信息",
+        function () {
+            // @ts-ignore
+            let ac = GM_getValue("copy_save_fm"), c
+            !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm')
+            if (c) {
+                // @ts-ignore
+                GM_setValue("copy_save_fm", true)
+                // @ts-ignore
+            } else GM_setValue("copy_save_fm", false)
+                // @ts-ignore
+            //alert(GM_getValue("copy_save_fm"))
+        }
     )
 } catch (e) {
     console.warn(e)

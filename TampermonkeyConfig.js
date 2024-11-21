@@ -27,5 +27,10 @@ export const UserScript = {
     ],
     "license": packageInfo.license,
     "icon": "https://static.zhihu.com/heifetz/favicon.ico",
-    "grant": "none",
+    "grant": [
+        "GM_setValue",
+        "GM_getValue",
+        "GM_registerMenuCommand",
+        "GM_unregisterMenuCommand",
+    ]
 }
