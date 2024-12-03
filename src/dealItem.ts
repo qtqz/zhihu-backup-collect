@@ -159,7 +159,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         if (copy_save_fm) {
             md = [getFrontmatter()].concat(md)
         }
-        if (type != 'pin') {
+        if (type != 'pin' && !copy_save_fm) {
             return {
                 markdown: [title].concat(md) //复制内容增加标题
             }

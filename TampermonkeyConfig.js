@@ -1,5 +1,4 @@
 import fs from "fs"
-import md5 from "md5"
 
 const packageInfo = JSON.parse(fs.readFileSync("./package.json", "utf-8").toString())
 
@@ -32,5 +31,6 @@ export const UserScript = {
         "GM_getValue",
         "GM_registerMenuCommand",
         "GM_unregisterMenuCommand",
+        "none"
     ]
 }

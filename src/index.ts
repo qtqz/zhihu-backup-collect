@@ -94,10 +94,26 @@ try {
                 GM_setValue("copy_save_fm", true)
                 // @ts-ignore
             } else GM_setValue("copy_save_fm", false)
-                // @ts-ignore
+            // @ts-ignore
             //alert(GM_getValue("copy_save_fm"))
         }
     )
+    /*// @ts-ignore
+    let menuSaveImg = GM_registerMenuCommand(
+        "不保存图片",
+        function () {
+            // @ts-ignore
+            let ac = GM_getValue("no_save_img"), c
+            !ac ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，存zip时照旧。你是否继续？") : alert('已取消不存图')
+            if (c) {
+                // @ts-ignore
+                GM_setValue("no_save_img", true)
+                // @ts-ignore
+            } else GM_setValue("no_save_img", false)
+                // @ts-ignore
+            //alert(GM_getValue("copy_save_fm"))
+        }
+    )*/
 } catch (e) {
     console.warn(e)
 }
@@ -457,7 +473,7 @@ setTimeout(() => {
     `))
     let head = document.querySelector("head")
     head.appendChild(node)
-    
+
     if (window.innerWidth < 1275) {
         let node2 = document.createElement("style")
         node2.appendChild(document.createTextNode(`
@@ -488,3 +504,10 @@ window.addEventListener("scroll", () => {
     }
     timer = setTimeout(main, 1000)
 })
+
+document.addEventListener('click', function (e) {
+    let t = e.target as HTMLElement
+    if (t.classList.contains('ContentItem-more') || t.classList.contains('Zi--ArrowDown')) {
+        setTimeout(main, 200)
+    }
+});
