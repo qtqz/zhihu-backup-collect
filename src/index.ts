@@ -495,6 +495,10 @@ setTimeout(() => {
 }, 30)
 
 setTimeout(main, 300)
+setTimeout(()=>{
+    // @ts-ignore
+    window.zhbf=main
+}, 300)
 
 let timer: any = null
 window.addEventListener("scroll", () => {

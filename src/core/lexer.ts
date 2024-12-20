@@ -43,6 +43,9 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
      */
     if (type == "pin") {
         //console.log(input)
+        if (input.length == 0) {
+            return [] as LexType[]
+        }
         let pinParagraphs: LexType[] = []//二级包-一级
         let dom = input[0].parentNode as HTMLElement//RichText
 

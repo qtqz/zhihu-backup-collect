@@ -36,6 +36,8 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         console.log("未知内容")
         alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
+        // @ts-ignore
+        setTimeout(window.zhbf(), 100)
     }
 
     if (!scene || !type) return
