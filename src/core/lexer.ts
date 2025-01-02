@@ -529,12 +529,20 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
 
                 case "a": {
                     //console.log(el)
-                    res.push({
-                        type: TokenType.InlineLink,
-                        text: el.textContent,
-                        href: ZhihuLink2NormalLink((el as HTMLAnchorElement).href),
-                        dom: el,
-                    } as TokenTextLink)
+                    // 移除另一种搜索推荐
+                    if ((el as HTMLAnchorElement).href.startsWith('https://zhida.zhihu.com/search')) {
+                        res.push({
+                            type: TokenType.PlainText,
+                            text: el.innerText,
+                            dom: el,
+                        } as TokenTextPlain)
+                    } else
+                        res.push({
+                            type: TokenType.InlineLink,
+                            text: el.textContent,
+                            href: ZhihuLink2NormalLink((el as HTMLAnchorElement).href),
+                            dom: el,
+                        } as TokenTextLink)
                     break
                 }
 
