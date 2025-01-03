@@ -37,15 +37,17 @@ export const getParent = (dom: HTMLElement, className: string): HTMLElement | fa
 export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
     let t
     if (scene == "follow" || scene == "people" || scene == "collection" || scene == "pin") {
+        let title_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement)
         if (type == "answer" || type == "article") {
-            let title_dom = ((getParent(dom, "ContentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement)
             //搜索结果页最新讨论
             !title_dom ? title_dom = ((getParent(dom, "HotLanding-contentItem") as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement) : 0
             t = title_dom.innerText
 
         }
         else {//想法
-            t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "")
+            if (title_dom) {
+                t = "想法：" + title_dom.innerText + '-' + dom.innerText.slice(0, 16).trim().replace(/\s/g, "")
+            } else t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "")
         }
     }
     //问题/回答
