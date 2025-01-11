@@ -30,7 +30,6 @@ export const UserScript = {
         "GM_setValue",
         "GM_getValue",
         "GM_registerMenuCommand",
-        "GM_unregisterMenuCommand",
-        "none"
+        "GM_unregisterMenuCommand"
     ]
 }

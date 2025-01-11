@@ -4,6 +4,7 @@ import { LexType, TokenType, TokenFigure } from "./core/tokenTypes"
 import { parser, parserComment } from "./core/parser"
 import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
 import savelex from "./core/savelex"
+import { renderAllComments } from "./core/renderComments"
 
 export default async (dom: HTMLElement, button?: string): Promise<{
     markdown?: string[],
@@ -37,10 +38,10 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
         // @ts-ignore
-        setTimeout(window.zhbf(), 100)
+        setTimeout(window.zhbf, 100)
     }
 
-    if (!scene || !type) return
+    if (!scene || !type) return;
 
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
@@ -180,12 +181,46 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
     }
 
-    let commentText = ''
+    let commentText = '', commentsImgs: string[] = []
 
     //解析评论
     try {
-        let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
+        let openComment = true || (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
         if (getCommentSwitch(dom) && openComment) {
+            let itemId = type + url.split('/').pop()
+            // @ts-ignore 
+            let commentsData = window.ArticleComments[itemId] as Map<string, object>
+            if (!commentsData) {
+                let s = confirm('您还未暂存任何评论，是否立即暂存当前页评论并保存？否则什么也不做')
+                if (!s) return;
+                return
+            }
+            let num_text = '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n'
+            if (button = 'text') {
+                [commentText, commentsImgs] = renderAllComments(commentsData, true)
+                commentText = num_text + commentText
+            }
+            else if (button = 'zip') {
+                [commentText, commentsImgs] = renderAllComments(commentsData, false)
+                commentText = num_text + commentText
+                zip.file("comments.md", commentText)
+                if (commentsImgs.length) {
+                    const assetsFolder = zip.folder('assets')
+                    for (let i = 0; i < commentsImgs.length; i++) {
+                        const response = await fetch(commentsImgs[i])
+                        const arrayBuffer = await response.arrayBuffer()
+                        const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop()
+                        assetsFolder.file(fileName, arrayBuffer)
+                    }
+                }
+            }
+
+
+
+
+
+
+            /*
             if (button == 'text') {
                 Object.defineProperty(window, 'commentImage', {
                     value: 'online',
@@ -226,7 +261,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                         }
                     }
                 }
-            }
+            }*/
         }
     } catch (e) {
         console.log("评论:", e)

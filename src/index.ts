@@ -4,6 +4,7 @@ import dealItem from "./dealItem"
 import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
+import { mountParseComments } from "./core/parseComments";
 
 /**
  * 修改版
@@ -121,7 +122,7 @@ try {
 
 const main = async () => {
 
-    console.log("Starting…")
+    //console.log("Starting…")
     const RichTexts = Array.from(document.querySelectorAll(".RichText")) as HTMLElement[]
     for (let RichText of RichTexts) {
         try {
@@ -149,18 +150,7 @@ const main = async () => {
             }
 
             const ButtonContainer = document.createElement("div")
-            let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
             ButtonContainer.classList.add("zhihubackup-wrap")
-            p.prepend(ButtonContainer)
-
-            //父级
-            let parent_dom = getParent(RichText, "List-item") ||
-                getParent(RichText, "Post-content") ||
-                getParent(RichText, "PinItem") ||
-                getParent(RichText, "CollectionDetailPageItem") ||
-                getParent(RichText, "Card") as HTMLElement
-
-            //按钮们
             ButtonContainer.innerHTML = `<div class="zhihubackup-container">
                 <button class="to-md Button VoteButton">复制为Markdown</button>
                 <button class="to-zip Button VoteButton">下载为 ZIP</button>
@@ -172,11 +162,20 @@ const main = async () => {
                 <button class="Button VoteButton">
                     <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
                 </button></div>`
+
+            //父级
+            let parent_dom = getParent(RichText, "List-item") ||
+                getParent(RichText, "Post-content") ||
+                getParent(RichText, "PinItem") ||
+                getParent(RichText, "CollectionDetailPageItem") ||
+                getParent(RichText, "Card") as HTMLElement
             if (parent_dom.querySelector('.Catalog')) {
                 (ButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
                 (ButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
                 (ButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
             }
+            let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
+            p.prepend(ButtonContainer)
 
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", throttle(async () => {
@@ -322,7 +321,7 @@ const main = async () => {
 
 function throttle(fn: Function, delay?: number) {
     let flag = true
-    delay ? 0 : delay = 1000
+    delay ? 0 : delay = 4000
     return function () {
         if (flag) {
             flag = false
@@ -340,11 +339,6 @@ setTimeout(() => {
     .RichContent {
         position: relative;
     }
-    .RichContent:hover .zhihubackup-wrap,
-    .Post-RichTextContainer:hover .zhihubackup-wrap{
-        opacity: 1;
-        pointer-events: initial;
-    }
     .zhihubackup-wrap {
         opacity: 0;
         pointer-events: none;
@@ -355,6 +349,11 @@ setTimeout(() => {
         height: 100%;
         user-select: none;
         width: 12em;
+    }
+    .RichContent:hover .zhihubackup-wrap,
+    .Post-RichTextContainer:hover .zhihubackup-wrap{
+        opacity: 1;
+        pointer-events: initial;
     }
     .zhihubackup-container {
         position: sticky;
@@ -470,6 +469,16 @@ setTimeout(() => {
     .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
         display:none;
     }
+    .comment-parser-container-wrap button{
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s;
+    }
+    .Comments-container:hover .comment-parser-container-wrap button,
+    .Modal-content:hover .comment-parser-container-wrap button{
+        opacity: 1;
+        pointer-events: initial;
+    }
     `))
     let head = document.querySelector("head")
     head.appendChild(node)
@@ -494,10 +503,14 @@ setTimeout(() => {
     }
 }, 30)
 
-setTimeout(main, 300)
-setTimeout(()=>{
+setTimeout(() => {
+    main()
+    mountParseComments()
     // @ts-ignore
-    window.zhbf=main
+    window.zhbf = main
+    // 在window对象上创建存储空间
+    // @ts-ignore
+    window.ArticleComments = window.ArticleComments || {};
 }, 300)
 
 let timer: any = null
@@ -508,10 +521,3 @@ window.addEventListener("scroll", () => {
     }
     timer = setTimeout(main, 1000)
 })
-
-document.addEventListener('click', function (e) {
-    let t = e.target as HTMLElement
-    if (t.classList.contains('ContentItem-more') || t.classList.contains('Zi--ArrowDown')) {
-        setTimeout(main, 200)
-    }
-});

@@ -307,7 +307,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
  */
 export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenComment[], string[]] => {
     const tokens: TokenComment[] = []
-    commentImg = []
+    commentImgs = []//清空
 
     for (let i = 0; i < input.length; i++) {
         const node = input[i]
@@ -321,11 +321,11 @@ export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenC
             } as TokenComment)
         }
     }
-    //console.log(commentImg)
-    return [tokens, commentImg]
+    //console.log(commentImgs)
+    return [tokens, commentImgs]
 }
 
-let commentImg: string[] = []
+let commentImgs: string[] = []
 
 /**
  * 解析具体每一条评论元素（带id号），不嵌套子评论
@@ -357,7 +357,7 @@ const getCommentReplys = (node: Element): TokenCommentReply[] => {
 
 /**
  * 获取每条评论信息
- * @param reply 包含3行信息的元素
+ * @param reply 包含头像和3行信息的元素
  * @param level 深度
  * @returns 评论信息对象
  */
@@ -375,10 +375,12 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
 
     textContents.forEach(e => {//评论内容最小元素
         let picture = ''
-        if (e.nodeName == 'DIV') if ((e as HTMLElement).classList.contains('comment_img') || (e as HTMLElement).classList.contains('comment_sticker')) {
-            picture = (e as HTMLElement).querySelector('img').getAttribute('data-original')
+        if (e.nodeName == 'DIV') {
+            if ((e as HTMLElement).classList.contains('comment_img') || (e as HTMLElement).classList.contains('comment_sticker')) {
+                picture = (e as HTMLElement).querySelector('img').getAttribute('data-original')
+            }
         }
-        if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt//表情
+        else if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt//表情
         else if (e.nodeName == 'A') {
             let link = ZhihuLink2NormalLink((e as HTMLAnchorElement).href)
             textContentPlain += '[' + link + '](' + link + ')'
@@ -390,7 +392,7 @@ const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentRepl
                 textContentPlain += '![图片](' + picture + ')'
             } else {
                 textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
-                commentImg.push(picture)
+                commentImgs.push(picture)
             }
         }
     })
