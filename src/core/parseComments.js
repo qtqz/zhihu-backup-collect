@@ -198,7 +198,7 @@ function addParseButton(ContentItem, itemId) {
 
     cc.querySelector(".save").addEventListener('click', () => {
         const parser = new CommentParser(itemId);
-        parser.parseComments(cc);/*再次确认深入回复后是否正确保存（此时css-tpyajk可能已不是原来的）*/
+        parser.parseComments(cc);
         const comments = parser.getComments();
         console.log(cc, comments);
     })
@@ -261,7 +261,8 @@ window.addEventListener("scroll", () => {
  * 基本渲染功能
  * 渲染合并入主程序
  * 处理图片（下载和文本链接）
- * 细节处理（筛选后显示、已关闭、待展开子项）、人性化提示
+ * 细节处理（筛选后显示、已关闭、待展开子项）
+ * 人性化提示（保存正文前、暂存反馈）
  * 专栏与搜索结果页
  * 
  */
@@ -273,10 +274,17 @@ export const mountParseComments = () =>
         let itemId
         // 1
         if (e.target.closest('.ContentItem-action') && /评论/.test(e.target.closest('.ContentItem-action').textContent)) {
-            let father = e.target.closest(".ContentItem")
 
+            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
             //注意文章页，搜索结果页
-            let zopdata = JSON.parse(father.getAttribute("data-zop"))
+            let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
+            if (!zopdata.itemId) {
+                // 搜索结果页
+                father = e.target.closest(".Card")
+                let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
+                zopdata.type = zem.type
+                zopdata.itemId = zem.token
+            }
             itemId = zopdata.type + zopdata.itemId
             setTimeout(() => {
                 let modal = document.querySelector('.Modal-content')
@@ -293,13 +301,20 @@ export const mountParseComments = () =>
             let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
             if (!click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) return;
 
-            let father = e.target.closest(".ContentItem")
+            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
             //注意文章页，搜索结果页
             setTimeout(() => {
                 let modal = document.querySelector('.Modal-content')
-                if (father) {
+                if (father) {// 4:false
                     //非Modal内 23
-                    let zopdata = JSON.parse(father.getAttribute("data-zop"))
+                    let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
+                    if (!zopdata.itemId) {
+                        // 搜索结果页
+                        father = e.target.closest(".Card")
+                        let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
+                        zopdata.type = zem.type
+                        zopdata.itemId = zem.token
+                    }
                     itemId = zopdata.type + zopdata.itemId
                     modal.setAttribute('itemId', itemId)
                 }
@@ -310,7 +325,7 @@ export const mountParseComments = () =>
             alert(HINT)
         }
         if (e.target.closest('.ContentItem-more')) {
-            setTimeout(window.zhbf, 200)// 展开后无需滚动即可保存
+            setTimeout(window.zhbf, 200)// 评论无关功能，展开后无需滚动即可保存
         }
     })
 

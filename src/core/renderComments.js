@@ -12,7 +12,7 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
     const titleLevel = level ? '####' : '###';
 
     // 处理评论内容中的换行符，确保在markdown中正确换行
-    const formattedContent = comment.content/**/.replace('\n', '\n\n').split('\n')
+    const formattedContent = comment.content.replace('\n', '\n\n').split('\n')
         .map(line => `${prefix}${line}`)
         .join('\n');
 
@@ -41,7 +41,7 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
     if (comment.replies && comment.replies.length) {
         const repliesMarkdown = comment.replies
             .map(replyId => comments.get(replyId))
-            .filter(reply => reply) // 过滤掉可能的无效回复
+            //.filter(reply => reply) // 过滤掉可能的无效回复
             .map(reply => renderCommentToMarkdown(reply, comments, level + 1, isLocalImg))
             .join('\n');
 
