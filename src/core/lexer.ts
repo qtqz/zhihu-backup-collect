@@ -27,7 +27,6 @@ import type {
 
 import { TokenType } from "./tokenTypes"
 import { ZhihuLink2NormalLink } from "./utils"
-import { getParent } from "../core/utils"
 
 
 /**
@@ -50,9 +49,9 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
         let dom = input[0].parentNode as HTMLElement//RichText
 
         //被转发的想法，首行添加主人
-        if (getParent(dom, "PinItem-content-originpin")) {
+        if (dom.closest('.PinItem-content-originpin')) {
             let p = document.createElement("p")
-            p.innerHTML = (getParent(dom, "PinItem-content-originpin") as HTMLElement).firstElementChild.textContent
+            p.innerHTML = (dom.closest('.PinItem-content-originpin') as HTMLElement).firstElementChild.textContent
             pinParagraphs.push({
                 type: TokenType.Text,
                 content: Tokenize(p),
@@ -70,8 +69,8 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
         }
 
         //检查想法有无引用回答，仅检查当前层级
-        if (getParent(dom, "PinItem-content-originpin")) {
-            let a = (getParent(dom, "PinItem-content-originpin") as HTMLElement).querySelector("a.LinkCard") as HTMLAnchorElement
+        if (dom.closest('.PinItem-content-originpin')) {
+            let a = (dom.closest('.PinItem-content-originpin') as HTMLElement).querySelector("a.LinkCard") as HTMLAnchorElement
             if (a) {
                 let p = document.createElement("p")
                 let a2 = document.createElement("a")
@@ -85,7 +84,7 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
             }
         } else {
             //此时dom不在源想法内
-            let parent = getParent(dom, "PinItem") as HTMLElement
+            let parent = dom.closest('.PinItem') as HTMLElement
             if (!parent.querySelector(".PinItem-content-originpin") && parent.querySelector("a.LinkCard")) {
                 let a = parent.querySelector("a.LinkCard") as HTMLAnchorElement
                 let p = document.createElement("p")

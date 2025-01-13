@@ -1,5 +1,4 @@
 import { saveAs } from "file-saver"
-import { getParent } from "./core/utils"
 import dealItem from "./dealItem"
 import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
@@ -148,33 +147,33 @@ const main = async () => {
             //console.log(RichText)
             if (RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.match(/zhuanlan/)) {
-                if ((getParent(RichText, "Post-Main") as HTMLElement).querySelector(".zhihubackup-container")) continue
+                if ((RichText.closest('.Post-Main') as HTMLElement).querySelector(".zhihubackup-container")) continue
             }
             else {
-                if (getParent(RichText, "PinItem")) {
-                    if (!getParent(RichText, "RichContent-inner")) continue//每个带图想法有3个RichText，除掉图、假转发
+                if (RichText.closest('.PinItem')) {
+                    if (!RichText.closest('.RichContent-inner')) continue//每个带图想法有3个RichText，除掉图、假转发
                     //if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
-                    if (getParent(RichText, "PinItem-content-originpin")) continue//被转发想法
+                    if (RichText.closest('.PinItem-content-originpin')) continue//被转发想法
                 }
-                if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".zhihubackup-container")) continue
-                const richInner = getParent(RichText, "RichContent-inner")
+                if ((RichText.closest('.RichContent') as HTMLElement).querySelector(".zhihubackup-container")) continue
+                const richInner = RichText.closest('.RichContent-inner')
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
-                if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
+                if ((RichText.closest('.RichContent') as HTMLElement).querySelector(".ContentItem-expandButton")) continue
             }
             const aButtonContainer = ButtonContainer.cloneNode(true) as HTMLDivElement
 
             //父级
-            let parent_dom = getParent(RichText, "List-item") ||
-                getParent(RichText, "Post-content") ||
-                getParent(RichText, "PinItem") ||
-                getParent(RichText, "CollectionDetailPageItem") ||
-                getParent(RichText, "Card") as HTMLElement
+            let parent_dom = RichText.closest('.List-item') ||
+                RichText.closest('.Post-content') ||
+                RichText.closest('.PinItem') ||
+                RichText.closest('.CollectionDetailPageItem') ||
+                RichText.closest('.Card') as HTMLElement
             if (parent_dom.querySelector('.Catalog')) {
                 (aButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
                 (aButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
                 (aButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
             }
-            let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
+            let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer') as HTMLElement
             p.prepend(aButtonContainer)
 
             const ButtonMarkdown = parent_dom.querySelector(".to-md")

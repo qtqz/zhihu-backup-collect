@@ -187,10 +187,11 @@ function addParseButton(ContentItem, itemId) {
         itemId = modal.getAttribute('itemId')
         cc = ContentItem.querySelector('.css-tpyajk')
         toolbar = cc?.querySelector('.css-1onritu')
+        cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
     else if (cc) {
         toolbar = cc.querySelector('.css-1onritu')
-        cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加事件
+        cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
 
     if (!cc) return;
@@ -272,6 +273,7 @@ window.addEventListener("scroll", () => {
  */
 export const mountParseComments = () => {
     if (location.href.match(/\/pin/)) {
+        // 想法页直接呈现评论
         let c = document.querySelector('.ContentItem')
         let itemId = getItemId(c, c)
         addParseButton(c, itemId)

@@ -1,8 +1,8 @@
 import * as JSZip from "jszip"
-import { lexer, lexerComment } from "./core/lexer"
-import { LexType, TokenType, TokenFigure } from "./core/tokenTypes"
-import { parser, parserComment } from "./core/parser"
-import { getParent, getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
+import { lexer } from "./core/lexer"
+import { TokenType, TokenFigure } from "./core/tokenTypes"
+import { parser } from "./core/parser"
+import { getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
 import savelex from "./core/savelex"
 import { renderAllComments } from "./core/renderComments"
 
@@ -29,10 +29,10 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     //console.log(dom)
     //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem
-    if (getParent(dom, "AnswerItem")) type = "answer"
-    else if (getParent(dom, "ArticleItem")) type = "article"
-    else if (getParent(dom, "Post-content")) type = "article"
-    else if (getParent(dom, "PinItem")) type = "pin"
+    if (dom.closest('.AnswerItem')) type = "answer"
+    else if (dom.closest('.ArticleItem')) type = "article"
+    else if (dom.closest('.Post-content')) type = "article"
+    else if (dom.closest('.PinItem')) type = "pin"
     else {
         console.log("未知内容")
         alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
@@ -85,7 +85,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
      * 生成目录
      */
     const getTOC = (): string[] | null => {
-        let toc = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Catalog-content")
+        let toc = (dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement).querySelector(".Catalog-content")
         let items: string[] = []
         if (toc) {
             let i = 1, j = 1
@@ -119,16 +119,16 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     //console.log("lex", lex)
     var markdown = []
 
-    if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+    if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
         //是转发的想法，对原想法解析，并附加到新想法下面
-        const dom2 = (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin .RichText")
+        const dom2 = (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin .RichText")
         const lex2 = lexer(dom2.childNodes as NodeListOf<Element>, type)
         //markdown = markdown.concat(parser(lex2).map((l) => "> " + l))
         markdown.push(parser(lex2).map((l) => "> " + l).join("\n> \n"))
     }
     if (type == "pin") {
         // 获取图片/标题
-        const pinItem = getParent(dom, "PinItem") as HTMLElement
+        const pinItem = dom.closest('.PinItem') as HTMLElement
         if (pinItem.querySelector(".ContentItem-title")) lex.unshift({
             type: TokenType.Text,
             content: [{
@@ -156,7 +156,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
             console.warn(e)
         }
         let md = getTOC() ? getTOC().concat(parser(lex)) : parser(lex)
-        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
             md = md.concat(markdown) //解决保存转发的想法异常
         }
         if (copy_save_fm) {
@@ -174,7 +174,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
-        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
             markdown = parser(localLex).concat(markdown)
         }
         else markdown = parser(localLex)
@@ -186,7 +186,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     //解析评论
     try {
         if (getCommentSwitch(dom)) {
-            let p = getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement
+            let p = dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement
             let openComment = p.querySelector(".Comments-container")
             let itemId = type + url.split('/').pop()
             // @ts-ignore 
@@ -278,7 +278,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     if (button == 'text') {
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
         let md2: string[] = []
-        if (type == "pin" && (getParent(dom, "PinItem") as HTMLElement).querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
             md2 = markdown
         }
         return {
@@ -299,9 +299,9 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     })()
 
     const { zop, zaExtra, location } = (() => {
-        let el = getParent(dom, "ContentItem")//想法类型、文章页没有
-        if (!el) el = getParent(dom, "PinItem")
-        if (!el) el = getParent(dom, "Post-content")
+        let el = dom.closest('.ContentItem')//想法类型、文章页没有
+        if (!el) el = dom.closest('.PinItem')
+        if (!el) el = dom.closest('.Post-content')
         try {
             if (el) return {
                 zop: JSON.parse(el.getAttribute("data-zop")),
