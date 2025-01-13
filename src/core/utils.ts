@@ -17,17 +17,6 @@ export const ZhihuLink2NormalLink = (link: string): string => {
     }
 }
 
-/**
- * Get the parent dom with the class name.
- * @param dom - The dom to get parent.
- * @param className - The class name of the parent.
- * @returns The parent dom.Maybe it's itself.
-export const getParent = (dom: HTMLElement, className: string): HTMLElement | false => {
-    if (dom == null) return false
-    if (dom.classList.contains(className)) return dom
-    else return getParent(dom.parentElement, className)
-}
- */
 
 /**
  * Get the title of the dom.

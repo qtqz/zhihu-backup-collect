@@ -56,7 +56,7 @@ let commentsImgs = []
  * 渲染所有评论
  * @param {Map<string, object>} commentsMap
  * @param {Boolean} isLocalImg
- * @returns {[string,string[]]}
+ * @returns {[String,String[]]}
  */
 export function renderAllComments(commentsMap, isLocalImg) {
     // 找出所有顶级评论（没有parentId的评论）

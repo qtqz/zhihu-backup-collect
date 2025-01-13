@@ -272,8 +272,8 @@ window.addEventListener("scroll", () => {
  * 调用后挂载document点击事件
  */
 export const mountParseComments = () => {
-    if (location.href.match(/\/pin/)) {
-        // 想法页直接呈现评论
+    if (location.href.match(/\/pin\/|\/p\//)) {
+        // 想法页文章页直接呈现评论
         let c = document.querySelector('.ContentItem')
         let itemId = getItemId(c, c)
         addParseButton(c, itemId)

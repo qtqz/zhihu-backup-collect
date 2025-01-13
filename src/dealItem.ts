@@ -163,14 +163,9 @@ export default async (dom: HTMLElement, button?: string): Promise<{
             md = [getFrontmatter()].concat(md)
         }
         if (type != 'pin' && !copy_save_fm) {
-            return {
-                markdown: [title].concat(md) //复制内容增加标题
-            }
-
+            return { markdown: [title].concat(md) }//复制内容增加标题
         } else
-            return {
-                markdown: md
-            }
+            return { markdown: md }
     } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
@@ -181,94 +176,56 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"))
     }
 
-    let commentText = '', commentsImgs: string[] = []
-
     //解析评论
+    let commentText = '', commentsImgs: string[] = []
     try {
         if (getCommentSwitch(dom)) {
             let p = dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement
             let openComment = p.querySelector(".Comments-container")
             let itemId = type + url.split('/').pop()
-            // @ts-ignore 
-            let commentsData = window.ArticleComments[itemId].comments as Map<string, object>
-            if (!commentsData) {
-                if (!openComment) return;//既没评论数据也没展开评论区
-                let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即暂存当前页评论并保存？否则什么也不做\n（不想存评请收起评论区或取消勾选）')
-                if (!s) return;
-                else {
-                    (openComment.querySelector('.save') as HTMLElement).click()
-                    setTimeout(() => {
-                        (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
-                    }, 1000);
-                }
+            let tip = ''
+
+            if (openComment.querySelector('.css-189h5o3')) {
+                if (button == 'text') commentText = '**评论区已关闭**'
+                else zip.file("comments.md", '**评论区已关闭**')
             }
-            let num_text = '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n'
-            if (button = 'text') {
-                [commentText, commentsImgs] = renderAllComments(commentsData, true)
-                commentText = num_text + commentText
-            }
-            else if (button = 'zip') {
-                [commentText, commentsImgs] = renderAllComments(commentsData, false)
-                commentText = num_text + commentText
-                zip.file("comments.md", commentText)
-                if (commentsImgs.length) {
-                    const assetsFolder = zip.folder('assets')
-                    for (let i = 0; i < commentsImgs.length; i++) {
-                        const response = await fetch(commentsImgs[i])
-                        const arrayBuffer = await response.arrayBuffer()
-                        const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop()
-                        assetsFolder.file(fileName, arrayBuffer)
+            else {
+                if (openComment.querySelector('.css-1tdhe7b')) tip = '**评论内容由作者筛选后展示**\n\n'
+
+                // @ts-ignore 
+                let commentsData = window.ArticleComments[itemId].comments as Map<string, object>
+                if (!commentsData) {
+                    if (!openComment) return;//既没评论数据也没展开评论区
+                    let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即暂存当前页评论并保存？否则什么也不做\n（不想存评请收起评论区或取消勾选）')
+                    if (!s) return;
+                    else {
+                        (openComment.querySelector('.save') as HTMLElement).click()
+                        setTimeout(() => {
+                            (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
+                        }, 1000)
+                        return;
                     }
                 }
-            }
-
-
-
-
-
-
-            /*
-            if (button == 'text') {
-                Object.defineProperty(window, 'commentImage', {
-                    value: 'online',
-                    writable: true,
-                    enumerable: true,
-                    configurable: true,
-                })
-            } else {
-                Object.defineProperty(window, 'commentImage', {
-                    value: 'local',
-                    writable: true,
-                    enumerable: true,
-                    configurable: true,
-                })
-
-            }
-            if (openComment.querySelector('.css-189h5o3')) {
-                if (button == 'text') commentText = `**${openComment.querySelector('.css-189h5o3').textContent}**`
-                else zip.file("comments.md", `**${openComment.querySelector('.css-189h5o3').textContent}**`)
-            } else {
-                let num_text = openComment.childNodes[0].childNodes[1].childNodes[0].childNodes[0].textContent
-                let c = openComment.childNodes[0].childNodes[1].childNodes[1].childNodes[0].childNodes as NodeListOf<Element>
-                let res = lexerComment(c), l = res[0], imgs = res[1]
-                let m = parserComment(l)
-                if (openComment.querySelector('.css-1tdhe7b')) {
-                    m.unshift('**评论内容由作者筛选后展示**\n\n')
+                let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n'
+                if (button = 'text') {
+                    [commentText, commentsImgs] = renderAllComments(commentsData, false)
+                    commentText = num_text + commentText
                 }
-                if (button == 'text') commentText = num_text + '\n\n' + m.join('')
-                else {
-                    zip.file("comments.md", num_text + '\n\n' + m.join(''))
-                    if (imgs.length) {
+                else if (button = 'zip') {
+                    [commentText, commentsImgs] = renderAllComments(commentsData, true)
+                    commentText = num_text + commentText
+                    zip.file("comments.md", commentText)
+                    if (commentsImgs.length) {
                         const assetsFolder = zip.folder('assets')
-                        for (let i = 0; i < imgs.length; i++) {
-                            const response = await fetch(imgs[i])
+                        for (let i = 0; i < commentsImgs.length; i++) {
+                            const response = await fetch(commentsImgs[i])
                             const arrayBuffer = await response.arrayBuffer()
-                            const fileName = imgs[i].replace(/\?.*?$/g, "").split("/").pop()
+                            const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop()
                             assetsFolder.file(fileName, arrayBuffer)
                         }
                     }
                 }
-            }*/
+            }
         }
     } catch (e) {
         console.log("评论:", e)

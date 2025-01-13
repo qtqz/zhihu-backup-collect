@@ -1,47 +1,7 @@
 import {
     type LexType, TokenType, TokenText, TokenTextType, TokenTextCode, TokenTextInlineMath,
-    TokenComment,
 } from "./tokenTypes"
 
-/**
- * 
- * @param input 每条顶级评论的数组
- * @returns 1行1项，无需\n连接
- */
-export const parserComment = (input: TokenComment[]): string[] => {
-    const output: string[] = []
-    let h3 = '### '
-    let h4 = '#### '
-    for (let i = 0; i < input.length; i++) {
-        const replys = input[i].content
-        for (let i = 0; i < replys.length; i++) {
-            const reply = replys[i]
-            let pre = ''
-            if (reply.level == 2) pre = '> '
-            if (typeof reply.content != 'string') {
-                if (reply.level == 1) output.push(pre + h3 + reply.content.name)
-                else output.push(pre + h4 + reply.content.name)
-
-                if (typeof reply.content.text == 'object') {
-                    reply.content.text.forEach(e => {
-                        output.push(pre + e)
-                    })
-                } else output.push(pre + reply.content.text)
-
-                output.push(pre + reply.content.time + ' '
-                    + reply.content.location + ' '
-                    + reply.content.likes + ' 赞')
-            } else output.push(pre + reply.content)
-        }
-    }
-    const newOutput = output.flatMap(e => {
-        if (e.slice(0, 2) == '> ') return [e, '\n', '> ', '\n']
-        else return [e, '\n', '\n']
-    })
-
-    //console.log(output,newOutput)
-    return newOutput
-}
 
 
 /**

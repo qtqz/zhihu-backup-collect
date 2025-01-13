@@ -21,8 +21,6 @@ import type {
     TokenTable,
     TokenVideo,
     TokenGif,
-    TokenComment,
-    TokenCommentReply,
 } from "./tokenTypes"
 
 import { TokenType } from "./tokenTypes"
@@ -298,129 +296,6 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
     return tokens
 }
 
-/**
- * 解析评论的入口
- * @param input 子级们应为评论序列，嵌套子评论
- * @param type 暂未使用
- * @returns 评论的数组，和评论带的图的数组
- */
-export const lexerComment = (input: NodeListOf<Element>, type?: string): [TokenComment[], string[]] => {
-    const tokens: TokenComment[] = []
-    commentImgs = []//清空
-
-    for (let i = 0; i < input.length; i++) {
-        const node = input[i]
-        //console.log(node)
-
-        if (node.getAttribute('data-id')) {
-            tokens.push({
-                type: TokenType.Comment,
-                content: getCommentReplys(node),
-                dom: node,
-            } as TokenComment)
-        }
-    }
-    //console.log(commentImgs)
-    return [tokens, commentImgs]
-}
-
-let commentImgs: string[] = []
-
-/**
- * 解析具体每一条评论元素（带id号），不嵌套子评论
- * @param node 带id号元素
- * @returns 评论信息
- */
-const getCommentReplys = (node: Element): TokenCommentReply[] => {
-    const res = [] as TokenCommentReply[]
-    const nodes = node.childNodes//顶层id号评论的下层
-
-    for (let i = 0; i < nodes.length; i++) {
-        const reply = nodes[i] as HTMLElement
-        let tgt
-        if (reply.tagName == 'BUTTON') res.push({
-            type: TokenType.CommentReply,
-            level: 2,
-            content: reply.textContent
-        })
-        else if (!reply.getAttribute('data-id')) {
-            tgt = reply
-            res.push(getCommentReplyInfo(tgt, 1))
-        } else {
-            tgt = reply.childNodes[0] as HTMLElement
-            res.push(getCommentReplyInfo(tgt, 2))
-        }
-    }
-    return res
-}
-
-/**
- * 获取每条评论信息
- * @param reply 包含头像和3行信息的元素
- * @param level 深度
- * @returns 评论信息对象
- */
-const getCommentReplyInfo = (reply: HTMLElement, level: 1 | 2): TokenCommentReply => {
-    //console.log(reply)
-    let name = '';
-    (reply.childNodes[1].childNodes[0] as HTMLElement).querySelectorAll('a').forEach((e, i) => {
-        i ? name += ' › ' : 0
-        name += e.textContent
-    })
-
-    let textContent = reply.childNodes[1].childNodes[1]
-    let textContents = textContent.childNodes
-    let textContentPlain: string | string[] = ''
-
-    textContents.forEach(e => {//评论内容最小元素
-        let picture = ''
-        if (e.nodeName == 'DIV') {
-            if ((e as HTMLElement).classList.contains('comment_img') || (e as HTMLElement).classList.contains('comment_sticker')) {
-                picture = (e as HTMLElement).querySelector('img').getAttribute('data-original')
-            }
-        }
-        else if (e.nodeName == 'IMG') textContentPlain += (e as HTMLImageElement).alt//表情
-        else if (e.nodeName == 'A') {
-            let link = ZhihuLink2NormalLink((e as HTMLAnchorElement).href)
-            textContentPlain += '[' + link + '](' + link + ')'
-        }
-        else if (e.nodeName == 'BR') textContentPlain += '\n'
-        else textContentPlain += e.textContent
-        if (picture) {
-            if ((window as any).commentImage == 'online') {
-                textContentPlain += '![图片](' + picture + ')'
-            } else {
-                textContentPlain += '![图片]' + '(./assets/' + picture.replace(/\?.*?$/g, "").split("/").pop() + ')'
-                commentImgs.push(picture)
-            }
-        }
-    })
-    //多行评论
-    if ((textContentPlain as string).match('\n')) {
-        textContentPlain = (textContentPlain as string).split('\n')
-    }
-    let info = reply.childNodes[1].childNodes[2]
-    let time = info.childNodes[0].childNodes[0].childNodes[0].textContent
-    let location = ''
-    try {
-        location = info.childNodes[0].childNodes[0].childNodes[2].textContent.replace('IP 属地', '')
-    } catch (e) {
-        console.error('location', e)
-    }
-    let likes = info.childNodes[1].childNodes[1].textContent.replace('喜欢', '0').match(/\d+/)[0]
-
-    return {
-        type: TokenType.CommentReply,
-        level: level,
-        content: {
-            name: name,
-            text: textContentPlain,
-            likes: parseInt(likes),
-            time: time,
-            location: location
-        }
-    }
-}
 
 /**
  * Tokenizes an HTML element or string into an array of TokenTextType objects.
