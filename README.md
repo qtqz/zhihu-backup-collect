@@ -11,7 +11,7 @@
 
 注：此项目**非**爬蟲🐛，仅用于用户**日常保存喜欢的内容**。请尊重内容作者权利，切勿用于抄袭与盈利。被保存的内容亦不能作为证据使用。
 
-此项目基于[Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，感谢原作者的探索。原作者实现了基本的 Markdown 解析和 zip 下载，咱进行优化并适配各种场景和内容类型，添加存图、备注和评论支持。
+此项目最初基于[Howardzhangdqs/zhihu-copy-as-markdown](https://github.com/Howardzhangdqs/zhihu-copy-as-markdown)（MIT）开发而来，目前已进行大规模重构，适配各种场景和内容类型，添加了存图、备注和评论解析器。基本的 Markdown 解析和 zip 下载由原作者实现，感谢他的探索。
 
 如果你喜欢此项目，想要**赞赏支持**💰，可扫描[赞赏码](https://qtqz.github.io/img/sponsor.png)。
 

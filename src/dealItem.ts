@@ -186,10 +186,11 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     //解析评论
     try {
         if (getCommentSwitch(dom)) {
-            let openComment = (getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement).querySelector(".Comments-container")
+            let p = getParent(dom, "ContentItem") || getParent(dom, "Post-content") as HTMLElement
+            let openComment = p.querySelector(".Comments-container")
             let itemId = type + url.split('/').pop()
             // @ts-ignore 
-            let commentsData = window.ArticleComments[itemId] as Map<string, object>
+            let commentsData = window.ArticleComments[itemId].comments as Map<string, object>
             if (!commentsData) {
                 if (!openComment) return;//既没评论数据也没展开评论区
                 let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即暂存当前页评论并保存？否则什么也不做\n（不想存评请收起评论区或取消勾选）')
@@ -197,7 +198,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                 else {
                     (openComment.querySelector('.save') as HTMLElement).click()
                     setTimeout(() => {
-                        (openComment.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
+                        (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
                     }, 1000);
                 }
             }

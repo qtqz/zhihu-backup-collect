@@ -60,6 +60,7 @@ let commentsImgs = []
  */
 export function renderAllComments(commentsMap, isLocalImg) {
     // 找出所有顶级评论（没有parentId的评论）
+    console.log(commentsMap)
     const topLevelComments = Array.from(commentsMap.values())
         .filter(comment => !comment.parentId)
     commentsImgs = []

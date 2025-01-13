@@ -119,6 +119,19 @@ try {
     console.warn(e)
 }
 
+const ButtonContainer = document.createElement("div")
+ButtonContainer.classList.add("zhihubackup-wrap")
+ButtonContainer.innerHTML = `<div class="zhihubackup-container">
+    <button class="to-md Button VoteButton">复制为Markdown</button>
+    <button class="to-zip Button VoteButton">下载为 ZIP</button>
+    <button class="to-text Button VoteButton">下载为纯文本</button>
+    <button class="to-png Button VoteButton">剪藏为 PNG</button>
+    <button class="Button VoteButton">
+        <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
+    </button>
+    <button class="Button VoteButton">
+        <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
+    </button></div>`
 
 const main = async () => {
 
@@ -148,20 +161,7 @@ const main = async () => {
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
                 if ((getParent(RichText, "RichContent") as HTMLElement).querySelector(".ContentItem-expandButton")) continue
             }
-
-            const ButtonContainer = document.createElement("div")
-            ButtonContainer.classList.add("zhihubackup-wrap")
-            ButtonContainer.innerHTML = `<div class="zhihubackup-container">
-                <button class="to-md Button VoteButton">复制为Markdown</button>
-                <button class="to-zip Button VoteButton">下载为 ZIP</button>
-                <button class="to-text Button VoteButton">下载为纯文本</button>
-                <button class="to-png Button VoteButton">剪藏为 PNG</button>
-                <button class="Button VoteButton">
-                    <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
-                </button>
-                <button class="Button VoteButton">
-                    <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
-                </button></div>`
+            const aButtonContainer = ButtonContainer.cloneNode(true) as HTMLDivElement
 
             //父级
             let parent_dom = getParent(RichText, "List-item") ||
@@ -170,12 +170,12 @@ const main = async () => {
                 getParent(RichText, "CollectionDetailPageItem") ||
                 getParent(RichText, "Card") as HTMLElement
             if (parent_dom.querySelector('.Catalog')) {
-                (ButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
-                (ButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
-                (ButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
+                (aButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
+                (aButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
+                (aButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
             }
             let p = getParent(RichText, "RichContent") || getParent(RichText, "Post-RichTextContainer") as HTMLElement
-            p.prepend(ButtonContainer)
+            p.prepend(aButtonContainer)
 
             const ButtonMarkdown = parent_dom.querySelector(".to-md")
             ButtonMarkdown.addEventListener("click", throttle(async () => {

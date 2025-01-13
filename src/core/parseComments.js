@@ -1,5 +1,5 @@
 // 在window对象上创建存储空间
-window.ArticleComments = window.ArticleComments || {};
+//window.ArticleComments = window.ArticleComments || {};
 
 class CommentParser {
     constructor(articleKey) {
@@ -88,7 +88,7 @@ class CommentParser {
         const commentsData = window.ArticleComments[this.articleKey].comments;
 
         commentElements.forEach(element => {
-            console.log(element)
+            //console.log(element)
             const commentId = element.getAttribute('data-id');
             const comment = this.parseComment(element);
 
@@ -154,7 +154,7 @@ class CommentParser {
 
 const buttonContainer = document.createElement("div")
 buttonContainer.innerHTML = `<div class="comment-parser-container">
-    <button class="hint Button VoteButton" title="说明"><svg style="vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m0-2a8 8 0 1 0 0-16a8 8 0 0 0 0 16M11 7h2v2h-2zm0 4h2v6h-2z"/></svg></button>
+    <button class="hint Button VoteButton" title="说明"><svg style="vertical-align: middle;" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m0-2a8 8 0 1 0 0-16a8 8 0 0 0 0 16M11 7h2v2h-2zm0 4h2v6h-2z"/></svg></button>
     &nbsp;<button class="save Button VoteButton">暂存当前页评论</button>
     &nbsp;<button class="unsave Button VoteButton">清空暂存区</button>
     &nbsp;<button class="sum Button VoteButton">查看暂存数</button></div>`
@@ -162,12 +162,13 @@ buttonContainer.classList.add("comment-parser-container-wrap")
 buttonContainer.style.position = "absolute"
 buttonContainer.style.right = "20%"
 
-const HINT = '此为评论解析器，用于暂存评论，以便后续保存\n每次点击会暂存当前页评论，支持弹出框，支持增量保存（自动去重），评论顺序取决于暂存顺序\n暂存的评论保存在window对象上，仅当前页可用，在页面刷新后会消失'
+const HINT = '此为评论解析器，用于暂存评论，以便后续保存\n每次点击会暂存当前页评论，支持弹出框，支持增量保存（自动去重），评论顺序取决于暂存顺序\n暂存的评论仅当前页可用，在页面刷新后会消失'
 /**
  * 1 获取评论容器
  * 4 获取回答唯一KEY
  * 3 添加按钮
  * 5 绑定点击事件
+ * 保存在window对象上，
  */
 /**
  * ContentItem下有本次要添加按钮的评论区的位置
@@ -194,13 +195,13 @@ function addParseButton(ContentItem, itemId) {
 
     if (!cc) return;
 
-    toolbar.appendChild(buttonContainer)
+    toolbar.appendChild(buttonContainer.cloneNode(true))
 
     cc.querySelector(".save").addEventListener('click', () => {
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
-        const comments = parser.getComments();
-        console.log(cc, comments);
+        //const comments = parser.getComments();
+        //console.log(cc, comments);
     })
     cc.querySelector(".unsave").addEventListener('click', () => {
         window.ArticleComments[itemId] = undefined
@@ -269,7 +270,12 @@ window.addEventListener("scroll", () => {
 /**
  * 调用后挂载document点击事件
  */
-export const mountParseComments = () =>
+export const mountParseComments = () => {
+    if (location.href.match(/\/pin/)) {
+        let c = document.querySelector('.ContentItem')
+        let itemId = getItemId(c, c)
+        addParseButton(c, itemId)
+    }
     document.addEventListener("click", (e) => {
         let itemId
         // 1
@@ -277,15 +283,7 @@ export const mountParseComments = () =>
 
             let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
             //注意文章页，搜索结果页
-            let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
-            if (!zopdata.itemId) {
-                // 搜索结果页
-                father = e.target.closest(".Card")
-                let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
-                zopdata.type = zem.type
-                zopdata.itemId = zem.token
-            }
-            itemId = zopdata.type + zopdata.itemId
+            itemId = getItemId(father, e.target)
             setTimeout(() => {
                 let modal = document.querySelector('.Modal-content')
                 if (modal) {
@@ -294,32 +292,26 @@ export const mountParseComments = () =>
                 }
                 else addParseButton(father, itemId)
             }, 1500);
-
+            return;
         }
         // 23 4
         else if (e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
             let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
-            if (!click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) return;
+            if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
 
-            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
-            //注意文章页，搜索结果页
-            setTimeout(() => {
-                let modal = document.querySelector('.Modal-content')
-                if (father) {// 4:false
-                    //非Modal内 23
-                    let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
-                    if (!zopdata.itemId) {
-                        // 搜索结果页
-                        father = e.target.closest(".Card")
-                        let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
-                        zopdata.type = zem.type
-                        zopdata.itemId = zem.token
+                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
+                //注意文章页，搜索结果页
+                setTimeout(() => {
+                    let modal = document.querySelector('.Modal-content')
+                    if (father) {// 4:false，不需要获取
+                        //非Modal内 23
+                        console.log(2233)
+                        itemId = getItemId(father, e.target)
+                        modal.setAttribute('itemId', itemId)
                     }
-                    itemId = zopdata.type + zopdata.itemId
-                    modal.setAttribute('itemId', itemId)
-                }
-                addParseButton(modal, itemId)// 最终都是给Modal挂
-            }, 1500);
+                    addParseButton(modal, itemId)// 最终都是给Modal挂
+                }, 1500);
+            }
         }
         if (e.target.closest('button.hint')) {
             alert(HINT)
@@ -328,6 +320,25 @@ export const mountParseComments = () =>
             setTimeout(window.zhbf, 200)// 评论无关功能，展开后无需滚动即可保存
         }
     })
+}
+
+/**
+ * 
+ * @param {HtmlElement} father 含有itemId zop
+ * @param {HtmlElement} etg e.target
+ * @returns {String}
+ */
+const getItemId = (father, etg) => {
+    let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
+    if (!zopdata.itemId) {
+        // 搜索结果页
+        father = etg.closest(".Card")
+        let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
+        zopdata.type = zem.type
+        zopdata.itemId = zem.token
+    }
+    return zopdata.type + zopdata.itemId
+}
 
 const ZhihuLink2NormalLink = (link) => {
     const url = new URL(link)
