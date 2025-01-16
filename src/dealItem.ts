@@ -16,8 +16,8 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     let scene, type
     if (window.location.pathname == "/follow") scene = "follow"
     else if (window.location.pathname.slice(0, 7) == "/people" || window.location.pathname.slice(0, 4) == "/org") scene = "people"
-    else if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.match(/answer/)) scene = "question"
-    else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.match(/answer/)) scene = "answer"
+    else if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.includes('answer')) scene = "question"
+    else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.includes('answer')) scene = "answer"
     else if (window.location.pathname.slice(0, 4) == "/pin") scene = "pin"
     else if (window.location.hostname == "zhuanlan.zhihu.com") scene = "article"
     else if (window.location.pathname.slice(0, 11) == "/collection") scene = "collection"
@@ -25,7 +25,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
     else if (window.location.href == "https://www.zhihu.com/") scene = "collection"//搜索、推荐、收藏夹似乎一样
     else console.log("未知场景")
     //https://www.zhihu.com/question/2377606804/answers/updated 按时间排序的问题
-    if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.match(/updated/)) scene = "question"
+    if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.includes('updated')) scene = "question"
     //console.log(dom)
     //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
     //ContentItem

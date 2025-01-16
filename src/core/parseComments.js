@@ -51,7 +51,7 @@ class CommentParser {
         let content = textContentPlain
 
         const timeElement = commentElement.querySelector('.css-12cl38p');
-        const time = timeElement ? timeElement.textContent : '';
+        const time = timeElement ? relativeToAbsoluteDate(timeElement.textContent) : '';
 
         const locationElement = commentElement.querySelector('.css-ntkn7q');
         const location = locationElement ? locationElement.textContent : '';
@@ -352,4 +352,35 @@ const ZhihuLink2NormalLink = (link) => {
         if (link.match(/#/)) return '#' + link.split('#')[1]
         else return link
     }
+}
+
+/**
+ * 相对时间转绝对时间
+ * @param {String} relativeTime
+ * @returns {String}
+ */
+function relativeToAbsoluteDate(relativeTime) {
+    const now = new Date();
+    let result = new Date(now);
+
+    if (relativeTime.includes('分钟前')) {
+        const minutes = parseInt(relativeTime);
+        result.setMinutes(result.getMinutes() - minutes);
+    }
+    else if (relativeTime.includes('小时前')) {
+        const hours = parseInt(relativeTime);
+        result.setHours(result.getHours() - hours);
+    }
+    else if (relativeTime.includes('昨天')) {
+        result.setDate(result.getDate() - 1);
+    }
+    // 处理 "MM-DD" 格式
+    else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
+        const [month, day] = relativeTime.split('-').map(num => parseInt(num));
+        result.setMonth(month - 1);
+        result.setDate(day);
+    }
+
+    // 返回 YYYY-MM-DD 格式的字符串
+    return result.toISOString().split('T')[0];
 }

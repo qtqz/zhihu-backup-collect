@@ -194,7 +194,7 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
     else {
         let zaedata = (dom.closest('.ContentItem') as HTMLElement).getAttribute("data-za-extra-module")
         //搜索结果页
-        if (window.location.href.match('/search?')) {
+        if (window.location.href.includes('/search?')) {
             upvote = (dom.closest('.RichContent') as HTMLElement).querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0
         }
         else upvote = JSON.parse(zaedata).card.content.upvote_num
@@ -229,7 +229,7 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
     else {
         let zaedata = (dom.closest('.ContentItem') as HTMLElement).getAttribute("data-za-extra-module")
         //搜索结果页
-        if (window.location.href.match('/search?')) {
+        if (window.location.href.includes('/search?')) {
             cm_dom = (dom.closest('.RichContent') as HTMLElement).querySelector("button.ContentItem-action")
             cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
         }

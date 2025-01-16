@@ -146,7 +146,7 @@ const main = async () => {
             }
             //console.log(RichText)
             if (RichText.parentElement.classList.contains("Editable")) continue
-            if (window.location.hostname.match(/zhuanlan/)) {
+            if (window.location.hostname.includes('zhuanlan')) {
                 if ((RichText.closest('.Post-Main') as HTMLElement).querySelector(".zhihubackup-container")) continue
             }
             else {
