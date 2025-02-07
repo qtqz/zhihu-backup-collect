@@ -204,6 +204,7 @@ const main = async () => {
             ButtonZip.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText, 'zip')
+                    if (!res) return;// 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
@@ -270,6 +271,7 @@ const main = async () => {
             ButtonText.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText, 'text')
+                    if (!res) return;// 取消保存
                     result = {
                         textString: res.textString,
                         title: res.title,

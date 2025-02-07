@@ -360,8 +360,8 @@ const ZhihuLink2NormalLink = (link) => {
  * @returns {String}
  */
 function relativeToAbsoluteDate(relativeTime) {
-    const now = new Date();
-    let result = new Date(now);
+    //const now = new Date();
+    let result = new Date();
 
     if (relativeTime.includes('分钟前')) {
         const minutes = parseInt(relativeTime);
@@ -380,7 +380,7 @@ function relativeToAbsoluteDate(relativeTime) {
         result.setMonth(month - 1);
         result.setDate(day);
     }
-
+    // "刚刚" 无需处理
     // 返回 YYYY-MM-DD 格式的字符串
     return result.toISOString().split('T')[0];
 }

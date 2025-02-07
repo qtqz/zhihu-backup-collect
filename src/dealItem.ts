@@ -124,7 +124,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
         const dom2 = (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin .RichText")
         const lex2 = lexer(dom2.childNodes as NodeListOf<Element>, type)
         //markdown = markdown.concat(parser(lex2).map((l) => "> " + l))
-        markdown.push(parser(lex2).map((l) => "> " + l).join("\n> \n"))
+        markdown.push('\n\n' + parser(lex2).map((l) => "> " + l).join("\n> \n"))
     }
     if (type == "pin") {
         // 获取图片/标题
@@ -166,6 +166,7 @@ export default async (dom: HTMLElement, button?: string): Promise<{
             return { markdown: [title].concat(md) }//复制内容增加标题
         } else
             return { markdown: md }
+        // ============================以下只有 text 或 zip 2种情况===========================
     } else if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
@@ -185,18 +186,19 @@ export default async (dom: HTMLElement, button?: string): Promise<{
             let itemId = type + url.split('/').pop()
             let tip = ''
 
-            if (openComment.querySelector('.css-189h5o3')) {
-                if (button == 'text') commentText = '**评论区已关闭**'
-                else zip.file("comments.md", '**评论区已关闭**')
+            if (openComment && openComment.querySelector('.css-189h5o3')) {
+                let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**' //评论区已关闭|暂无评论
+                if (button == 'text') commentText = t
+                else zip.file("comments.md", t)
             }
             else {
-                if (openComment.querySelector('.css-1tdhe7b')) tip = '**评论内容由作者筛选后展示**\n\n'
+                if (openComment && openComment.querySelector('.css-1tdhe7b')) tip = '**评论内容由作者筛选后展示**\n\n'
 
                 // @ts-ignore 
-                let commentsData = window.ArticleComments[itemId].comments as Map<string, object>
+                let commentsData = window.ArticleComments[itemId]?.comments as Map<string, object>
                 if (!commentsData) {
                     if (!openComment) return;//既没评论数据也没展开评论区
-                    let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即暂存当前页评论并保存？否则什么也不做\n（不想存评请收起评论区或取消勾选）')
+                    let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）')
                     if (!s) return;
                     else {
                         (openComment.querySelector('.save') as HTMLElement).click()
