@@ -1,6 +1,8 @@
 node_modules/
-dist/
+#dist/
 test/
 
 
 pnpm-lock.yaml
+dist/bundle.js
+dist/bundle.min.js
