@@ -209,11 +209,11 @@ export default async (dom: HTMLElement, button?: string): Promise<{
                     }
                 }
                 let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n'
-                if (button = 'text') {
+                if (button == 'text') {
                     [commentText, commentsImgs] = renderAllComments(commentsData, false)
                     commentText = num_text + commentText
                 }
-                else if (button = 'zip') {
+                else if (button == 'zip') {
                     [commentText, commentsImgs] = renderAllComments(commentsData, true)
                     commentText = num_text + commentText
                     zip.file("comments.md", commentText)

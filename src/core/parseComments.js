@@ -274,9 +274,11 @@ window.addEventListener("scroll", () => {
 export const mountParseComments = () => {
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
-        let c = document.querySelector('.ContentItem')
-        let itemId = getItemId(c, c)
-        addParseButton(c, itemId)
+        setTimeout(() => {
+            let c = document.querySelector('.ContentItem')
+            let itemId = getItemId(c, c)
+            addParseButton(c, itemId)
+        }, 1000)
     }
     document.addEventListener("click", (e) => {
         let itemId

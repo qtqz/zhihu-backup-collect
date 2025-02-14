@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.0
+// @version      0.10.2
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,11 +26,14 @@
 /** 
 ## Changelog
 
+* 0.10.2（2025.2.15）:
+    - 修复想法页可能不显示存评论按钮的问题
+    - 修复存 zip 无法存评论问题
 * 0.10.0（2025.1.13）:
     - **全新的评论解析器**，可以解析弹出框中的评论
     - 性能优化
     - 评论相对时间转绝对时间
-    - 补充转发想法缺少的换行
+    - 补充转发想法中缺少的换行
 * 25.1.3（0.9.32）:
     - 保存想法的标题
     - 移除更多的搜索推荐词
@@ -1434,11 +1437,11 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
                     }
                 }
                 let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n';
-                if (button = 'text') {
+                if (button == 'text') {
                     [commentText, commentsImgs] = renderAllComments(commentsData, false);
                     commentText = num_text + commentText;
                 }
-                else if (button = 'zip') {
+                else if (button == 'zip') {
                     [commentText, commentsImgs] = renderAllComments(commentsData, true);
                     commentText = num_text + commentText;
                     zip.file("comments.md", commentText);
@@ -2867,9 +2870,11 @@ window.addEventListener("scroll", () => {
 const mountParseComments = () => {
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
-        let c = document.querySelector('.ContentItem')
-        let itemId = getItemId(c, c)
-        addParseButton(c, itemId)
+        setTimeout(() => {
+            let c = document.querySelector('.ContentItem')
+            let itemId = getItemId(c, c)
+            addParseButton(c, itemId)
+        }, 1000)
     }
     document.addEventListener("click", (e) => {
         let itemId
