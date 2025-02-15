@@ -89,31 +89,35 @@ try {
             // @ts-ignore
             let ac = GM_getValue("copy_save_fm"), c
             !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm')
-            if (c) {
-                // @ts-ignore
-                GM_setValue("copy_save_fm", true)
-                // @ts-ignore
-            } else GM_setValue("copy_save_fm", false)
             // @ts-ignore
+            c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false)
             //alert(GM_getValue("copy_save_fm"))
         }
     )
-    /*// @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand(
-        "不保存图片",
+    // @ts-ignore
+    let menuSaveCM = GM_registerMenuCommand(
+        "复制内容时同时复制评论",
         function () {
             // @ts-ignore
-            let ac = GM_getValue("no_save_img"), c
-            !ac ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，存zip时照旧。你是否继续？") : alert('已取消不存图')
-            if (c) {
-                // @ts-ignore
-                GM_setValue("no_save_img", true)
-                // @ts-ignore
-            } else GM_setValue("no_save_img", false)
-                // @ts-ignore
-            //alert(GM_getValue("copy_save_fm"))
+            let ns = GM_getValue("copy_save_cm"), c
+            !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论')
+            // @ts-ignore
+            c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false)
+            //alert(GM_getValue("copy_save_cm"))
         }
-    )*/
+    )
+    // @ts-ignore
+    let menuSaveImg = GM_registerMenuCommand(
+        "复制与下载纯文本时不保存图片",
+        function () {
+            // @ts-ignore
+            let ns = GM_getValue("no_save_img"), c
+            !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图')
+            // @ts-ignore
+            c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false)
+            //alert(GM_getValue("no_save_img"))
+        }
+    )
 } catch (e) {
     console.warn(e)
 }
@@ -139,7 +143,6 @@ const main = async () => {
     for (let RichText of RichTexts) {
         try {
             let result: {
-                markdown?: string[],
                 zip?: JSZip,
                 textString?: string,
                 title: string,
@@ -181,12 +184,12 @@ const main = async () => {
                 try {
                     const res = await dealItem(RichText, 'copy')
                     result = {
-                        markdown: res.markdown,
+                        textString: res.textString,
                         zip: res.zip,
                         title: res.title,
                     }
                     /*console.log(result.markdown.join("\n\n"))*/
-                    navigator.clipboard.writeText(result.markdown.join("\n\n"))
+                    navigator.clipboard.writeText(result.textString)
                     ButtonMarkdown.innerHTML = "复制成功✅"
                     setTimeout(() => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
