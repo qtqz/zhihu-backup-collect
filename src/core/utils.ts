@@ -26,26 +26,26 @@ export const ZhihuLink2NormalLink = (link: string): string => {
 export const getTitle = (dom: HTMLElement, scene: string, type: string) => {
     let t
     if (scene == "follow" || scene == "people" || scene == "collection" || scene == "pin") {
-        let title_dom = ((dom.closest('.ContentItem') as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement)
+        let title_dom = dom.closest('.ContentItem').querySelector("h2.ContentItem-title a")
         if (type == "answer" || type == "article") {
             //搜索结果页最新讨论
-            !title_dom ? title_dom = ((dom.closest('.HotLanding-contentItem') as HTMLElement).querySelector("h2.ContentItem-title a") as HTMLElement) : 0
-            t = title_dom.innerText
+            !title_dom ? title_dom = dom.closest('.HotLanding-contentItem').querySelector("h2.ContentItem-title a") : 0
+            t = title_dom.textContent
 
         }
         else {//想法
             if (title_dom) {
-                t = "想法：" + title_dom.innerText + '-' + dom.innerText.slice(0, 16).trim().replace(/\s/g, "")
+                t = "想法：" + title_dom.textContent + '-' + dom.innerText.slice(0, 16).trim().replace(/\s/g, "")
             } else t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "")
         }
     }
     //问题/回答
     else if (scene == "question" || scene == "answer") {
-        t = ((dom.closest('.QuestionPage') as HTMLElement).querySelector("meta[itemprop=name]") as HTMLMetaElement).content
+        t = (dom.closest('.QuestionPage').querySelector("meta[itemprop=name]") as HTMLMetaElement).content
     }
     //文章
     else if (scene == "article") {
-        t = ((dom.closest('.Post-Main') as HTMLElement).querySelector("h1.Post-Title") as HTMLElement).innerText
+        t = dom.closest('.Post-Main').querySelector("h1.Post-Title").textContent
     }
     else t = "无标题"
     //替换英文问号为中文问号，因标题中间也可能有问号所以不去掉
@@ -62,20 +62,20 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
     //寻找包含昵称+链接+签名的节点
 
     if (scene == "follow") {
-        let p = dom.closest('.ContentItem') as HTMLElement
+        let p = dom.closest('.ContentItem')
         //唯独关注页作者在ContentItem外面，原创内容没有作者栏
         author_dom = p.querySelector(".AuthorInfo-content") ||
-            (dom.closest('.Feed') as HTMLElement).querySelector(".FeedSource .AuthorInfo-content") ||
-            (dom.closest('.Feed') as HTMLElement).querySelector(".FeedSource-firstline")
+            dom.closest('.Feed').querySelector(".FeedSource .AuthorInfo-content") ||
+            dom.closest('.Feed').querySelector(".FeedSource-firstline")
     }
     ///个人/问题/回答/想法/收藏夹
     else if (scene == "people" || scene == "question" || scene == "answer" || scene == "pin" || scene == "collection") {
-        let p = dom.closest('.ContentItem') as HTMLElement
+        let p = dom.closest('.ContentItem')
         author_dom = p.querySelector(".AuthorInfo-content")
     }
     //文章
     else if (scene == "article") {
-        author_dom = (dom.closest('.Post-Main') as HTMLElement).querySelector(".Post-Author")
+        author_dom = dom.closest('.Post-Main').querySelector(".Post-Author")
     }
 
     if (author_dom) {
@@ -113,7 +113,7 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
     else {
         if (type == "answer" || type == "article") {
             //普通
-            let p = dom.closest('.ContentItem') as HTMLElement
+            let p = dom.closest('.ContentItem')
             let url_dom = (p.querySelector(".ContentItem>meta[itemprop=url]") as any)
             //搜索结果页
             if (!url_dom) {
@@ -121,7 +121,7 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
             }
             //搜索结果页最新讨论
             if (!url_dom) {
-                p = dom.closest('.HotLanding-contentItem') as HTMLElement
+                p = dom.closest('.HotLanding-contentItem')
                 url_dom = p.querySelector(".ContentItem h2 a")
             }
             url = url_dom.content || (url_dom.href)
@@ -130,7 +130,7 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
         }
         //pin
         else {
-            let zopdata = (dom.closest('.ContentItem') as HTMLElement).getAttribute("data-zop")
+            let zopdata = dom.closest('.ContentItem').getAttribute("data-zop")
             return "https://www.zhihu.com/pin/" + JSON.parse(zopdata).itemId
         }
     }
@@ -151,13 +151,13 @@ export const getTime = async (dom: HTMLElement, scene: string, type?: string): P
     //  if (type != "" || type == "article") {
     let created, modified, time_dom
     if (scene != "article") {
-        time_dom = (dom.closest('.ContentItem') as HTMLElement).querySelector(".ContentItem-time") as HTMLElement
+        time_dom = dom.closest('.ContentItem').querySelector(".ContentItem-time")
         created = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
         modified = time_dom.querySelector("span").innerText.slice(4)
         return { created, modified }
     }
     else {//文章
-        time_dom = (dom.closest('.Post-content') as HTMLElement).querySelector(".ContentItem-time") as HTMLElement
+        time_dom = dom.closest('.Post-content').querySelector(".ContentItem-time") as HTMLElement
         modified = time_dom.childNodes[0].textContent.slice(4)
         time_dom.click()
         await new Promise<void>((resolve) => {
@@ -180,22 +180,22 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
     let upvote, up_dom
     if (type == "pin") {
         //个人页的想法有2层ContentItem-actions，想法页有1层
-        up_dom = (dom.closest('.ContentItem') as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
-            (dom.closest('.ContentItem') as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
+        up_dom = dom.closest('.ContentItem').querySelector(".ContentItem-actions>.ContentItem-actions") ||
+            dom.closest('.ContentItem').querySelector(".ContentItem-actions")
         up_dom = up_dom.childNodes[0]
         upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(3)//0, -4
         upvote ? 0 : upvote = 0
     }
     else if (scene == "article") {
-        up_dom = (dom.closest('.Post-content') as HTMLElement).querySelector(".VoteButton--up")
+        up_dom = dom.closest('.Post-content').querySelector(".VoteButton--up")
         upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(3)
         upvote ? 0 : upvote = 0
     }
     else {
-        let zaedata = (dom.closest('.ContentItem') as HTMLElement).getAttribute("data-za-extra-module")
+        let zaedata = dom.closest('.ContentItem').getAttribute("data-za-extra-module")
         //搜索结果页
         if (window.location.href.includes('/search?')) {
-            upvote = (dom.closest('.RichContent') as HTMLElement).querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0
+            upvote = dom.closest('.RichContent').querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0
         }
         else upvote = JSON.parse(zaedata).card.content.upvote_num
     }
@@ -209,28 +209,28 @@ export const getCommentNum = (dom: HTMLElement, scene: string, type: string): nu
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     let cm, cm_dom, p
     //被展开的评论区
-    p = (dom.closest('.ContentItem') as HTMLElement)
+    p = dom.closest('.ContentItem')
     p ? cm_dom = p.querySelector(".css-1k10w8f") : 0
     if (cm_dom) {
         cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
     }
     else if (type == "pin") {
-        cm_dom = (dom.closest('.ContentItem') as HTMLElement).querySelector(".ContentItem-actions>.ContentItem-actions") ||
-            (dom.closest('.ContentItem') as HTMLElement).querySelector(".ContentItem-actions") as HTMLElement
+        cm_dom = dom.closest('.ContentItem').querySelector(".ContentItem-actions>.ContentItem-actions") ||
+            dom.closest('.ContentItem').querySelector(".ContentItem-actions")
         cm_dom = cm_dom.childNodes[1]
         cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
         cm ? 0 : cm = 0
     }
     else if (scene == "article") {
-        cm_dom = (dom.closest('.Post-content') as HTMLElement).querySelector(".BottomActions-CommentBtn")
+        cm_dom = dom.closest('.Post-content').querySelector(".BottomActions-CommentBtn")
         cm = cm_dom.textContent.replace(/,|\u200B/g, '').slice(0, -4)
         cm ? 0 : cm = 0
     }
     else {
-        let zaedata = (dom.closest('.ContentItem') as HTMLElement).getAttribute("data-za-extra-module")
+        let zaedata = dom.closest('.ContentItem').getAttribute("data-za-extra-module")
         //搜索结果页
         if (window.location.href.includes('/search?')) {
-            cm_dom = (dom.closest('.RichContent') as HTMLElement).querySelector("button.ContentItem-action")
+            cm_dom = dom.closest('.RichContent').querySelector("button.ContentItem-action")
             cm = cm_dom.textContent.replace(/,|\u200B/g, "").slice(0, -4)
         }
         else cm = JSON.parse(zaedata).card.content.comment_num

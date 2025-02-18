@@ -43,7 +43,7 @@ export const parser = (input: LexType[]): string[] => {
             }
 
             case TokenType.Blockquote: {
-                output.push(renderRich(token.content, "> ").replace(/\n/g,'\n> \n')) // 修复部分引用不分段问题
+                output.push(renderRich(token.content, "> ").replace(/\n/g, '\n> \n')) // 修复部分引用不分段问题
                 break
             }
 
@@ -62,13 +62,13 @@ export const parser = (input: LexType[]): string[] => {
                 break
             }
 
-            case TokenType.Figure: {
-                output.push(`![](${token.local ? token.localSrc : token.src})`)
-                break
-            }
+            case TokenType.Figure:
 
             case TokenType.Gif: {
-                output.push(`![](${token.local ? token.localSrc : token.src})`)
+                // @ts-ignore
+                window.no_save_img ?
+                    output.push(`[图片]`) :
+                    output.push(`![](${token.local ? token.localSrc : token.src})`)
                 break
             }
 

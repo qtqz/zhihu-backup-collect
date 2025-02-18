@@ -198,13 +198,21 @@ function addParseButton(ContentItem, itemId) {
 
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
-    cc.querySelector(".save").addEventListener('click', () => {
+    cc.querySelector(".save").addEventListener('click', (e) => {
+        e.target.textContent = ' 暂存中………… '
+        setTimeout(() => {
+            e.target.textContent = '暂存当前页评论'
+        }, 700)
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
         //const comments = parser.getComments();
         //console.log(cc, comments);
     })
-    cc.querySelector(".unsave").addEventListener('click', () => {
+    cc.querySelector(".unsave").addEventListener('click', (e) => {
+        e.target.textContent = ' 清空中……… '
+        setTimeout(() => {
+            e.target.textContent = '清空暂存区'
+        }, 700)
         window.ArticleComments[itemId] = undefined
     })
     cc.querySelector(".sum").addEventListener('click', () => {
@@ -215,18 +223,6 @@ function addParseButton(ContentItem, itemId) {
         }
     })
 }
-
-//console.log(0)
-/*
-let timer3 = null
-window.addEventListener("scroll", () => {
-    //debounce
-    if (timer3 || timer3 === 0) {
-        clearTimeout(timer3)
-    }
-    timer3 = setTimeout(addParseButtons, 1000)
-})*/
-
 /**
  * Modal评论处理方案
  * 添加按钮并正确传入主人ID
@@ -275,17 +271,17 @@ export const mountParseComments = () => {
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
         setTimeout(() => {
-            let c = document.querySelector('.ContentItem')
+            let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
             let itemId = getItemId(c, c)
             addParseButton(c, itemId)
-        }, 1000)
+        }, 2000)
     }
     document.addEventListener("click", (e) => {
         let itemId
         // 1
         if (e.target.closest('.ContentItem-action') && /评论/.test(e.target.closest('.ContentItem-action').textContent)) {
 
-            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
+            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
             //注意文章页，搜索结果页
             itemId = getItemId(father, e.target)
             setTimeout(() => {
@@ -303,13 +299,13 @@ export const mountParseComments = () => {
             let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
             if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
 
-                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
+                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
                 //注意文章页，搜索结果页
                 setTimeout(() => {
                     let modal = document.querySelector('.Modal-content')
                     if (father) {// 4:false，不需要获取
                         //非Modal内 23
-                        console.log(2233)
+                        //console.log(2233)
                         itemId = getItemId(father, e.target)
                         modal.setAttribute('itemId', itemId)
                     }
@@ -341,7 +337,7 @@ const getItemId = (father, etg) => {
         zopdata.type = zem.type
         zopdata.itemId = zem.token
     }
-    return zopdata.type + zopdata.itemId
+    return zopdata.type.toLowerCase() + zopdata.itemId
 }
 
 const ZhihuLink2NormalLink = (link) => {

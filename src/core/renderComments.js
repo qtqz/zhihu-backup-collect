@@ -29,7 +29,12 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
             commentsImgs.push(comment.img)
             comment.img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
         }
-        markdown.push(`${prefix}![](${comment.img})`, prefix);
+        // @ts-ignore
+        window.no_save_img && !isLocalImg ?
+            markdown.push(`${prefix}[图片]`, prefix) :
+            markdown.push(`${prefix}![](${comment.img})`, prefix)
+        // @ts-ignore
+        console.log('comment.img', window.no_save_img);
     }
 
     markdown.push(

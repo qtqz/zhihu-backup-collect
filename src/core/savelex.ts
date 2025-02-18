@@ -21,22 +21,20 @@ export default async (
         const assetsFolder = zip.folder(assetsPath)
 
         for (let token of lex) {
-            if (token.type === TokenType.Figure) {
-                const { file_name } = await downloadAndZip(token.src, assetsFolder)
-                token.localSrc = `./${assetsPath}/${file_name}`
-                token.local = true
-            } else if (token.type === TokenType.Video) {
-                try {
-                    const { file_name } = await downloadAndZip(token.src, assetsFolder)
-                    token.localSrc = `./${assetsPath}/${file_name}`
-                    token.local = true
-                } catch (e) {
-                    console.error('视频', e)
+            try {
+                switch (token.type) {
+                    case TokenType.Figure:
+                    case TokenType.Video:
+                    case TokenType.Gif: {
+                        const { file_name } = await downloadAndZip(token.src, assetsFolder)
+                        token.localSrc = `./${assetsPath}/${file_name}`
+                        token.local = true
+                        break
+                    }
                 }
-            } else if (token.type === TokenType.Gif) {
-                const { file_name } = await downloadAndZip(token.src, assetsFolder)
-                token.localSrc = `./${assetsPath}/${file_name}`
-                token.local = true
+            } catch (e) {
+                console.error('下载', token, e)
+                alert('下载失败' + token.type + e)
             }
         }
     }

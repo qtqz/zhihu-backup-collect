@@ -7,7 +7,6 @@ import savelex from "./core/savelex"
 import { renderAllComments } from "./core/renderComments"
 
 interface DealItemResult {
-    markdown?: string[];
     zip?: JSZip;
     textString?: string;
     title?: string;
@@ -47,11 +46,13 @@ function detectType(dom: HTMLElement): string {
     }
     return type
 }
+
 export default async (dom: HTMLElement, button?: string): Promise<DealItemResult> => {
     //console.log(dom)
     //确认场景
     let scene = detectScene()
     let type = detectType(dom)
+    //console.log(scene + type)
 
     if (!scene || !type) return;
 
@@ -73,11 +74,14 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
         title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
     }
 
-    // 复制与下载纯文本时不保存图片，影响所有parser(lex2)，还有评论的图片
+    // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
     var no_save_img = false
     try {
         // @ts-ignore
         no_save_img = GM_getValue("no_save_img")
+        // @ts-ignore
+        window.no_save_img = no_save_img
+
     } catch (e) {
         console.warn(e)
     }
@@ -175,7 +179,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
     const dealComments = async () => {
         try {
             if (getCommentSwitch(dom)) {
-                let p = dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement
+                let p = dom.closest('.ContentItem') || dom.closest('.Post-content')
                 let openComment = p.querySelector(".Comments-container")
                 let itemId = type + url.split('/').pop()
                 let tip = ''
@@ -193,13 +197,13 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
                     if (!commentsData) {
                         if (!openComment) return;//既没评论数据也没展开评论区
                         let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）')
-                        if (!s) return;
+                        if (!s) return 'return'
                         else {
                             (openComment.querySelector('.save') as HTMLElement).click()
                             setTimeout(() => {
                                 (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
                             }, 1000)
-                            return;
+                            return 'return'
                         }
                     }
                     let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n'
@@ -241,29 +245,29 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             console.warn(e)
         }
         md = TOC ? TOC.concat(parser(lex)) : parser(lex)
-        if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
             md = md.concat(originPinMD) //解决保存转发的想法异常
         }
         if (copy_save_fm) {
             md = [getFrontmatter()].concat(md)//放到剪贴板，string[]
         }
         if (copy_save_cm) {
-            await dealComments()
+            if (await dealComments() == 'return') return;
             commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
             md.push(commentText)
         }
-        if (type != 'pin' && !copy_save_fm) {
-            return { markdown: [title].concat(md) }//复制内容增加标题
-        } else
-            return { markdown: md }
+        if (type != 'pin' && !copy_save_fm) 
+            return { textString: [title].concat(md).join('\n\n') }//复制内容增加标题
+        else
+            return { textString: md.join('\n\n') }
     }
     // ============================以下只有 text 或 zip 2种情况===========================
 
     if (button == 'text') {
-        await dealComments()
+        if (await dealComments() == 'return') return;
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
         let md2: string[] = []
-        if (type == "pin" && (dom.closest('.PinItem') as HTMLElement).querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
             md2 = originPinMD
         }
         return {
@@ -275,7 +279,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
     if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
-        await dealComments()
+        if (await dealComments() == 'return') return;
         if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
             md = parser(localLex).concat(md)
         }

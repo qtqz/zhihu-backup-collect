@@ -150,7 +150,7 @@ const main = async () => {
             //console.log(RichText)
             if (RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.includes('zhuanlan')) {
-                if ((RichText.closest('.Post-Main') as HTMLElement).querySelector(".zhihubackup-container")) continue
+                if (RichText.closest('.Post-Main').querySelector(".zhihubackup-container")) continue
             }
             else {
                 if (RichText.closest('.PinItem')) {
@@ -158,10 +158,10 @@ const main = async () => {
                     //if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
                     if (RichText.closest('.PinItem-content-originpin')) continue//被转发想法
                 }
-                if ((RichText.closest('.RichContent') as HTMLElement).querySelector(".zhihubackup-container")) continue
+                if (RichText.closest('.RichContent').querySelector(".zhihubackup-container")) continue
                 const richInner = RichText.closest('.RichContent-inner')
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
-                if ((RichText.closest('.RichContent') as HTMLElement).querySelector(".ContentItem-expandButton")) continue
+                if (RichText.closest('.RichContent').querySelector(".ContentItem-expandButton")) continue
             }
             const aButtonContainer = ButtonContainer.cloneNode(true) as HTMLDivElement
 
@@ -183,6 +183,7 @@ const main = async () => {
             ButtonMarkdown.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText, 'copy')
+                    if (!res) return;// 取消保存
                     result = {
                         textString: res.textString,
                         zip: res.zip,
@@ -294,29 +295,6 @@ const main = async () => {
                 }
             }))
 
-            /*
-            const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
-            ButtonGetFileName.addEventListener("click", async () => {
-                try {
-                    const res = await NormalItem(RichText, true)
-                    result = {
-                        title: res.title,
-                    }
-                    navigator.clipboard.writeText(result.title)
-                    ButtonGetFileName.innerHTML = "复制成功✅"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                } catch (e) {
-                    console.log(e)
-                    ButtonGetFileName.innerHTML = "发生错误❌<br>请打开控制台查看"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                }
-            })
-
-            */
         } catch (e) {
             console.log(e)
         }
@@ -473,13 +451,13 @@ setTimeout(() => {
     .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
         display:none;
     }
-    .comment-parser-container-wrap button{
+    .comment-parser-container{
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.5s;
     }
-    .Comments-container:hover .comment-parser-container-wrap button,
-    .Modal-content:hover .comment-parser-container-wrap button{
+    .Comments-container:hover .comment-parser-container,
+    .Modal-content:hover .comment-parser-container{
         opacity: 1;
         pointer-events: initial;
     }

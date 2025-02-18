@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.2
+// @version      0.10.13
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,13 @@
 /** 
 ## Changelog
 
+* 0.10.13（2025.2.18）:
+    - 重构主线程，整理代码
+    - 复制时支持复制评论了（需通过油猴菜单手动开启）
+    - 支持复制或存文本时不保存图片（改为“[图片]”，需通过油猴菜单手动开启）
+    - 修复在搜索结果页和文章页不能存评论的问题
+    - 修复评论按钮显示突变
+    - 点击存评论按钮后有了反馈
 * 0.10.2（2025.2.15）:
     - 修复想法页可能不显示存评论按钮的问题
     - 修复存 zip 无法存评论问题
@@ -280,11 +287,11 @@ const getTitle = (dom, scene, type) => {
         if (type == "answer" || type == "article") {
             //搜索结果页最新讨论
             !title_dom ? title_dom = dom.closest('.HotLanding-contentItem').querySelector("h2.ContentItem-title a") : 0;
-            t = title_dom.innerText;
+            t = title_dom.textContent;
         }
         else { //想法
             if (title_dom) {
-                t = "想法：" + title_dom.innerText + '-' + dom.innerText.slice(0, 16).trim().replace(/\s/g, "");
+                t = "想法：" + title_dom.textContent + '-' + dom.innerText.slice(0, 16).trim().replace(/\s/g, "");
             }
             else
                 t = "想法：" + dom.innerText.slice(0, 24).trim().replace(/\s/g, "");
@@ -296,7 +303,7 @@ const getTitle = (dom, scene, type) => {
     }
     //文章
     else if (scene == "article") {
-        t = dom.closest('.Post-Main').querySelector("h1.Post-Title").innerText;
+        t = dom.closest('.Post-Main').querySelector("h1.Post-Title").textContent;
     }
     else
         t = "无标题";
@@ -934,12 +941,12 @@ const parser = (input) => {
                 output.push(`[${token.text}](${token.href})`);
                 break;
             }
-            case TokenType.Figure: {
-                output.push(`![](${token.local ? token.localSrc : token.src})`);
-                break;
-            }
+            case TokenType.Figure:
             case TokenType.Gif: {
-                output.push(`![](${token.local ? token.localSrc : token.src})`);
+                // @ts-ignore
+                window.no_save_img ?
+                    output.push(`[图片]`) :
+                    output.push(`![](${token.local ? token.localSrc : token.src})`);
                 break;
             }
             case TokenType.Video: {
@@ -1105,25 +1112,21 @@ var savelex_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
     if (FigureFlag) {
         const assetsFolder = zip.folder(assetsPath);
         for (let token of lex) {
-            if (token.type === TokenType.Figure) {
-                const { file_name } = yield downloadAndZip(token.src, assetsFolder);
-                token.localSrc = `./${assetsPath}/${file_name}`;
-                token.local = true;
-            }
-            else if (token.type === TokenType.Video) {
-                try {
-                    const { file_name } = yield downloadAndZip(token.src, assetsFolder);
-                    token.localSrc = `./${assetsPath}/${file_name}`;
-                    token.local = true;
-                }
-                catch (e) {
-                    console.error('视频', e);
+            try {
+                switch (token.type) {
+                    case TokenType.Figure:
+                    case TokenType.Video:
+                    case TokenType.Gif: {
+                        const { file_name } = yield downloadAndZip(token.src, assetsFolder);
+                        token.localSrc = `./${assetsPath}/${file_name}`;
+                        token.local = true;
+                        break;
+                    }
                 }
             }
-            else if (token.type === TokenType.Gif) {
-                const { file_name } = yield downloadAndZip(token.src, assetsFolder);
-                token.localSrc = `./${assetsPath}/${file_name}`;
-                token.local = true;
+            catch (e) {
+                console.error('下载', token, e);
+                alert('下载失败' + token.type + e);
             }
         }
     }
@@ -1164,7 +1167,12 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
             commentsImgs.push(comment.img)
             comment.img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
         }
-        markdown.push(`${prefix}![](${comment.img})`, prefix);
+        // @ts-ignore
+        window.no_save_img && !isLocalImg ?
+            markdown.push(`${prefix}[图片]`, prefix) :
+            markdown.push(`${prefix}![](${comment.img})`, prefix)
+        // @ts-ignore
+        console.log('comment.img', window.no_save_img);
     }
 
     markdown.push(
@@ -1227,36 +1235,37 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-/* harmony default export */ const dealItem = ((dom, button) => dealItem_awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    //确认场景
-    let scene, type;
-    if (window.location.pathname == "/follow")
+function detectScene() {
+    const pathname = location.pathname;
+    let scene;
+    if (pathname == "/follow")
         scene = "follow";
-    else if (window.location.pathname.slice(0, 7) == "/people" || window.location.pathname.slice(0, 4) == "/org")
+    else if (pathname.includes("/people") || pathname.includes("/org"))
         scene = "people";
-    else if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.includes('answer'))
+    else if (pathname.includes("/question") && !pathname.includes('answer'))
         scene = "question";
-    else if (window.location.pathname.slice(0, 9) == "/question" && window.location.pathname.includes('answer'))
+    else if (pathname.includes("/question") && pathname.includes('answer'))
         scene = "answer";
-    else if (window.location.pathname.slice(0, 4) == "/pin")
+    else if (pathname.includes("/pin"))
         scene = "pin";
-    else if (window.location.hostname == "zhuanlan.zhihu.com")
+    else if (location.hostname == "zhuanlan.zhihu.com")
         scene = "article";
-    else if (window.location.pathname.slice(0, 11) == "/collection")
+    else if (pathname.includes("/collection"))
         scene = "collection";
-    else if (window.location.pathname.slice(0, 11) == "/search")
+    else if (pathname.includes("/search"))
         scene = "collection";
-    else if (window.location.href == "https://www.zhihu.com/")
+    else if (location.href == "https://www.zhihu.com/")
         scene = "collection"; //搜索、推荐、收藏夹似乎一样
     else
         console.log("未知场景");
     //https://www.zhihu.com/question/2377606804/answers/updated 按时间排序的问题
-    if (window.location.pathname.slice(0, 9) == "/question" && !window.location.pathname.includes('updated'))
+    if (pathname.slice(0, 9) == "/question" && !pathname.includes('updated'))
         scene = "question";
-    //console.log(dom)
-    //console.log(getParent(dom, "AnswerItem"), getParent(dom, "ArticleItem"), getParent(dom, "PinItem"))
+    return scene;
+}
+function detectType(dom) {
     //ContentItem
+    let type;
     if (dom.closest('.AnswerItem'))
         type = "answer";
     else if (dom.closest('.ArticleItem'))
@@ -1272,6 +1281,14 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         // @ts-ignore
         setTimeout(window.zhbf, 100);
     }
+    return type;
+}
+/* harmony default export */ const dealItem = ((dom, button) => dealItem_awaiter(void 0, void 0, void 0, function* () {
+    //console.log(dom)
+    //确认场景
+    let scene = detectScene();
+    let type = detectType(dom);
+    //console.log(scene + type)
     if (!scene || !type)
         return;
     const title = getTitle(dom, scene, type), author = getAuthor(dom, scene, type), time = yield getTime(dom, scene), //?????????
@@ -1286,6 +1303,17 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         return {
             title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         };
+    // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
+    var no_save_img = false;
+    try {
+        // @ts-ignore
+        no_save_img = GM_getValue("no_save_img");
+        // @ts-ignore
+        window.no_save_img = no_save_img;
+    }
+    catch (e) {
+        console.warn(e);
+    }
     /**
      * 生成frontmatter
      * 标题，链接，作者名，赞数，评论数，创建时间，修改时间
@@ -1307,7 +1335,7 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
     /**
      * 生成目录
      */
-    const getTOC = () => {
+    const TOC = (() => {
         let toc = (dom.closest('.ContentItem') || dom.closest('.Post-content')).querySelector(".Catalog-content");
         let items = [];
         if (toc) {
@@ -1325,8 +1353,10 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         }
         else
             return null;
-    };
+    })();
     const lex = lexer(dom.childNodes, type);
+    var md = [], originPinMD = [];
+    //console.log("lex", lex)
     //保存文章头图
     let headImg = document.querySelector('span>picture>img');
     if (scene == 'article' && headImg) {
@@ -1339,24 +1369,22 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
                 dom: headImg
             });
     }
-    //console.log("lex", lex)
-    var markdown = [];
+    //是转发的想法，对源想法解析，并准备附加到新想法下面
     if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
-        //是转发的想法，对原想法解析，并附加到新想法下面
         const dom2 = dom.closest('.PinItem').querySelector(".PinItem-content-originpin .RichText");
         const lex2 = lexer(dom2.childNodes, type);
         //markdown = markdown.concat(parser(lex2).map((l) => "> " + l))
-        markdown.push('\n\n' + parser(lex2).map((l) => "> " + l).join("\n> \n"));
+        originPinMD.push('\n\n' + parser(lex2).map((l) => "> " + l).join("\n> \n"));
     }
+    // 获取想法图片/标题
     if (type == "pin") {
-        // 获取图片/标题
         const pinItem = dom.closest('.PinItem');
         if (pinItem.querySelector(".ContentItem-title"))
             lex.unshift({
                 type: TokenType.Text,
                 content: [{
                         type: TokenType.PlainText,
-                        text: pinItem.querySelector(".ContentItem-title").textContent
+                        text: '**' + pinItem.querySelector(".ContentItem-title").textContent + '**'
                     }]
             });
         if (pinItem.querySelector(".Image-PreviewVague")) {
@@ -1369,109 +1397,123 @@ var dealItem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
             });
         }
     }
-    if (button == 'copy') {
-        //放到剪贴板，string[]
-        try {
-            // @ts-ignore
-            var copy_save_fm = GM_getValue("copy_save_fm"); //false
-        }
-        catch (e) {
-            console.warn(e);
-        }
-        let md = getTOC() ? getTOC().concat(parser(lex)) : parser(lex);
-        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
-            md = md.concat(markdown); //解决保存转发的想法异常
-        }
-        if (copy_save_fm) {
-            md = [getFrontmatter()].concat(md);
-        }
-        if (type != 'pin' && !copy_save_fm) {
-            return { markdown: [title].concat(md) }; //复制内容增加标题
-        }
-        else
-            return { markdown: md };
-        // ============================以下只有 text 或 zip 2种情况===========================
-    }
-    else if (button == 'zip') {
-        //对lex的再处理，保存资产，并将lex中链接改为本地
-        var { zip, localLex } = yield savelex(lex);
-        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
-            markdown = parser(localLex).concat(markdown);
-        }
-        else
-            markdown = parser(localLex);
-        zip.file("index.md", getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + markdown.join("\n\n"));
-    }
     //解析评论
     let commentText = '', commentsImgs = [];
-    try {
-        if (getCommentSwitch(dom)) {
-            let p = dom.closest('.ContentItem') || dom.closest('.Post-content');
-            let openComment = p.querySelector(".Comments-container");
-            let itemId = type + url.split('/').pop();
-            let tip = '';
-            if (openComment && openComment.querySelector('.css-189h5o3')) {
-                let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**'; //评论区已关闭|暂无评论
-                if (button == 'text')
-                    commentText = t;
-                else
-                    zip.file("comments.md", t);
-            }
-            else {
-                if (openComment && openComment.querySelector('.css-1tdhe7b'))
-                    tip = '**评论内容由作者筛选后展示**\n\n';
-                // @ts-ignore 
-                let commentsData = (_a = window.ArticleComments[itemId]) === null || _a === void 0 ? void 0 : _a.comments;
-                if (!commentsData) {
-                    if (!openComment)
-                        return; //既没评论数据也没展开评论区
-                    let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）');
-                    if (!s)
-                        return;
-                    else {
-                        openComment.querySelector('.save').click();
-                        setTimeout(() => {
-                            p.querySelector(`.zhihubackup-wrap .to-${button}`).click();
-                        }, 1000);
-                        return;
+    const dealComments = () => dealItem_awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        try {
+            if (getCommentSwitch(dom)) {
+                let p = dom.closest('.ContentItem') || dom.closest('.Post-content');
+                let openComment = p.querySelector(".Comments-container");
+                let itemId = type + url.split('/').pop();
+                let tip = '';
+                if (openComment && openComment.querySelector('.css-189h5o3')) {
+                    let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**'; //评论区已关闭|暂无评论
+                    if (button == 'text')
+                        commentText = t;
+                    else
+                        zip.file("comments.md", t);
+                }
+                else {
+                    if (openComment && openComment.querySelector('.css-1tdhe7b'))
+                        tip = '**评论内容由作者筛选后展示**\n\n';
+                    // @ts-ignore 
+                    let commentsData = (_a = window.ArticleComments[itemId]) === null || _a === void 0 ? void 0 : _a.comments;
+                    if (!commentsData) {
+                        if (!openComment)
+                            return; //既没评论数据也没展开评论区
+                        let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）');
+                        if (!s)
+                            return 'return';
+                        else {
+                            openComment.querySelector('.save').click();
+                            setTimeout(() => {
+                                p.querySelector(`.zhihubackup-wrap .to-${button}`).click();
+                            }, 1000);
+                            return 'return';
+                        }
                     }
-                }
-                let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n';
-                if (button == 'text') {
-                    [commentText, commentsImgs] = renderAllComments(commentsData, false);
-                    commentText = num_text + commentText;
-                }
-                else if (button == 'zip') {
-                    [commentText, commentsImgs] = renderAllComments(commentsData, true);
-                    commentText = num_text + commentText;
-                    zip.file("comments.md", commentText);
-                    if (commentsImgs.length) {
-                        const assetsFolder = zip.folder('assets');
-                        for (let i = 0; i < commentsImgs.length; i++) {
-                            const response = yield fetch(commentsImgs[i]);
-                            const arrayBuffer = yield response.arrayBuffer();
-                            const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop();
-                            assetsFolder.file(fileName, arrayBuffer);
+                    let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n';
+                    if (button == 'text' || button == 'copy') {
+                        // 准备添加第三种图片归宿，完全舍弃
+                        [commentText, commentsImgs] = renderAllComments(commentsData, false);
+                        commentText = num_text + commentText;
+                    }
+                    else if (button == 'zip') {
+                        [commentText, commentsImgs] = renderAllComments(commentsData, true);
+                        commentText = num_text + commentText;
+                        zip.file("comments.md", commentText);
+                        if (commentsImgs.length) {
+                            const assetsFolder = zip.folder('assets');
+                            for (let i = 0; i < commentsImgs.length; i++) {
+                                const response = yield fetch(commentsImgs[i]);
+                                const arrayBuffer = yield response.arrayBuffer();
+                                const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop();
+                                assetsFolder.file(fileName, arrayBuffer);
+                            }
                         }
                     }
                 }
             }
         }
+        catch (e) {
+            console.warn("评论:", e);
+            alert('主要工作已完成，但是评论保存出错了');
+        }
+    });
+    if (button == 'copy') {
+        try {
+            // @ts-ignore
+            var copy_save_fm = GM_getValue("copy_save_fm"), 
+            // @ts-ignore
+            copy_save_cm = GM_getValue("copy_save_cm");
+        }
+        catch (e) {
+            console.warn(e);
+        }
+        md = TOC ? TOC.concat(parser(lex)) : parser(lex);
+        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
+            md = md.concat(originPinMD); //解决保存转发的想法异常
+        }
+        if (copy_save_fm) {
+            md = [getFrontmatter()].concat(md); //放到剪贴板，string[]
+        }
+        if (copy_save_cm) {
+            if ((yield dealComments()) == 'return')
+                return;
+            commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0;
+            md.push(commentText);
+        }
+        if (type != 'pin' && !copy_save_fm)
+            return { textString: [title].concat(md).join('\n\n') }; //复制内容增加标题
+        else
+            return { textString: md.join('\n\n') };
     }
-    catch (e) {
-        console.log("评论:", e);
-        alert('主要工作已完成，但是评论保存出错了');
-    }
+    // ============================以下只有 text 或 zip 2种情况===========================
     if (button == 'text') {
+        if ((yield dealComments()) == 'return')
+            return;
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0;
         let md2 = [];
         if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
-            md2 = markdown;
+            md2 = originPinMD;
         }
         return {
-            textString: getFrontmatter() + (getTOC() ? getTOC().join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + md2.join("\n\n") + commentText,
+            textString: getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + md2.join("\n\n") + commentText,
             title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         };
+    }
+    if (button == 'zip') {
+        //对lex的再处理，保存资产，并将lex中链接改为本地
+        var { zip, localLex } = yield savelex(lex);
+        if ((yield dealComments()) == 'return')
+            return;
+        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
+            md = parser(localLex).concat(md);
+        }
+        else
+            md = parser(localLex);
+        zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"));
     }
     const zopQuestion = (() => {
         try {
@@ -2794,13 +2836,21 @@ function addParseButton(ContentItem, itemId) {
 
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
-    cc.querySelector(".save").addEventListener('click', () => {
+    cc.querySelector(".save").addEventListener('click', (e) => {
+        e.target.textContent = ' 暂存中………… '
+        setTimeout(() => {
+            e.target.textContent = '暂存当前页评论'
+        }, 700)
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
         //const comments = parser.getComments();
         //console.log(cc, comments);
     })
-    cc.querySelector(".unsave").addEventListener('click', () => {
+    cc.querySelector(".unsave").addEventListener('click', (e) => {
+        e.target.textContent = ' 清空中……… '
+        setTimeout(() => {
+            e.target.textContent = '清空暂存区'
+        }, 700)
         window.ArticleComments[itemId] = undefined
     })
     cc.querySelector(".sum").addEventListener('click', () => {
@@ -2811,18 +2861,6 @@ function addParseButton(ContentItem, itemId) {
         }
     })
 }
-
-//console.log(0)
-/*
-let timer3 = null
-window.addEventListener("scroll", () => {
-    //debounce
-    if (timer3 || timer3 === 0) {
-        clearTimeout(timer3)
-    }
-    timer3 = setTimeout(addParseButtons, 1000)
-})*/
-
 /**
  * Modal评论处理方案
  * 添加按钮并正确传入主人ID
@@ -2871,17 +2909,17 @@ const mountParseComments = () => {
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
         setTimeout(() => {
-            let c = document.querySelector('.ContentItem')
+            let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
             let itemId = getItemId(c, c)
             addParseButton(c, itemId)
-        }, 1000)
+        }, 2000)
     }
     document.addEventListener("click", (e) => {
         let itemId
         // 1
         if (e.target.closest('.ContentItem-action') && /评论/.test(e.target.closest('.ContentItem-action').textContent)) {
 
-            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
+            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
             //注意文章页，搜索结果页
             itemId = getItemId(father, e.target)
             setTimeout(() => {
@@ -2899,13 +2937,13 @@ const mountParseComments = () => {
             let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
             if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
 
-                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-Main")
+                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
                 //注意文章页，搜索结果页
                 setTimeout(() => {
                     let modal = document.querySelector('.Modal-content')
                     if (father) {// 4:false，不需要获取
                         //非Modal内 23
-                        console.log(2233)
+                        //console.log(2233)
                         itemId = getItemId(father, e.target)
                         modal.setAttribute('itemId', itemId)
                     }
@@ -2937,7 +2975,7 @@ const getItemId = (father, etg) => {
         zopdata.type = zem.type
         zopdata.itemId = zem.token
     }
-    return zopdata.type + zopdata.itemId
+    return zopdata.type.toLowerCase() + zopdata.itemId
 }
 
 const parseComments_ZhihuLink2NormalLink = (link) => {
@@ -3075,32 +3113,28 @@ try {
         // @ts-ignore
         let ac = GM_getValue("copy_save_fm"), c;
         !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm');
-        if (c) {
-            // @ts-ignore
-            GM_setValue("copy_save_fm", true);
-            // @ts-ignore
-        }
-        else
-            GM_setValue("copy_save_fm", false);
         // @ts-ignore
+        c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false);
         //alert(GM_getValue("copy_save_fm"))
     });
-    /*// @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand(
-        "不保存图片",
-        function () {
-            // @ts-ignore
-            let ac = GM_getValue("no_save_img"), c
-            !ac ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，存zip时照旧。你是否继续？") : alert('已取消不存图')
-            if (c) {
-                // @ts-ignore
-                GM_setValue("no_save_img", true)
-                // @ts-ignore
-            } else GM_setValue("no_save_img", false)
-                // @ts-ignore
-            //alert(GM_getValue("copy_save_fm"))
-        }
-    )*/
+    // @ts-ignore
+    let menuSaveCM = GM_registerMenuCommand("复制内容时同时复制评论", function () {
+        // @ts-ignore
+        let ns = GM_getValue("copy_save_cm"), c;
+        !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论');
+        // @ts-ignore
+        c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false);
+        //alert(GM_getValue("copy_save_cm"))
+    });
+    // @ts-ignore
+    let menuSaveImg = GM_registerMenuCommand("复制与下载纯文本时不保存图片", function () {
+        // @ts-ignore
+        let ns = GM_getValue("no_save_img"), c;
+        !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图');
+        // @ts-ignore
+        c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
+        //alert(GM_getValue("no_save_img"))
+    });
 }
 catch (e) {
     console.warn(e);
@@ -3165,13 +3199,15 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
             ButtonMarkdown.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
                     const res = yield dealItem(RichText, 'copy');
+                    if (!res)
+                        return; // 取消保存
                     result = {
-                        markdown: res.markdown,
+                        textString: res.textString,
                         zip: res.zip,
                         title: res.title,
                     };
                     /*console.log(result.markdown.join("\n\n"))*/
-                    navigator.clipboard.writeText(result.markdown.join("\n\n"));
+                    navigator.clipboard.writeText(result.textString);
                     ButtonMarkdown.innerHTML = "复制成功✅";
                     setTimeout(() => {
                         ButtonMarkdown.innerHTML = "复制为Markdown";
@@ -3278,29 +3314,6 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                     }, 5000);
                 }
             })));
-            /*
-            const ButtonGetFileName = parent_dom.querySelector(".to-cfn")
-            ButtonGetFileName.addEventListener("click", async () => {
-                try {
-                    const res = await NormalItem(RichText, true)
-                    result = {
-                        title: res.title,
-                    }
-                    navigator.clipboard.writeText(result.title)
-                    ButtonGetFileName.innerHTML = "复制成功✅"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                } catch (e) {
-                    console.log(e)
-                    ButtonGetFileName.innerHTML = "发生错误❌<br>请打开控制台查看"
-                    setTimeout(() => {
-                        ButtonGetFileName.innerHTML = "复制文件名"
-                    }, 5000)
-                }
-            })
-
-            */
         }
         catch (e) {
             console.log(e);
@@ -3456,13 +3469,13 @@ setTimeout(() => {
     .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
         display:none;
     }
-    .comment-parser-container-wrap button{
+    .comment-parser-container{
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.5s;
     }
-    .Comments-container:hover .comment-parser-container-wrap button,
-    .Modal-content:hover .comment-parser-container-wrap button{
+    .Comments-container:hover .comment-parser-container,
+    .Modal-content:hover .comment-parser-container{
         opacity: 1;
         pointer-events: initial;
     }
