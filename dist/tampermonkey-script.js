@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.13
+// @version      0.10.19
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,19 +26,26 @@
 /** 
 ## Changelog
 
-* 0.10.13（2025.2.18）:
+* 0.10.19（2025-02-25）:
+    - 下载 zip 时允许合并正文和评论（需通过油猴菜单手动开启）
+    - 修复未存评弹框点确定后无法自动复制的问题
+    - 修复在个人页搜索内容后按钮被隐藏的问题
+    - 修复文章页有时不出现评论按钮的问题
+    - 存长图时，若有图片未加载，给出提示
+    - 修复不存图选项影响 zip 内文本的问题
+* 0.10.13（2025-02-18）:
     - 重构主线程，整理代码
     - 复制时支持复制评论了（需通过油猴菜单手动开启）
     - 支持复制或存文本时不保存图片（改为“[图片]”，需通过油猴菜单手动开启）
     - 修复在搜索结果页和文章页不能存评论的问题
     - 修复评论按钮显示突变
     - 点击存评论按钮后有了反馈
-* 0.10.2（2025.2.15）:
+* 0.10.2（2025-02-15）:
     - 修复想法页可能不显示存评论按钮的问题
-    - 修复存 zip 无法存评论问题
-* 0.10.0（2025.1.13）:
+    - 修复存 zip 可能无法存评论的问题
+* 0.10.0（2025-01-13）:
     - **全新的评论解析器**，可以解析弹出框中的评论
-    - 性能优化
+    - 优化代码与性能
     - 评论相对时间转绝对时间
     - 补充转发想法中缺少的换行
 * 25.1.3（0.9.32）:
@@ -944,7 +951,7 @@ const parser = (input) => {
             case TokenType.Figure:
             case TokenType.Gif: {
                 // @ts-ignore
-                window.no_save_img ?
+                window.no_save_img && !token.local ?
                     output.push(`[图片]`) :
                     output.push(`![](${token.local ? token.localSrc : token.src})`);
                 break;
@@ -1299,10 +1306,21 @@ function detectType(dom) {
         return;
     }
     remark ? remark = "_" + remark : 0;
-    if (button == 'png')
+    if (button == 'png') {
+        const imgs = dom.querySelectorAll('figure img');
+        let noload;
+        imgs.forEach((i) => {
+            if (i.src.match(/data\:image\/svg\+xml;.*><\/svg>/))
+                noload = 1;
+        });
+        if (noload) {
+            alert('内容中还有未加载的图片，请滚动到底，使图都加载后再保存\n若效果不好，可使用其他软件保存');
+            return;
+        }
         return {
             title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         };
+    }
     // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
     var no_save_img = false;
     try {
@@ -1442,7 +1460,6 @@ function detectType(dom) {
                     else if (button == 'zip') {
                         [commentText, commentsImgs] = renderAllComments(commentsData, true);
                         commentText = num_text + commentText;
-                        zip.file("comments.md", commentText);
                         if (commentsImgs.length) {
                             const assetsFolder = zip.folder('assets');
                             for (let i = 0; i < commentsImgs.length; i++) {
@@ -1513,6 +1530,19 @@ function detectType(dom) {
         }
         else
             md = parser(localLex);
+        try {
+            // @ts-ignore
+            var zip_merge_cm = GM_getValue("zip_merge_cm");
+        }
+        catch (e) {
+            console.warn(e);
+        }
+        if (zip_merge_cm) {
+            commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0;
+            md.push(commentText);
+        }
+        else
+            zip.file("comments.md", commentText);
         zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"));
     }
     const zopQuestion = (() => {
@@ -2906,19 +2936,20 @@ function addParseButton(ContentItem, itemId) {
  * 调用后挂载document点击事件
  */
 const mountParseComments = () => {
+    const autoAdd = () => setTimeout(() => {
+        let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
+        let itemId = getItemId(c, c)
+        addParseButton(c, itemId)
+    }, 2000)
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
-        setTimeout(() => {
-            let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
-            let itemId = getItemId(c, c)
-            addParseButton(c, itemId)
-        }, 2000)
+        autoAdd()
     }
     document.addEventListener("click", (e) => {
         let itemId
+        const btn = e.target.closest('button')
         // 1
-        if (e.target.closest('.ContentItem-action') && /评论/.test(e.target.closest('.ContentItem-action').textContent)) {
-
+        if (btn?.closest('.ContentItem-actions') && /评论/.test(btn.textContent)) {
             let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
             //注意文章页，搜索结果页
             itemId = getItemId(father, e.target)
@@ -2933,8 +2964,8 @@ const mountParseComments = () => {
             return;
         }
         // 23 4
-        else if (e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
-            let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
+        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
+            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
             if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
 
                 let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
@@ -2953,6 +2984,9 @@ const mountParseComments = () => {
         }
         if (e.target.closest('button.hint')) {
             alert(HINT)
+        }
+        else if (btn?.getAttribute('aria-label') == "关闭") {
+            autoAdd()// 文章页关闭弹出框后按钮消失
         }
         if (e.target.closest('.ContentItem-more')) {
             setTimeout(window.zhbf, 200)// 评论无关功能，展开后无需滚动即可保存
@@ -3135,6 +3169,15 @@ try {
         c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
         //alert(GM_getValue("no_save_img"))
     });
+    // @ts-ignore
+    let menuMergeCM = GM_registerMenuCommand("下载zip时合并正文与评论", function () {
+        // @ts-ignore
+        let ns = GM_getValue("zip_merge_cm"), c;
+        !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并');
+        // @ts-ignore
+        c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false);
+        //alert(GM_getValue("zip_merge_cm"))
+    });
 }
 catch (e) {
     console.warn(e);
@@ -3142,7 +3185,7 @@ catch (e) {
 const ButtonContainer = document.createElement("div");
 ButtonContainer.classList.add("zhihubackup-wrap");
 ButtonContainer.innerHTML = `<div class="zhihubackup-container">
-    <button class="to-md Button VoteButton">复制为Markdown</button>
+    <button class="to-copy Button VoteButton">复制为Markdown</button>
     <button class="to-zip Button VoteButton">下载为 ZIP</button>
     <button class="to-text Button VoteButton">下载为纯文本</button>
     <button class="to-png Button VoteButton">剪藏为 PNG</button>
@@ -3195,7 +3238,7 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
             }
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer');
             p.prepend(aButtonContainer);
-            const ButtonMarkdown = parent_dom.querySelector(".to-md");
+            const ButtonMarkdown = parent_dom.querySelector(".to-copy");
             ButtonMarkdown.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
                     const res = yield dealItem(RichText, 'copy');
@@ -3250,6 +3293,8 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
             ButtonPNG.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
                     const res = yield dealItem(RichText, 'png');
+                    if (!res)
+                        return; // 取消保存
                     result = {
                         title: res.title,
                     };
@@ -3478,6 +3523,9 @@ setTimeout(() => {
     .Modal-content:hover .comment-parser-container{
         opacity: 1;
         pointer-events: initial;
+    }
+    .Card:has(.zhihubackup-wrap){
+        overflow: visible!important;
     }
     `));
     let head = document.querySelector("head");

@@ -118,6 +118,18 @@ try {
             //alert(GM_getValue("no_save_img"))
         }
     )
+    // @ts-ignore
+    let menuMergeCM = GM_registerMenuCommand(
+        "下载zip时合并正文与评论",
+        function () {
+            // @ts-ignore
+            let ns = GM_getValue("zip_merge_cm"), c
+            !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并')
+            // @ts-ignore
+            c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false)
+            //alert(GM_getValue("zip_merge_cm"))
+        }
+    )
 } catch (e) {
     console.warn(e)
 }
@@ -125,7 +137,7 @@ try {
 const ButtonContainer = document.createElement("div")
 ButtonContainer.classList.add("zhihubackup-wrap")
 ButtonContainer.innerHTML = `<div class="zhihubackup-container">
-    <button class="to-md Button VoteButton">复制为Markdown</button>
+    <button class="to-copy Button VoteButton">复制为Markdown</button>
     <button class="to-zip Button VoteButton">下载为 ZIP</button>
     <button class="to-text Button VoteButton">下载为纯文本</button>
     <button class="to-png Button VoteButton">剪藏为 PNG</button>
@@ -179,7 +191,7 @@ const main = async () => {
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer') as HTMLElement
             p.prepend(aButtonContainer)
 
-            const ButtonMarkdown = parent_dom.querySelector(".to-md")
+            const ButtonMarkdown = parent_dom.querySelector(".to-copy")
             ButtonMarkdown.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText, 'copy')
@@ -232,6 +244,7 @@ const main = async () => {
             ButtonPNG.addEventListener("click", throttle(async () => {
                 try {
                     const res = await dealItem(RichText, 'png')
+                    if (!res) return;// 取消保存
                     result = {
                         title: res.title,
                     }
@@ -460,6 +473,9 @@ setTimeout(() => {
     .Modal-content:hover .comment-parser-container{
         opacity: 1;
         pointer-events: initial;
+    }
+    .Card:has(.zhihubackup-wrap){
+        overflow: visible!important;
     }
     `))
     let head = document.querySelector("head")

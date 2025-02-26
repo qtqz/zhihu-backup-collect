@@ -66,7 +66,7 @@ export const parser = (input: LexType[]): string[] => {
 
             case TokenType.Gif: {
                 // @ts-ignore
-                window.no_save_img ?
+                window.no_save_img && !token.local ?
                     output.push(`[图片]`) :
                     output.push(`![](${token.local ? token.localSrc : token.src})`)
                 break

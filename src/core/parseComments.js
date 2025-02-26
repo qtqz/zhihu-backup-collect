@@ -268,19 +268,20 @@ function addParseButton(ContentItem, itemId) {
  * 调用后挂载document点击事件
  */
 export const mountParseComments = () => {
+    const autoAdd = () => setTimeout(() => {
+        let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
+        let itemId = getItemId(c, c)
+        addParseButton(c, itemId)
+    }, 2000)
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
-        setTimeout(() => {
-            let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
-            let itemId = getItemId(c, c)
-            addParseButton(c, itemId)
-        }, 2000)
+        autoAdd()
     }
     document.addEventListener("click", (e) => {
         let itemId
+        const btn = e.target.closest('button')
         // 1
-        if (e.target.closest('.ContentItem-action') && /评论/.test(e.target.closest('.ContentItem-action').textContent)) {
-
+        if (btn?.closest('.ContentItem-actions') && /评论/.test(btn.textContent)) {
             let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
             //注意文章页，搜索结果页
             itemId = getItemId(father, e.target)
@@ -295,8 +296,8 @@ export const mountParseComments = () => {
             return;
         }
         // 23 4
-        else if (e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
-            let click = e.target.closest('button') || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
+        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
+            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
             if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
 
                 let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
@@ -315,6 +316,9 @@ export const mountParseComments = () => {
         }
         if (e.target.closest('button.hint')) {
             alert(HINT)
+        }
+        else if (btn?.getAttribute('aria-label') == "关闭") {
+            autoAdd()// 文章页关闭弹出框后按钮消失
         }
         if (e.target.closest('.ContentItem-more')) {
             setTimeout(window.zhbf, 200)// 评论无关功能，展开后无需滚动即可保存

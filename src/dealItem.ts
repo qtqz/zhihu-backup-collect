@@ -70,8 +70,19 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
     }
     remark ? remark = "_" + remark : 0
 
-    if (button == 'png') return {
-        title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+    if (button == 'png') {
+        const imgs = dom.querySelectorAll('figure img')
+        let noload
+        imgs.forEach((i: HTMLImageElement) => {
+            if (i.src.match(/data\:image\/svg\+xml;.*><\/svg>/)) noload = 1
+        })
+        if (noload) {
+            alert('内容中还有未加载的图片，请滚动到底，使图都加载后再保存\n若效果不好，可使用其他软件保存')
+            return;
+        }
+        return {
+            title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+        }
     }
 
     // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
@@ -215,7 +226,6 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
                     else if (button == 'zip') {
                         [commentText, commentsImgs] = renderAllComments(commentsData, true)
                         commentText = num_text + commentText
-                        zip.file("comments.md", commentText)
                         if (commentsImgs.length) {
                             const assetsFolder = zip.folder('assets')
                             for (let i = 0; i < commentsImgs.length; i++) {
@@ -256,7 +266,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
             md.push(commentText)
         }
-        if (type != 'pin' && !copy_save_fm) 
+        if (type != 'pin' && !copy_save_fm)
             return { textString: [title].concat(md).join('\n\n') }//复制内容增加标题
         else
             return { textString: md.join('\n\n') }
@@ -284,6 +294,20 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             md = parser(localLex).concat(md)
         }
         else md = parser(localLex)
+
+        try {
+            // @ts-ignore
+            var zip_merge_cm = GM_getValue("zip_merge_cm")
+        } catch (e) {
+            console.warn(e)
+        }
+        if (zip_merge_cm) {
+            commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
+            md.push(commentText)
+        }
+        else
+            zip.file("comments.md", commentText)
+
         zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"))
     }
 
