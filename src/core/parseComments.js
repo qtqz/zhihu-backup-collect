@@ -41,9 +41,15 @@ class CommentParser {
             else if (node.nodeName == 'IMG') textContentPlain += node.alt//小表情
             else if (node.nodeName == 'A') {
                 let link = ZhihuLink2NormalLink(node.href)
-                textContentPlain += '[' + link + '](' + link + ')'
+                textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
             else if (node.nodeName == 'BR') textContentPlain += '\n'
+            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
+                node.childNodes.forEach(c => {
+                    textContentPlain += c.alt || c.textContent
+                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                })
+            }
             else textContentPlain += node.textContent
             //暂不处理图片，因为图片只会存在于文末。每条评论最多只有一张图片应该
         });
@@ -315,7 +321,15 @@ export const mountParseComments = () => {
             }
         }
         if (e.target.closest('button.hint')) {
-            alert(HINT)
+            try {
+                var zip_merge_cm = GM_getValue("zip_merge_cm"),
+                    copy_save_fm = GM_getValue("copy_save_fm"),
+                    copy_save_cm = GM_getValue("copy_save_cm"),
+                    no_save_img = GM_getValue("no_save_img"),
+                    HINT2 = `\n当前设置：\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+            } catch (e) {
+            }
+            alert(HINT + HINT2)
         }
         else if (btn?.getAttribute('aria-label') == "关闭") {
             autoAdd()// 文章页关闭弹出框后按钮消失
@@ -363,26 +377,46 @@ const ZhihuLink2NormalLink = (link) => {
  */
 function relativeToAbsoluteDate(relativeTime) {
     //const now = new Date();
+    //更精确一点了：推算日内可知部分并将不可知部分置为0
     let result = new Date();
 
     if (relativeTime.includes('分钟前')) {
         const minutes = parseInt(relativeTime);
         result.setMinutes(result.getMinutes() - minutes);
+        result.setSeconds(0);
     }
     else if (relativeTime.includes('小时前')) {
         const hours = parseInt(relativeTime);
         result.setHours(result.getHours() - hours);
+        result.setMinutes(0, 0);
     }
     else if (relativeTime.includes('昨天')) {
         result.setDate(result.getDate() - 1);
+        result.setSeconds(0);
     }
     // 处理 "MM-DD" 格式
     else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
         const [month, day] = relativeTime.split('-').map(num => parseInt(num));
         result.setMonth(month - 1);
         result.setDate(day);
+        result.setHours(0, 0, 0);
     }
+    // 处理 "YYYY-MM-DD" 格式
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(relativeTime)) return relativeTime
     // "刚刚" 无需处理
-    // 返回 YYYY-MM-DD 格式的字符串
-    return result.toISOString().split('T')[0];
+    // 返回 YYYY-MM-DD 格式的字符串2025-02-28 (14:41:32)
+    return formatDate(result);
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    if (parseInt(hours + minutes + seconds))
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${day}`;
 }

@@ -107,18 +107,6 @@ try {
         }
     )
     // @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand(
-        "复制与下载纯文本时不保存图片",
-        function () {
-            // @ts-ignore
-            let ns = GM_getValue("no_save_img"), c
-            !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图')
-            // @ts-ignore
-            c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false)
-            //alert(GM_getValue("no_save_img"))
-        }
-    )
-    // @ts-ignore
     let menuMergeCM = GM_registerMenuCommand(
         "下载zip时合并正文与评论",
         function () {
@@ -128,6 +116,18 @@ try {
             // @ts-ignore
             c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false)
             //alert(GM_getValue("zip_merge_cm"))
+        }
+    )
+    // @ts-ignore
+    let menuSaveImg = GM_registerMenuCommand(
+        "复制与下载纯文本时不保存图片",
+        function () {
+            // @ts-ignore
+            let ns = GM_getValue("no_save_img"), c
+            !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图')
+            // @ts-ignore
+            c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false)
+            //alert(GM_getValue("no_save_img"))
         }
     )
 } catch (e) {
@@ -219,8 +219,10 @@ const main = async () => {
             const ButtonZip = parent_dom.querySelector(".to-zip")
             ButtonZip.addEventListener("click", throttle(async () => {
                 try {
+                    ButtonZip.innerHTML = "下载中……"
                     const res = await dealItem(RichText, 'zip')
-                    if (!res) return;// 取消保存
+                    if (!res)
+                        return ButtonZip.innerHTML = "下载为 Zip";// 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
@@ -316,7 +318,7 @@ const main = async () => {
 
 function throttle(fn: Function, delay?: number) {
     let flag = true
-    delay ? 0 : delay = 4000
+    delay ? 0 : delay = 2000
     return function () {
         if (flag) {
             flag = false

@@ -2,7 +2,7 @@ import * as JSZip from "jszip"
 import { lexer } from "./core/lexer"
 import { TokenType, TokenFigure } from "./core/tokenTypes"
 import { parser } from "./core/parser"
-import { getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch } from "./core/utils"
+import { getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch, getLocation } from "./core/utils"
 import savelex from "./core/savelex"
 import { renderAllComments } from "./core/renderComments"
 
@@ -55,13 +55,21 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
     //console.log(scene + type)
 
     if (!scene || !type) return;
+    /*     try {
+            // @ts-ignore 仅供调试
+            var gminfo = GM_info
+            console.log(gminfo)
+            script.name
+        } catch (e) {
+        } */
 
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
         time = await getTime(dom, scene),//?????????
         url = getURL(dom, scene, type),
         upvote_num = getUpvote(dom, scene, type),
-        comment_num = getCommentNum(dom, scene, type)
+        comment_num = getCommentNum(dom, scene, type),
+        Location = getLocation(dom, scene, type)
     let remark = getRemark(dom)
 
     if (remark === "非法备注") {
@@ -108,6 +116,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
             + '\nauthor_badge: ' + author.badge
+            + `${Location ? '\nlocation :' + Location : ''}`
             + '\ncreated: ' + time.created
             + '\nmodified: ' + time.modified
             + '\nupvote_num: ' + upvote_num
@@ -213,7 +222,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
                             (openComment.querySelector('.save') as HTMLElement).click()
                             setTimeout(() => {
                                 (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
-                            }, 1000)
+                            }, 1900)
                             return 'return'
                         }
                     }
@@ -317,31 +326,30 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             if (el) return JSON.parse(el.getAttribute("data-zop-question"))
             return null
         } catch (e) {
-            console.error('data-zop-question', e)
-            alert('保存data-zop-question出错')
+            console.error('保存data-zop-question出错', e)
         }
     })()
 
-    const { zop, zaExtra, location } = (() => {
+    const { zop, zaExtra } = (() => {
         let el = dom.closest('.ContentItem')//想法类型、文章页没有
         if (!el) el = dom.closest('.PinItem')
         if (!el) el = dom.closest('.Post-content')
         try {
-            if (el) return {
-                zop: JSON.parse(el.getAttribute("data-zop")),
-                zaExtra: JSON.parse(el.getAttribute("data-za-extra-module")),
-                location: el.querySelector('.ContentItem-time').childNodes[1]?.textContent.slice(6)
-            }
+            if (el)
+                return {
+                    zop: JSON.parse(el.getAttribute("data-zop")),
+                    zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
+                }
         } catch (e) {
-            console.error('zop, zaExtra ,location', e)
-            alert('保存zop, zaExtra ,location出错')
+            console.error('保存zop, zaExtra出错', e)
         }
         return null
     })()
 
     zip.file("info.json", JSON.stringify({
         title, url, author, time, upvote_num, comment_num,
-        zop, location,
+        zop,
+        "location": Location,
         "zop-question": zopQuestion,
         "zop-extra-module": zaExtra,
     }, null, 4))

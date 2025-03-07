@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.19
+// @version      0.10.25
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,13 @@
 /** 
 ## Changelog
 
+* 0.10.25（2025-03-07）:
+    - 点评论区提示按钮可以显示当前油猴选项了，避免忘记当前选的是什么
+    - 下载 zip 按钮添加下载提示语
+    - 修复未存评弹框点确定太快会无效的问题
+    - 修复保存不了有且仅有多个小表情的评论的问题
+    - 元信息中添加 IP属地（如果有）
+    - **修复评论时间错误问题**，并且更精确
 * 0.10.19（2025-02-25）:
     - 下载 zip 时允许合并正文和评论（需通过油猴菜单手动开启）
     - 修复未存评弹框点确定后无法自动复制的问题
@@ -34,7 +41,7 @@
     - 存长图时，若有图片未加载，给出提示
     - 修复不存图选项影响 zip 内文本的问题
 * 0.10.13（2025-02-18）:
-    - 重构主线程，整理代码
+    - **重构主线程**，整理代码
     - 复制时支持复制评论了（需通过油猴菜单手动开启）
     - 支持复制或存文本时不保存图片（改为“[图片]”，需通过油猴菜单手动开启）
     - 修复在搜索结果页和文章页不能存评论的问题
@@ -524,6 +531,34 @@ const getCommentSwitch = (dom) => {
     if (p)
         s = p.querySelector("input.to-cm").checked;
     return s;
+};
+/**
+ * Get the Location of the dom.
+ * @param dom - The dom.
+ * @returns string | null
+ */
+const getLocation = (dom, scene, type) => {
+    var _a;
+    let location, el = dom.closest('.ContentItem'); //想法类型、文章页没有
+    if (!el)
+        el = dom.closest('.PinItem');
+    if (!el)
+        el = dom.closest('.Post-content');
+    try {
+        if (el) {
+            location = (_a = el.querySelector('.ContentItem-time').childNodes[1]) === null || _a === void 0 ? void 0 : _a.textContent.slice(6);
+        }
+        if (!location && scene == "people") {
+            let name = document.querySelector('.ProfileHeader-name').childNodes[0].textContent;
+            if (name == getAuthor(dom, scene, type).name) {
+                location = document.querySelector('.css-1xfvezd').textContent.slice(5);
+            }
+        }
+    }
+    catch (e) {
+        console.error('保存location出错', e);
+    }
+    return location;
 };
 
 ;// CONCATENATED MODULE: ./src/core/lexer.ts
@@ -1298,8 +1333,15 @@ function detectType(dom) {
     //console.log(scene + type)
     if (!scene || !type)
         return;
+    /*     try {
+            // @ts-ignore 仅供调试
+            var gminfo = GM_info
+            console.log(gminfo)
+            script.name
+        } catch (e) {
+        } */
     const title = getTitle(dom, scene, type), author = getAuthor(dom, scene, type), time = yield getTime(dom, scene), //?????????
-    url = getURL(dom, scene, type), upvote_num = getUpvote(dom, scene, type), comment_num = getCommentNum(dom, scene, type);
+    url = getURL(dom, scene, type), upvote_num = getUpvote(dom, scene, type), comment_num = getCommentNum(dom, scene, type), Location = getLocation(dom, scene, type);
     let remark = getRemark(dom);
     if (remark === "非法备注") {
         alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"));
@@ -1343,6 +1385,7 @@ function detectType(dom) {
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
             + '\nauthor_badge: ' + author.badge
+            + `${Location ? '\nlocation :' + Location : ''}`
             + '\ncreated: ' + time.created
             + '\nmodified: ' + time.modified
             + '\nupvote_num: ' + upvote_num
@@ -1447,7 +1490,7 @@ function detectType(dom) {
                             openComment.querySelector('.save').click();
                             setTimeout(() => {
                                 p.querySelector(`.zhihubackup-wrap .to-${button}`).click();
-                            }, 1000);
+                            }, 1900);
                             return 'return';
                         }
                     }
@@ -1553,12 +1596,10 @@ function detectType(dom) {
             return null;
         }
         catch (e) {
-            console.error('data-zop-question', e);
-            alert('保存data-zop-question出错');
+            console.error('保存data-zop-question出错', e);
         }
     })();
-    const { zop, zaExtra, location } = (() => {
-        var _a;
+    const { zop, zaExtra } = (() => {
         let el = dom.closest('.ContentItem'); //想法类型、文章页没有
         if (!el)
             el = dom.closest('.PinItem');
@@ -1568,19 +1609,18 @@ function detectType(dom) {
             if (el)
                 return {
                     zop: JSON.parse(el.getAttribute("data-zop")),
-                    zaExtra: JSON.parse(el.getAttribute("data-za-extra-module")),
-                    location: (_a = el.querySelector('.ContentItem-time').childNodes[1]) === null || _a === void 0 ? void 0 : _a.textContent.slice(6)
+                    zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
                 };
         }
         catch (e) {
-            console.error('zop, zaExtra ,location', e);
-            alert('保存zop, zaExtra ,location出错');
+            console.error('保存zop, zaExtra出错', e);
         }
         return null;
     })();
     zip.file("info.json", JSON.stringify({
         title, url, author, time, upvote_num, comment_num,
-        zop, location,
+        zop,
+        "location": Location,
         "zop-question": zopQuestion,
         "zop-extra-module": zaExtra,
     }, null, 4));
@@ -2709,9 +2749,15 @@ class CommentParser {
             else if (node.nodeName == 'IMG') textContentPlain += node.alt//小表情
             else if (node.nodeName == 'A') {
                 let link = parseComments_ZhihuLink2NormalLink(node.href)
-                textContentPlain += '[' + link + '](' + link + ')'
+                textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
             else if (node.nodeName == 'BR') textContentPlain += '\n'
+            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
+                node.childNodes.forEach(c => {
+                    textContentPlain += c.alt || c.textContent
+                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                })
+            }
             else textContentPlain += node.textContent
             //暂不处理图片，因为图片只会存在于文末。每条评论最多只有一张图片应该
         });
@@ -2983,7 +3029,15 @@ const mountParseComments = () => {
             }
         }
         if (e.target.closest('button.hint')) {
-            alert(HINT)
+            try {
+                var zip_merge_cm = GM_getValue("zip_merge_cm"),
+                    copy_save_fm = GM_getValue("copy_save_fm"),
+                    copy_save_cm = GM_getValue("copy_save_cm"),
+                    no_save_img = GM_getValue("no_save_img"),
+                    HINT2 = `\n当前设置：\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+            } catch (e) {
+            }
+            alert(HINT + HINT2)
         }
         else if (btn?.getAttribute('aria-label') == "关闭") {
             autoAdd()// 文章页关闭弹出框后按钮消失
@@ -3031,29 +3085,50 @@ const parseComments_ZhihuLink2NormalLink = (link) => {
  */
 function relativeToAbsoluteDate(relativeTime) {
     //const now = new Date();
+    //更精确一点了：推算日内可知部分并将不可知部分置为0
     let result = new Date();
 
     if (relativeTime.includes('分钟前')) {
         const minutes = parseInt(relativeTime);
         result.setMinutes(result.getMinutes() - minutes);
+        result.setSeconds(0);
     }
     else if (relativeTime.includes('小时前')) {
         const hours = parseInt(relativeTime);
         result.setHours(result.getHours() - hours);
+        result.setMinutes(0, 0);
     }
     else if (relativeTime.includes('昨天')) {
         result.setDate(result.getDate() - 1);
+        result.setSeconds(0);
     }
     // 处理 "MM-DD" 格式
     else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
         const [month, day] = relativeTime.split('-').map(num => parseInt(num));
         result.setMonth(month - 1);
         result.setDate(day);
+        result.setHours(0, 0, 0);
     }
+    // 处理 "YYYY-MM-DD" 格式
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(relativeTime)) return relativeTime
     // "刚刚" 无需处理
-    // 返回 YYYY-MM-DD 格式的字符串
-    return result.toISOString().split('T')[0];
+    // 返回 YYYY-MM-DD 格式的字符串2025-02-28 (14:41:32)
+    return formatDate(result);
 }
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    if (parseInt(hours + minutes + seconds))
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${day}`;
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
 var src_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -3161,15 +3236,6 @@ try {
         //alert(GM_getValue("copy_save_cm"))
     });
     // @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand("复制与下载纯文本时不保存图片", function () {
-        // @ts-ignore
-        let ns = GM_getValue("no_save_img"), c;
-        !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图');
-        // @ts-ignore
-        c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
-        //alert(GM_getValue("no_save_img"))
-    });
-    // @ts-ignore
     let menuMergeCM = GM_registerMenuCommand("下载zip时合并正文与评论", function () {
         // @ts-ignore
         let ns = GM_getValue("zip_merge_cm"), c;
@@ -3177,6 +3243,15 @@ try {
         // @ts-ignore
         c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false);
         //alert(GM_getValue("zip_merge_cm"))
+    });
+    // @ts-ignore
+    let menuSaveImg = GM_registerMenuCommand("复制与下载纯文本时不保存图片", function () {
+        // @ts-ignore
+        let ns = GM_getValue("no_save_img"), c;
+        !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图');
+        // @ts-ignore
+        c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
+        //alert(GM_getValue("no_save_img"))
     });
 }
 catch (e) {
@@ -3267,9 +3342,10 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
             const ButtonZip = parent_dom.querySelector(".to-zip");
             ButtonZip.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
+                    ButtonZip.innerHTML = "下载中……";
                     const res = yield dealItem(RichText, 'zip');
                     if (!res)
-                        return; // 取消保存
+                        return ButtonZip.innerHTML = "下载为 Zip"; // 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
@@ -3367,7 +3443,7 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
 });
 function throttle(fn, delay) {
     let flag = true;
-    delay ? 0 : delay = 4000;
+    delay ? 0 : delay = 2000;
     return function () {
         if (flag) {
             flag = false;

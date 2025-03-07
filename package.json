@@ -1,6 +1,6 @@
 {
   "name": "zhihu-backup-collect",
-  "version": "0.10.19",
+  "version": "0.10.25",
   "scripts": {
     "dev": "run-s watch",
     "serve": "live-server ./dist",

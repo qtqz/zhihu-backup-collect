@@ -259,3 +259,28 @@ export const getCommentSwitch = (dom: HTMLElement): boolean => {
     if (p) s = (p.querySelector("input.to-cm") as HTMLInputElement).checked
     return s
 }
+
+/**
+ * Get the Location of the dom.
+ * @param dom - The dom.
+ * @returns string | null
+ */
+export const getLocation = (dom: HTMLElement, scene: string, type: string): string | null => {
+    let location, el = dom.closest('.ContentItem')//想法类型、文章页没有
+    if (!el) el = dom.closest('.PinItem')
+    if (!el) el = dom.closest('.Post-content')
+    try {
+        if (el) {
+            location = el.querySelector('.ContentItem-time').childNodes[1]?.textContent.slice(6)
+        }
+        if (!location && scene == "people") {
+            let name = document.querySelector('.ProfileHeader-name').childNodes[0].textContent
+            if (name == getAuthor(dom, scene, type).name) {
+                location = document.querySelector('.css-1xfvezd').textContent.slice(5)
+            }
+        }
+    } catch (e) {
+        console.error('保存location出错', e)
+    }
+    return location
+}
