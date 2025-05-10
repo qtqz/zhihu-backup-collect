@@ -223,7 +223,6 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
                 let openComment = p.querySelector(".Comments-container")
                 let itemId = type + url.split('/').pop()
                 let tip = ''
-                console.log(itemId);
 
                 if (openComment && openComment.querySelector('.css-189h5o3')) {
                     let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**' //评论区已关闭|暂无评论

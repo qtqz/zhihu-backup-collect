@@ -356,7 +356,6 @@ const getItemId = (father, etg) => {
         zopdata.type = zem.type
 
         if (zopdata.type == 'Post') zopdata.type = 'article'
-        console.log(zopdata.type);
         zopdata.itemId = zem.token
     }
     return zopdata.type.toLowerCase() + zopdata.itemId

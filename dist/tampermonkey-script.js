@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.25
+// @version      0.10.32
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,13 +26,20 @@
 /** 
 ## Changelog
 
+* 0.10.32（2025-05-10）:
+    - 修复有时候油猴菜单会消失的问题
+    - 修复在个人主页搜索后无法保存想法的问题
+    - 修复某些页面下无法保存文章的评论的问题
+    - 试图避免无法保存需重新保存的问题
+    - 修复无法保存带下划线文字的问题（非链接）
+    - 允许**删除文中多余的换行**（需通过油猴菜单手动开启）
 * 0.10.25（2025-03-07）:
     - 点评论区提示按钮可以显示当前油猴选项了，避免忘记当前选的是什么
     - 下载 zip 按钮添加下载提示语
     - 修复未存评弹框点确定太快会无效的问题
     - 修复保存不了有且仅有多个小表情的评论的问题
     - 元信息中添加 IP属地（如果有）
-    - **修复评论时间错误问题**，并且更精确
+    - **修复评论时间错误问题**，并且更精确一点了
 * 0.10.19（2025-02-25）:
     - 下载 zip 时允许合并正文和评论（需通过油猴菜单手动开启）
     - 修复未存评弹框点确定后无法自动复制的问题
@@ -343,6 +350,15 @@ const getAuthor = (dom, scene, type) => {
     else if (scene == "people" || scene == "question" || scene == "answer" || scene == "pin" || scene == "collection") {
         let p = dom.closest('.ContentItem');
         author_dom = p.querySelector(".AuthorInfo-content");
+        // 个人页的搜索结果的想法没有作者栏
+        if (!author_dom && location.href.includes('search')) {
+            author_dom = document.querySelector('.ProfileHeader-title');
+            return {
+                name: author_dom.children[0].textContent,
+                url: location.href.match(/(https.*)\/search/)[1],
+                badge: author_dom.children[1].textContent
+            };
+        }
     }
     //文章
     else if (scene == "article") {
@@ -634,6 +650,8 @@ const lexer = (input, type) => {
         return pinParagraphs;
     }
     const tokens = [];
+    // @ts-ignore
+    let skipEmpty = window.skip_empty_p;
     for (let i = 0; i < input.length; i++) {
         const node = input[i];
         //console.log(node)
@@ -762,6 +780,8 @@ const lexer = (input, type) => {
                 break;
             }
             case "p": {
+                if (node.classList.contains('ztext-empty-paragraph') && skipEmpty)
+                    break;
                 tokens.push({
                     type: TokenType.Text,
                     content: Tokenize(node),
@@ -927,6 +947,14 @@ const Tokenize = (node) => {
                         dom: el.firstElementChild,
                     });
                     break;
+                }
+                default: {
+                    //下划线内容等question/478154391/answer/121816724037
+                    res.push({
+                        type: TokenType.PlainText,
+                        text: child.textContent.replace(/\u200B/g, '').trimStart(),
+                        dom: child,
+                    });
                 }
             }
         }
@@ -1305,7 +1333,7 @@ function detectScene() {
         scene = "question";
     return scene;
 }
-function detectType(dom) {
+function detectType(dom, bt, ev) {
     //ContentItem
     let type;
     if (dom.closest('.AnswerItem'))
@@ -1318,18 +1346,29 @@ function detectType(dom) {
         type = "pin";
     else {
         console.log("未知内容");
-        alert('请勿收起又展开内容，否则会保存失败。请重新保存。');
+        let zhw = ev.target.closest('.zhihubackup-wrap'), bz = zhw.querySelector('textarea').value, fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem');
+        !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0;
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove());
         // @ts-ignore
         setTimeout(window.zhbf, 100);
+        setTimeout(() => {
+            fa.querySelector('textarea').value = bz;
+        }, 200);
+        setTimeout(() => {
+            fa.querySelector(`.to-${bt}`).click();
+        }, 250);
+        return;
     }
     return type;
 }
-/* harmony default export */ const dealItem = ((dom, button) => dealItem_awaiter(void 0, void 0, void 0, function* () {
+/* harmony default export */ const dealItem = ((dom, button, event) => dealItem_awaiter(void 0, void 0, void 0, function* () {
     //console.log(dom)
     //确认场景
     let scene = detectScene();
-    let type = detectType(dom);
+    let type = detectType(dom, button, event);
+    if (!type) {
+        return;
+    }
     //console.log(scene + type)
     if (!scene || !type)
         return;
@@ -1364,12 +1403,16 @@ function detectType(dom) {
         };
     }
     // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
-    var no_save_img = false;
+    var no_save_img = false, skip_empty_p = false;
     try {
         // @ts-ignore
         no_save_img = GM_getValue("no_save_img");
         // @ts-ignore
         window.no_save_img = no_save_img;
+        // @ts-ignore
+        skip_empty_p = GM_getValue("skip_empty_p");
+        // @ts-ignore
+        window.skip_empty_p = skip_empty_p;
     }
     catch (e) {
         console.warn(e);
@@ -1385,7 +1428,7 @@ function detectType(dom) {
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
             + '\nauthor_badge: ' + author.badge
-            + `${Location ? '\nlocation :' + Location : ''}`
+            + `${Location ? '\nlocation: ' + Location : ''}`
             + '\ncreated: ' + time.created
             + '\nmodified: ' + time.modified
             + '\nupvote_num: ' + upvote_num
@@ -2869,7 +2912,7 @@ class CommentParser {
 const buttonContainer = document.createElement("div")
 buttonContainer.innerHTML = `<div class="comment-parser-container">
     <button class="hint Button VoteButton" title="说明"><svg style="vertical-align: middle;" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m0-2a8 8 0 1 0 0-16a8 8 0 0 0 0 16M11 7h2v2h-2zm0 4h2v6h-2z"/></svg></button>
-    &nbsp;<button class="save Button VoteButton">暂存当前页评论</button>
+    &nbsp;<button class="save Button VoteButton">暂存此页评论</button>
     &nbsp;<button class="unsave Button VoteButton">清空暂存区</button>
     &nbsp;<button class="sum Button VoteButton">查看暂存数</button></div>`
 buttonContainer.classList.add("comment-parser-container-wrap")
@@ -2908,14 +2951,14 @@ function addParseButton(ContentItem, itemId) {
         cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
 
-    if (!cc) return;
+    if (!cc || cc.querySelector('.css-189h5o3')?.textContent.match('还没有')) return;
 
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
     cc.querySelector(".save").addEventListener('click', (e) => {
-        e.target.textContent = ' 暂存中………… '
+        e.target.textContent = ' 暂存中……… '
         setTimeout(() => {
-            e.target.textContent = '暂存当前页评论'
+            e.target.textContent = '暂存此页评论'
         }, 700)
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
@@ -3006,7 +3049,7 @@ const mountParseComments = () => {
                     addParseButton(modal, itemId)
                 }
                 else addParseButton(father, itemId)
-            }, 1500);
+            }, 1200);
             return;
         }
         // 23 4
@@ -3025,16 +3068,17 @@ const mountParseComments = () => {
                         modal.setAttribute('itemId', itemId)
                     }
                     addParseButton(modal, itemId)// 最终都是给Modal挂
-                }, 1500);
+                }, 1200);
             }
         }
         if (e.target.closest('button.hint')) {
             try {
-                var zip_merge_cm = GM_getValue("zip_merge_cm"),
+                var skip_empty_p = GM_getValue("skip_empty_p"),
+                    zip_merge_cm = GM_getValue("zip_merge_cm"),
                     copy_save_fm = GM_getValue("copy_save_fm"),
                     copy_save_cm = GM_getValue("copy_save_cm"),
                     no_save_img = GM_getValue("no_save_img"),
-                    HINT2 = `\n当前设置：\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
             } catch (e) {
             }
             alert(HINT + HINT2)
@@ -3061,6 +3105,8 @@ const getItemId = (father, etg) => {
         father = etg.closest(".Card")
         let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
         zopdata.type = zem.type
+
+        if (zopdata.type == 'Post') zopdata.type = 'article'
         zopdata.itemId = zem.token
     }
     return zopdata.type.toLowerCase() + zopdata.itemId
@@ -3201,62 +3247,66 @@ var src_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argu
 // @grant        GM_getValue
 // @grant    GM_registerMenuCommand
 // @grant    GM_unregisterMenuCommand
-try {
-    // @ts-ignore
-    /*let menuComment = GM_registerMenuCommand(
-        "【开发中，暂时无效】保存前自动展开评论区",
-        function () {
+/**
+ * 油猴按钮
+ */
+function registerBtn() {
+    try {
+        // @ts-ignore
+        let skipEmpty = GM_registerMenuCommand("（推荐）解析时跳过空白段落", function () {
             // @ts-ignore
-            let ac = GM_getValue("open_comment"), c
-            !ac ? c = confirm("当你勾选保存评论时，在保存前，若你未展开评论，会自动帮你展开评论区，你是否继续？") : alert('已取消保存前自动展开评论区')
+            let ac = GM_getValue("skip_empty_p"), c;
+            !ac ? c = confirm("解析时跳过空白段落，避免产生大量多余的换行，你是否继续？") : alert('已取消跳过空白段落');
             if (c) {
                 // @ts-ignore
-                GM_setValue("open_comment", true)
+                GM_setValue("skip_empty_p", true);
                 // @ts-ignore
-            } else GM_setValue("open_comment", false)
-        },
-        "h"
-    )*/
-    // @ts-ignore
-    let menuFM = GM_registerMenuCommand("复制内容时添加fm元信息", function () {
+            }
+            else
+                GM_setValue("skip_empty_p", false);
+        });
         // @ts-ignore
-        let ac = GM_getValue("copy_save_fm"), c;
-        !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm');
+        let menuFM = GM_registerMenuCommand("复制内容时添加fm元信息", function () {
+            // @ts-ignore
+            let ac = GM_getValue("copy_save_fm"), c;
+            !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm');
+            // @ts-ignore
+            c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false);
+            //alert(GM_getValue("copy_save_fm"))
+        });
         // @ts-ignore
-        c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false);
-        //alert(GM_getValue("copy_save_fm"))
-    });
-    // @ts-ignore
-    let menuSaveCM = GM_registerMenuCommand("复制内容时同时复制评论", function () {
+        let menuSaveCM = GM_registerMenuCommand("复制内容时同时复制评论", function () {
+            // @ts-ignore
+            let ns = GM_getValue("copy_save_cm"), c;
+            !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论');
+            // @ts-ignore
+            c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false);
+            //alert(GM_getValue("copy_save_cm"))
+        });
         // @ts-ignore
-        let ns = GM_getValue("copy_save_cm"), c;
-        !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论');
+        let menuMergeCM = GM_registerMenuCommand("下载zip时合并正文与评论", function () {
+            // @ts-ignore
+            let ns = GM_getValue("zip_merge_cm"), c;
+            !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并');
+            // @ts-ignore
+            c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false);
+            //alert(GM_getValue("zip_merge_cm"))
+        });
         // @ts-ignore
-        c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false);
-        //alert(GM_getValue("copy_save_cm"))
-    });
-    // @ts-ignore
-    let menuMergeCM = GM_registerMenuCommand("下载zip时合并正文与评论", function () {
-        // @ts-ignore
-        let ns = GM_getValue("zip_merge_cm"), c;
-        !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并');
-        // @ts-ignore
-        c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false);
-        //alert(GM_getValue("zip_merge_cm"))
-    });
-    // @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand("复制与下载纯文本时不保存图片", function () {
-        // @ts-ignore
-        let ns = GM_getValue("no_save_img"), c;
-        !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图');
-        // @ts-ignore
-        c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
-        //alert(GM_getValue("no_save_img"))
-    });
+        let menuSaveImg = GM_registerMenuCommand("复制与下载纯文本时不保存图片", function () {
+            // @ts-ignore
+            let ns = GM_getValue("no_save_img"), c;
+            !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图');
+            // @ts-ignore
+            c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false);
+            //alert(GM_getValue("no_save_img"))
+        });
+    }
+    catch (e) {
+        console.warn(e);
+    }
 }
-catch (e) {
-    console.warn(e);
-}
+registerBtn();
 const ButtonContainer = document.createElement("div");
 ButtonContainer.classList.add("zhihubackup-wrap");
 ButtonContainer.innerHTML = `<div class="zhihubackup-container">
@@ -3268,7 +3318,7 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
     </button>
     <button class="Button VoteButton">
-        <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
+        <label><input type="checkbox" checked class="to-cm"> 保存评论</label>
     </button></div>`;
 const main = () => src_awaiter(void 0, void 0, void 0, function* () {
     //console.log("Starting…")
@@ -3314,9 +3364,9 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer');
             p.prepend(aButtonContainer);
             const ButtonMarkdown = parent_dom.querySelector(".to-copy");
-            ButtonMarkdown.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
+            ButtonMarkdown.addEventListener("click", throttle((event) => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    const res = yield dealItem(RichText, 'copy');
+                    const res = yield dealItem(RichText, 'copy', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3340,10 +3390,10 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                 }
             })));
             const ButtonZip = parent_dom.querySelector(".to-zip");
-            ButtonZip.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
+            ButtonZip.addEventListener("click", throttle((event) => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
                     ButtonZip.innerHTML = "下载中……";
-                    const res = yield dealItem(RichText, 'zip');
+                    const res = yield dealItem(RichText, 'zip', event);
                     if (!res)
                         return ButtonZip.innerHTML = "下载为 Zip"; // 取消保存
                     result = {
@@ -3366,9 +3416,9 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                 }
             })));
             const ButtonPNG = parent_dom.querySelector(".to-png");
-            ButtonPNG.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
+            ButtonPNG.addEventListener("click", throttle((event) => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    const res = yield dealItem(RichText, 'png');
+                    const res = yield dealItem(RichText, 'png', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3411,9 +3461,9 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                 }
             })));
             const ButtonText = parent_dom.querySelector(".to-text");
-            ButtonText.addEventListener("click", throttle(() => src_awaiter(void 0, void 0, void 0, function* () {
+            ButtonText.addEventListener("click", throttle((event) => src_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    const res = yield dealItem(RichText, 'text');
+                    const res = yield dealItem(RichText, 'text', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3441,16 +3491,15 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
         }
     }
 });
-function throttle(fn, delay) {
+function throttle(fn, delay = 2000) {
     let flag = true;
-    delay ? 0 : delay = 2000;
-    return function () {
+    return function (...args) {
         if (flag) {
             flag = false;
             setTimeout(() => {
                 flag = true;
             }, delay);
-            return fn();
+            return fn.apply(this, args); // 通过 apply 传递参数和 this
         }
     };
 }
@@ -3633,6 +3682,9 @@ setTimeout(() => {
     // 在window对象上创建存储空间
     // @ts-ignore
     window.ArticleComments = window.ArticleComments || {};
+    document.querySelector('.Topstory-tabs').addEventListener('click', () => {
+        setTimeout(registerBtn, 100);
+    });
 }, 300);
 let timer = null;
 window.addEventListener("scroll", () => {
