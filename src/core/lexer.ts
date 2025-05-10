@@ -104,6 +104,9 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
 
     const tokens: LexType[] = []
 
+    // @ts-ignore
+    let skipEmpty = window.skip_empty_p
+
     for (let i = 0; i < input.length; i++) {
         const node = input[i]
         //console.log(node)
@@ -238,6 +241,8 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
             }
 
             case "p": {
+                if (node.classList.contains('ztext-empty-paragraph') && skipEmpty)
+                    break
 
                 tokens.push({
                     type: TokenType.Text,
@@ -431,6 +436,15 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
                         dom: el.firstElementChild,
                     } as TokenTextLink)
                     break
+                }
+
+                default: {
+                    //下划线内容等question/478154391/answer/121816724037
+                    res.push({
+                        type: TokenType.PlainText,
+                        text: child.textContent.replace(/\u200B/g, '').trimStart(),
+                        dom: child,
+                    } as TokenTextPlain)
                 }
             }
         }

@@ -4,6 +4,7 @@ import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
 import { mountParseComments } from "./core/parseComments";
+import { register } from "module"
 
 /**
  * 修改版
@@ -66,73 +67,78 @@ import { mountParseComments } from "./core/parseComments";
 // @grant    GM_registerMenuCommand
 // @grant    GM_unregisterMenuCommand
 
-try {
-    // @ts-ignore
-    /*let menuComment = GM_registerMenuCommand(
-        "【开发中，暂时无效】保存前自动展开评论区",
-        function () {
-            // @ts-ignore
-            let ac = GM_getValue("open_comment"), c
-            !ac ? c = confirm("当你勾选保存评论时，在保存前，若你未展开评论，会自动帮你展开评论区，你是否继续？") : alert('已取消保存前自动展开评论区')
-            if (c) {
+/**
+ * 油猴按钮
+ */
+function registerBtn() {
+    try {
+        // @ts-ignore
+        let skipEmpty = GM_registerMenuCommand(
+            "（推荐）解析时跳过空白段落",
+            function () {
                 // @ts-ignore
-                GM_setValue("open_comment", true)
+                let ac = GM_getValue("skip_empty_p"), c
+                !ac ? c = confirm("解析时跳过空白段落，避免产生大量多余的换行，你是否继续？") : alert('已取消跳过空白段落')
+                if (c) {
+                    // @ts-ignore
+                    GM_setValue("skip_empty_p", true)
+                    // @ts-ignore
+                } else GM_setValue("skip_empty_p", false)
+            }
+        )
+        // @ts-ignore
+        let menuFM = GM_registerMenuCommand(
+            "复制内容时添加fm元信息",
+            function () {
                 // @ts-ignore
-            } else GM_setValue("open_comment", false)
-        },
-        "h"
-    )*/
-    // @ts-ignore
-    let menuFM = GM_registerMenuCommand(
-        "复制内容时添加fm元信息",
-        function () {
-            // @ts-ignore
-            let ac = GM_getValue("copy_save_fm"), c
-            !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm')
-            // @ts-ignore
-            c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false)
-            //alert(GM_getValue("copy_save_fm"))
-        }
-    )
-    // @ts-ignore
-    let menuSaveCM = GM_registerMenuCommand(
-        "复制内容时同时复制评论",
-        function () {
-            // @ts-ignore
-            let ns = GM_getValue("copy_save_cm"), c
-            !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论')
-            // @ts-ignore
-            c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false)
-            //alert(GM_getValue("copy_save_cm"))
-        }
-    )
-    // @ts-ignore
-    let menuMergeCM = GM_registerMenuCommand(
-        "下载zip时合并正文与评论",
-        function () {
-            // @ts-ignore
-            let ns = GM_getValue("zip_merge_cm"), c
-            !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并')
-            // @ts-ignore
-            c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false)
-            //alert(GM_getValue("zip_merge_cm"))
-        }
-    )
-    // @ts-ignore
-    let menuSaveImg = GM_registerMenuCommand(
-        "复制与下载纯文本时不保存图片",
-        function () {
-            // @ts-ignore
-            let ns = GM_getValue("no_save_img"), c
-            !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图')
-            // @ts-ignore
-            c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false)
-            //alert(GM_getValue("no_save_img"))
-        }
-    )
-} catch (e) {
-    console.warn(e)
+                let ac = GM_getValue("copy_save_fm"), c
+                !ac ? c = confirm("复制内容时，添加 frontmatter 信息，就像下载为纯文本的时候一样。你是否继续？") : alert('已取消复制添加fm')
+                // @ts-ignore
+                c ? GM_setValue("copy_save_fm", true) : GM_setValue("copy_save_fm", false)
+                //alert(GM_getValue("copy_save_fm"))
+            }
+        )
+        // @ts-ignore
+        let menuSaveCM = GM_registerMenuCommand(
+            "复制内容时同时复制评论",
+            function () {
+                // @ts-ignore
+                let ns = GM_getValue("copy_save_cm"), c
+                !ns ? c = confirm("启用后，复制时也会复制评论，就像直接复制了下载的纯文本。你是否继续？") : alert('已取消复制评论')
+                // @ts-ignore
+                c ? GM_setValue("copy_save_cm", true) : GM_setValue("copy_save_cm", false)
+                //alert(GM_getValue("copy_save_cm"))
+            }
+        )
+        // @ts-ignore
+        let menuMergeCM = GM_registerMenuCommand(
+            "下载zip时合并正文与评论",
+            function () {
+                // @ts-ignore
+                let ns = GM_getValue("zip_merge_cm"), c
+                !ns ? c = confirm("启用后，下载zip时会合并正文与评论到一个文件中。你是否继续？") : alert('已取消合并')
+                // @ts-ignore
+                c ? GM_setValue("zip_merge_cm", true) : GM_setValue("zip_merge_cm", false)
+                //alert(GM_getValue("zip_merge_cm"))
+            }
+        )
+        // @ts-ignore
+        let menuSaveImg = GM_registerMenuCommand(
+            "复制与下载纯文本时不保存图片",
+            function () {
+                // @ts-ignore
+                let ns = GM_getValue("no_save_img"), c
+                !ns ? c = confirm("启用后，复制、存文本时将所有图片替换为“[图片]”，不影响存zip。你是否继续？") : alert('已取消不存图')
+                // @ts-ignore
+                c ? GM_setValue("no_save_img", true) : GM_setValue("no_save_img", false)
+                //alert(GM_getValue("no_save_img"))
+            }
+        )
+    } catch (e) {
+        console.warn(e)
+    }
 }
+registerBtn()
 
 const ButtonContainer = document.createElement("div")
 ButtonContainer.classList.add("zhihubackup-wrap")
@@ -145,7 +151,7 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
     </button>
     <button class="Button VoteButton">
-        <label><input type="checkbox" checked class="to-cm"> 保存<br>当前页评论</label>
+        <label><input type="checkbox" checked class="to-cm"> 保存评论</label>
     </button></div>`
 
 const main = async () => {
@@ -192,9 +198,9 @@ const main = async () => {
             p.prepend(aButtonContainer)
 
             const ButtonMarkdown = parent_dom.querySelector(".to-copy")
-            ButtonMarkdown.addEventListener("click", throttle(async () => {
+            ButtonMarkdown.addEventListener("click", throttle(async (event: Event) => {
                 try {
-                    const res = await dealItem(RichText, 'copy')
+                    const res = await dealItem(RichText, 'copy', event)
                     if (!res) return;// 取消保存
                     result = {
                         textString: res.textString,
@@ -217,10 +223,10 @@ const main = async () => {
             }))
 
             const ButtonZip = parent_dom.querySelector(".to-zip")
-            ButtonZip.addEventListener("click", throttle(async () => {
+            ButtonZip.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     ButtonZip.innerHTML = "下载中……"
-                    const res = await dealItem(RichText, 'zip')
+                    const res = await dealItem(RichText, 'zip', event)
                     if (!res)
                         return ButtonZip.innerHTML = "下载为 Zip";// 取消保存
                     result = {
@@ -240,12 +246,12 @@ const main = async () => {
                         ButtonZip.innerHTML = "下载为 Zip"
                     }, 5000)
                 }
-            }))
+            },))
 
             const ButtonPNG = parent_dom.querySelector(".to-png")
-            ButtonPNG.addEventListener("click", throttle(async () => {
+            ButtonPNG.addEventListener("click", throttle(async (event: Event) => {
                 try {
-                    const res = await dealItem(RichText, 'png')
+                    const res = await dealItem(RichText, 'png', event)
                     if (!res) return;// 取消保存
                     result = {
                         title: res.title,
@@ -287,9 +293,9 @@ const main = async () => {
             }))
 
             const ButtonText = parent_dom.querySelector(".to-text")
-            ButtonText.addEventListener("click", throttle(async () => {
+            ButtonText.addEventListener("click", throttle(async (event: Event) => {
                 try {
-                    const res = await dealItem(RichText, 'text')
+                    const res = await dealItem(RichText, 'text', event)
                     if (!res) return;// 取消保存
                     result = {
                         textString: res.textString,
@@ -316,16 +322,15 @@ const main = async () => {
     }
 }
 
-function throttle(fn: Function, delay?: number) {
+function throttle(fn: Function, delay: number = 2000) {
     let flag = true
-    delay ? 0 : delay = 2000
-    return function () {
+    return function (this: any, ...args: any[]) {  // 使用剩余参数接收所有参数
         if (flag) {
             flag = false
             setTimeout(() => {
                 flag = true
             }, delay)
-            return fn()
+            return fn.apply(this, args);  // 通过 apply 传递参数和 this
         }
     }
 }
@@ -511,6 +516,9 @@ setTimeout(() => {
     // 在window对象上创建存储空间
     // @ts-ignore
     window.ArticleComments = window.ArticleComments || {};
+    document.querySelector('.Topstory-tabs').addEventListener('click', () => {
+        setTimeout(registerBtn, 100);
+    })
 }, 300)
 
 let timer: any = null

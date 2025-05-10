@@ -30,7 +30,7 @@ function detectScene(): string {
     return scene
 }
 
-function detectType(dom: HTMLElement): string {
+function detectType(dom: HTMLElement, bt: string, ev: Event): string | null {
     //ContentItem
     let type
     if (dom.closest('.AnswerItem')) type = "answer"
@@ -39,19 +39,34 @@ function detectType(dom: HTMLElement): string {
     else if (dom.closest('.PinItem')) type = "pin"
     else {
         console.log("未知内容")
-        alert('请勿收起又展开内容，否则会保存失败。请重新保存。')
+
+        let zhw = (ev.target as HTMLElement).closest('.zhihubackup-wrap'),
+            bz = zhw.querySelector('textarea').value,
+            fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem')
+        !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
         // @ts-ignore
         setTimeout(window.zhbf, 100)
+        setTimeout(() => {
+            fa.querySelector('textarea').value = bz
+        }, 200)
+        setTimeout(() => {
+            (fa.querySelector(`.to-${bt}`) as HTMLElement).click()
+        }, 250)
+
+        return;
     }
     return type
 }
 
-export default async (dom: HTMLElement, button?: string): Promise<DealItemResult> => {
+export default async (dom: HTMLElement, button?: string, event?: Event): Promise<DealItemResult> => {
     //console.log(dom)
     //确认场景
     let scene = detectScene()
-    let type = detectType(dom)
+    let type = detectType(dom, button, event)
+    if (!type) {
+        return
+    }
     //console.log(scene + type)
 
     if (!scene || !type) return;
@@ -94,12 +109,17 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
     }
 
     // 复制与下载纯文本时不保存图片，影响所有parser()，还有评论的图片，暂存到window
-    var no_save_img = false
+    var no_save_img = false,
+        skip_empty_p = false
     try {
         // @ts-ignore
         no_save_img = GM_getValue("no_save_img")
         // @ts-ignore
         window.no_save_img = no_save_img
+        // @ts-ignore
+        skip_empty_p = GM_getValue("skip_empty_p")
+        // @ts-ignore
+        window.skip_empty_p = skip_empty_p
 
     } catch (e) {
         console.warn(e)
@@ -116,7 +136,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
             + '\nauthor_badge: ' + author.badge
-            + `${Location ? '\nlocation :' + Location : ''}`
+            + `${Location ? '\nlocation: ' + Location : ''}`
             + '\ncreated: ' + time.created
             + '\nmodified: ' + time.modified
             + '\nupvote_num: ' + upvote_num
@@ -203,6 +223,7 @@ export default async (dom: HTMLElement, button?: string): Promise<DealItemResult
                 let openComment = p.querySelector(".Comments-container")
                 let itemId = type + url.split('/').pop()
                 let tip = ''
+                console.log(itemId);
 
                 if (openComment && openComment.querySelector('.css-189h5o3')) {
                     let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**' //评论区已关闭|暂无评论

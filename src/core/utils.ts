@@ -72,6 +72,15 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
     else if (scene == "people" || scene == "question" || scene == "answer" || scene == "pin" || scene == "collection") {
         let p = dom.closest('.ContentItem')
         author_dom = p.querySelector(".AuthorInfo-content")
+        // 个人页的搜索结果的想法没有作者栏
+        if (!author_dom && location.href.includes('search')) {
+            author_dom = document.querySelector('.ProfileHeader-title')
+            return {
+                name: author_dom.children[0].textContent,
+                url: location.href.match(/(https.*)\/search/)[1],
+                badge: author_dom.children[1].textContent
+            }
+        }
     }
     //文章
     else if (scene == "article") {

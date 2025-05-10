@@ -161,7 +161,7 @@ class CommentParser {
 const buttonContainer = document.createElement("div")
 buttonContainer.innerHTML = `<div class="comment-parser-container">
     <button class="hint Button VoteButton" title="说明"><svg style="vertical-align: middle;" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m0-2a8 8 0 1 0 0-16a8 8 0 0 0 0 16M11 7h2v2h-2zm0 4h2v6h-2z"/></svg></button>
-    &nbsp;<button class="save Button VoteButton">暂存当前页评论</button>
+    &nbsp;<button class="save Button VoteButton">暂存此页评论</button>
     &nbsp;<button class="unsave Button VoteButton">清空暂存区</button>
     &nbsp;<button class="sum Button VoteButton">查看暂存数</button></div>`
 buttonContainer.classList.add("comment-parser-container-wrap")
@@ -200,14 +200,14 @@ function addParseButton(ContentItem, itemId) {
         cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
 
-    if (!cc) return;
+    if (!cc || cc.querySelector('.css-189h5o3')?.textContent.match('还没有')) return;
 
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
     cc.querySelector(".save").addEventListener('click', (e) => {
-        e.target.textContent = ' 暂存中………… '
+        e.target.textContent = ' 暂存中……… '
         setTimeout(() => {
-            e.target.textContent = '暂存当前页评论'
+            e.target.textContent = '暂存此页评论'
         }, 700)
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
@@ -298,7 +298,7 @@ export const mountParseComments = () => {
                     addParseButton(modal, itemId)
                 }
                 else addParseButton(father, itemId)
-            }, 1500);
+            }, 1200);
             return;
         }
         // 23 4
@@ -317,16 +317,17 @@ export const mountParseComments = () => {
                         modal.setAttribute('itemId', itemId)
                     }
                     addParseButton(modal, itemId)// 最终都是给Modal挂
-                }, 1500);
+                }, 1200);
             }
         }
         if (e.target.closest('button.hint')) {
             try {
-                var zip_merge_cm = GM_getValue("zip_merge_cm"),
+                var skip_empty_p = GM_getValue("skip_empty_p"),
+                    zip_merge_cm = GM_getValue("zip_merge_cm"),
                     copy_save_fm = GM_getValue("copy_save_fm"),
                     copy_save_cm = GM_getValue("copy_save_cm"),
                     no_save_img = GM_getValue("no_save_img"),
-                    HINT2 = `\n当前设置：\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
             } catch (e) {
             }
             alert(HINT + HINT2)
@@ -353,6 +354,9 @@ const getItemId = (father, etg) => {
         father = etg.closest(".Card")
         let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
         zopdata.type = zem.type
+
+        if (zopdata.type == 'Post') zopdata.type = 'article'
+        console.log(zopdata.type);
         zopdata.itemId = zem.token
     }
     return zopdata.type.toLowerCase() + zopdata.itemId
