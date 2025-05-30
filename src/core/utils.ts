@@ -196,7 +196,7 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
         upvote ? 0 : upvote = 0
     }
     else if (scene == "article") {
-        up_dom = dom.closest('.Post-content').querySelector(".VoteButton--up")
+        up_dom = dom.closest('.Post-content').querySelector(".ContentItem-actions .VoteButton")
         upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(3)
         upvote ? 0 : upvote = 0
     }

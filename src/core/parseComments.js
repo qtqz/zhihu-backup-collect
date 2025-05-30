@@ -37,17 +37,21 @@ class CommentParser {
                 if (node.classList.contains('comment_img') || node.classList.contains('comment_sticker')) {
                     img = node.querySelector('img').getAttribute('data-original')
                 }
+                else if (node.classList.contains('css-1gomreu')) {//评论中的@ answer/105002650041
+                    let link = node.querySelector('a').href
+                    textContentPlain += '[' + node.textContent + '](' + link + ')'
+                }
             }
             else if (node.nodeName == 'IMG') textContentPlain += node.alt//小表情
             else if (node.nodeName == 'A') {
                 let link = ZhihuLink2NormalLink(node.href)
                 textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
-            else if (node.nodeName == 'BR') textContentPlain += '\n'
+            else if (node.nodeName == 'BR') textContentPlain += '\n\n'
             else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
                 node.childNodes.forEach(c => {
                     textContentPlain += c.alt || c.textContent
-                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                    if (c.nodeName == 'BR') textContentPlain += '\n\n'
                 })
             }
             else textContentPlain += node.textContent
@@ -62,10 +66,9 @@ class CommentParser {
         const locationElement = commentElement.querySelector('.css-ntkn7q');
         const location = locationElement ? locationElement.textContent : '';
 
-        const likeButton = commentElement.querySelector('.css-1vd72tl');
-        const likes = likeButton ?
-            (likeButton.textContent.match(/\d+/) ? parseInt(likeButton.textContent.match(/\d+/)[0]) : 0) :
-            0;
+        const likeBox = commentElement.querySelector('.css-140jo2'),
+            likeButton = likeBox.querySelector('.css-1vd72tl') || likeBox.querySelector('.css-1staphk') //赞过的
+        const likes = likeButton?.textContent.match(/\d+/) ? parseInt(likeButton.textContent.match(/\d+/)[0]) : 0
 
         //const isAuthor = !!commentElement.querySelector('.css-8v0dsd');
 
@@ -235,7 +238,7 @@ function addParseButton(ContentItem, itemId) {
  * 来源：
  * 1 点击底栏按钮（弹出Modal）
  * 2 点击评论区查看子评论
- * 3 点击评论区查看全部评论（div.css-wu78cf）
+ * 3 点击评论区查看全部评论（div.css-wu78cf）（折叠评论css-1r40vb1）
  * 4 打开Modal后，点击Modal内查看子评论（css-tpyajk下才是真的评论区）不可能在点击时直接获取ID
  * 
  * 计划：
@@ -302,9 +305,9 @@ export const mountParseComments = () => {
             return;
         }
         // 23 4
-        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
-            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
-            if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
+        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')) {
+            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')
+            if (click.textContent.match(/(查看.*(评论|回复))|评论回复/)) {
 
                 let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
                 //注意文章页，搜索结果页
@@ -354,7 +357,6 @@ const getItemId = (father, etg) => {
         father = etg.closest(".Card")
         let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
         zopdata.type = zem.type
-
         if (zopdata.type == 'Post') zopdata.type = 'article'
         zopdata.itemId = zem.token
     }

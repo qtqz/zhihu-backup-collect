@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.32
+// @version      0.10.40
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,13 @@
 /** 
 ## Changelog
 
+* 0.10.40（2025-05-30）:
+    - 修复最近保存专栏文章出错问题
+    - 修复保存赞过的评论赞数量错误问题
+    - 支持保存被折叠的评论
+    - 支持保存评论中的@
+    - 补充多行评论中缺少的换行
+    - 关注页关注问题的动态现在不会出按钮了
 * 0.10.32（2025-05-10）:
     - 修复有时候油猴菜单会消失的问题
     - 修复在个人主页搜索后无法保存想法的问题
@@ -470,7 +477,7 @@ const getUpvote = (dom, scene, type) => {
         upvote ? 0 : upvote = 0;
     }
     else if (scene == "article") {
-        up_dom = dom.closest('.Post-content').querySelector(".VoteButton--up");
+        up_dom = dom.closest('.Post-content').querySelector(".ContentItem-actions .VoteButton");
         upvote = up_dom.textContent.replace(/,|\u200B/g, '').slice(3);
         upvote ? 0 : upvote = 0;
     }
@@ -2788,17 +2795,21 @@ class CommentParser {
                 if (node.classList.contains('comment_img') || node.classList.contains('comment_sticker')) {
                     img = node.querySelector('img').getAttribute('data-original')
                 }
+                else if (node.classList.contains('css-1gomreu')) {//评论中的@ answer/105002650041
+                    let link = node.querySelector('a').href
+                    textContentPlain += '[' + node.textContent + '](' + link + ')'
+                }
             }
             else if (node.nodeName == 'IMG') textContentPlain += node.alt//小表情
             else if (node.nodeName == 'A') {
                 let link = parseComments_ZhihuLink2NormalLink(node.href)
                 textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
-            else if (node.nodeName == 'BR') textContentPlain += '\n'
+            else if (node.nodeName == 'BR') textContentPlain += '\n\n'
             else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
                 node.childNodes.forEach(c => {
                     textContentPlain += c.alt || c.textContent
-                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                    if (c.nodeName == 'BR') textContentPlain += '\n\n'
                 })
             }
             else textContentPlain += node.textContent
@@ -2813,10 +2824,9 @@ class CommentParser {
         const locationElement = commentElement.querySelector('.css-ntkn7q');
         const location = locationElement ? locationElement.textContent : '';
 
-        const likeButton = commentElement.querySelector('.css-1vd72tl');
-        const likes = likeButton ?
-            (likeButton.textContent.match(/\d+/) ? parseInt(likeButton.textContent.match(/\d+/)[0]) : 0) :
-            0;
+        const likeBox = commentElement.querySelector('.css-140jo2'),
+            likeButton = likeBox.querySelector('.css-1vd72tl') || likeBox.querySelector('.css-1staphk') //赞过的
+        const likes = likeButton?.textContent.match(/\d+/) ? parseInt(likeButton.textContent.match(/\d+/)[0]) : 0
 
         //const isAuthor = !!commentElement.querySelector('.css-8v0dsd');
 
@@ -2986,7 +2996,7 @@ function addParseButton(ContentItem, itemId) {
  * 来源：
  * 1 点击底栏按钮（弹出Modal）
  * 2 点击评论区查看子评论
- * 3 点击评论区查看全部评论（div.css-wu78cf）
+ * 3 点击评论区查看全部评论（div.css-wu78cf）（折叠评论css-1r40vb1）
  * 4 打开Modal后，点击Modal内查看子评论（css-tpyajk下才是真的评论区）不可能在点击时直接获取ID
  * 
  * 计划：
@@ -3053,9 +3063,9 @@ const mountParseComments = () => {
             return;
         }
         // 23 4
-        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')) {
-            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2')
-            if (click.textContent.match(/(查看全部.*(评论|回复))|评论回复/)) {
+        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')) {
+            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')
+            if (click.textContent.match(/(查看.*(评论|回复))|评论回复/)) {
 
                 let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
                 //注意文章页，搜索结果页
@@ -3105,7 +3115,6 @@ const getItemId = (father, etg) => {
         father = etg.closest(".Card")
         let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
         zopdata.type = zem.type
-
         if (zopdata.type == 'Post') zopdata.type = 'article'
         zopdata.itemId = zem.token
     }
@@ -3347,6 +3356,8 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                 if (richInner && richInner.querySelector(".ContentItem-more"))
                     continue; //未展开
                 if (RichText.closest('.RichContent').querySelector(".ContentItem-expandButton"))
+                    continue;
+                if (RichText.querySelector(".RichContent-inner").textContent.length == 0)
                     continue;
             }
             const aButtonContainer = ButtonContainer.cloneNode(true);
@@ -3675,6 +3686,7 @@ setTimeout(() => {
     }
 }, 30);
 setTimeout(() => {
+    var _a;
     main();
     mountParseComments();
     // @ts-ignore
@@ -3682,7 +3694,7 @@ setTimeout(() => {
     // 在window对象上创建存储空间
     // @ts-ignore
     window.ArticleComments = window.ArticleComments || {};
-    document.querySelector('.Topstory-tabs').addEventListener('click', () => {
+    (_a = document.querySelector('.Topstory-tabs')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
         setTimeout(registerBtn, 100);
     });
 }, 300);
