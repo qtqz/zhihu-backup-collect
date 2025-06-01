@@ -180,7 +180,7 @@ const main = async () => {
                 const richInner = RichText.closest('.RichContent-inner')
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
                 if (RichText.closest('.RichContent').querySelector(".ContentItem-expandButton")) continue
-                if (RichText.querySelector(".RichContent-inner").textContent.length == 0) continue
+                //if (RichText.textContent.length == 0) continue
             }
             const aButtonContainer = ButtonContainer.cloneNode(true) as HTMLDivElement
 

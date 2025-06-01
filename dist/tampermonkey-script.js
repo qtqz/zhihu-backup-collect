@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.40
+// @version      0.10.41
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,8 @@
 /** 
 ## Changelog
 
+* 0.10.41（2025-06-01）:
+    - 修复有时不显示按钮的问题
 * 0.10.40（2025-05-30）:
     - 修复最近保存专栏文章出错问题
     - 修复保存赞过的评论赞数量错误问题
@@ -3357,8 +3359,7 @@ const main = () => src_awaiter(void 0, void 0, void 0, function* () {
                     continue; //未展开
                 if (RichText.closest('.RichContent').querySelector(".ContentItem-expandButton"))
                     continue;
-                if (RichText.querySelector(".RichContent-inner").textContent.length == 0)
-                    continue;
+                //if (RichText.textContent.length == 0) continue
             }
             const aButtonContainer = ButtonContainer.cloneNode(true);
             //父级
