@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.41
+// @version      0.10.43
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,9 @@
 /** 
 ## Changelog
 
+* 0.10.43（2025-06-14）:
+    - 修复搜索结果页新的保存出错问题
+    - 优化按钮显示体验，避免按钮消失
 * 0.10.41（2025-06-01）:
     - 修复有时不显示按钮的问题
 * 0.10.40（2025-05-30）:
@@ -487,7 +490,7 @@ const getUpvote = (dom, scene, type) => {
         let zaedata = dom.closest('.ContentItem').getAttribute("data-za-extra-module");
         //搜索结果页
         if (window.location.href.includes('/search?')) {
-            upvote = dom.closest('.RichContent').querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0;
+            upvote = dom.closest('.RichContent').querySelector(".ContentItem-actions .VoteButton").getAttribute('aria-label').slice(3) || 0;
         }
         else
             upvote = JSON.parse(zaedata).card.content.upvote_num;
@@ -3533,6 +3536,9 @@ setTimeout(() => {
         width: 12em;
     }
     .RichContent:hover .zhihubackup-wrap,
+    .ContentItem:hover .zhihubackup-wrap,
+    .Post-content:hover .zhihubackup-wrap,
+    .zhihubackup-wrap:hover,
     .Post-RichTextContainer:hover .zhihubackup-wrap{
         opacity: 1;
         pointer-events: initial;

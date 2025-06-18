@@ -354,6 +354,9 @@ setTimeout(() => {
         width: 12em;
     }
     .RichContent:hover .zhihubackup-wrap,
+    .ContentItem:hover .zhihubackup-wrap,
+    .Post-content:hover .zhihubackup-wrap,
+    .zhihubackup-wrap:hover,
     .Post-RichTextContainer:hover .zhihubackup-wrap{
         opacity: 1;
         pointer-events: initial;

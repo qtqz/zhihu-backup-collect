@@ -204,7 +204,7 @@ export const getUpvote = (dom: HTMLElement, scene: string | null, type: string):
         let zaedata = dom.closest('.ContentItem').getAttribute("data-za-extra-module")
         //搜索结果页
         if (window.location.href.includes('/search?')) {
-            upvote = dom.closest('.RichContent').querySelector(".VoteButton--up").getAttribute('aria-label').slice(3) || 0
+            upvote = dom.closest('.RichContent').querySelector(".ContentItem-actions .VoteButton").getAttribute('aria-label').slice(3) || 0
         }
         else upvote = JSON.parse(zaedata).card.content.upvote_num
     }
