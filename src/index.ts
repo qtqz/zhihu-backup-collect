@@ -3,8 +3,7 @@ import dealItem from "./dealItem"
 import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
-import { mountParseComments } from "./core/parseComments";
-import { register } from "module"
+import { mountParseComments } from "./core/parseComments"
 
 /**
  * 修改版
@@ -26,9 +25,6 @@ import { register } from "module"
  */
 
 /**
- * 下一步
- * 剪藏，显示与预期不一致问题：点赞栏、专栏
- * 添加ip属地
  * 
  * 路线图
  * 
@@ -41,20 +37,6 @@ import { register } from "module"
  * 071-测试
  * 072-预发布
  * 073-修复文章截图
- * 
- * 10-完全测试所有场景+类型
- * -评论md解析
- * -md添加frontmatter
- * -快捷键
- * -按钮节流
- * 
- * 
- * 自定义配置以及更多
- * 保存为纯文本
- * zip内改index.md为zip文件名
- * 评论合并到主md内
- * 添加笔记
- * 不保存图片
  * 
  * 更多见 readme
  * 

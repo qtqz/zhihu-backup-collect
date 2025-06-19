@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.43
+// @version      0.10.44
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,8 @@
 /** 
 ## Changelog
 
+* 0.10.44（2025-06-19）:
+    - 兼容知乎美化脚本的暗黑模式
 * 0.10.43（2025-06-14）:
     - 修复搜索结果页新的保存出错问题
     - 优化按钮显示体验，避免按钮消失
@@ -2968,6 +2970,10 @@ function addParseButton(ContentItem, itemId) {
 
     if (!cc || cc.querySelector('.css-189h5o3')?.textContent.match('还没有')) return;
 
+    if (!toolbar) {
+        toolbar = cc.querySelector('.css-14eeh9e')// 去兼容知乎美化 暗黑模式
+        cc.querySelector('.comment-parser-container-wrap')?.remove()
+    }
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
     cc.querySelector(".save").addEventListener('click', (e) => {
@@ -3223,9 +3229,6 @@ var src_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argu
  * 页：推送页，个人/机构主页，回答页，问题页，文章页，想法页，收藏夹页，搜索结果页
  */
 /**
- * 下一步
- * 剪藏，显示与预期不一致问题：点赞栏、专栏
- * 添加ip属地
  *
  * 路线图
  *
@@ -3238,20 +3241,6 @@ var src_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argu
  * 071-测试
  * 072-预发布
  * 073-修复文章截图
- *
- * 10-完全测试所有场景+类型
- * -评论md解析
- * -md添加frontmatter
- * -快捷键
- * -按钮节流
- *
- *
- * 自定义配置以及更多
- * 保存为纯文本
- * zip内改index.md为zip文件名
- * 评论合并到主md内
- * 添加笔记
- * 不保存图片
  *
  * 更多见 readme
  *

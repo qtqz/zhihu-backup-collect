@@ -205,6 +205,10 @@ function addParseButton(ContentItem, itemId) {
 
     if (!cc || cc.querySelector('.css-189h5o3')?.textContent.match('还没有')) return;
 
+    if (!toolbar) {
+        toolbar = cc.querySelector('.css-14eeh9e')// 去兼容知乎美化 暗黑模式
+        cc.querySelector('.comment-parser-container-wrap')?.remove()
+    }
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
     cc.querySelector(".save").addEventListener('click', (e) => {
