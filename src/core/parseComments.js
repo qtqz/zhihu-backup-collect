@@ -403,6 +403,10 @@ function relativeToAbsoluteDate(relativeTime) {
         result.setDate(result.getDate() - 1);
         result.setSeconds(0);
     }
+/*     else if (relativeTime.includes('天前')) {
+        result.setDate(result.getDate() - relativeTime.match(/\d+/)[0]);
+        result.setSeconds(0);
+    } */
     // 处理 "MM-DD" 格式
     else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
         const [month, day] = relativeTime.split('-').map(num => parseInt(num));

@@ -116,6 +116,20 @@ function registerBtn() {
                 //alert(GM_getValue("no_save_img"))
             }
         )
+        // @ts-ignore
+        let menuFilename = GM_registerMenuCommand(
+            "自定义保存后的文件名格式",
+            function () {
+                // @ts-ignore
+                let efm = GM_getValue("edit_Filename")
+                let fm = prompt(`是否自定义保存后的文件名格式？留空或填错恢复默认\n默认为title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark，你可以调整它的顺序，使用其他属性需要阅读源码\n(new Date).toLocaleDateString().replaceAll('/','-')添加保存日期`,
+                    efm ? efm : ''
+                )
+                // @ts-ignore
+                GM_setValue("edit_Filename", fm)
+                //alert(GM_getValue("edit_Filename"))
+            }
+        )
     } catch (e) {
         console.warn(e)
     }

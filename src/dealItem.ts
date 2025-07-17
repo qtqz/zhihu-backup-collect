@@ -146,6 +146,23 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
     }
 
     /**
+     * 生成文件名
+     */
+    const getFilename = (): string => {
+        let fm = title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+        try {
+            // @ts-ignore
+            var efm = GM_getValue("edit_Filename")
+            if (efm) {
+                fm = eval(efm)
+            }
+        } catch (e) {
+            console.warn(e)
+        }
+        return fm
+    }
+
+    /**
      * 生成目录
      */
     const TOC = ((): string[] | null => {
@@ -311,7 +328,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         }
         return {
             textString: getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + md2.join("\n\n") + commentText,
-            title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+            title: getFilename()//title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         }
     }
 
