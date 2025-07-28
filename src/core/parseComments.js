@@ -47,11 +47,11 @@ class CommentParser {
                 let link = ZhihuLink2NormalLink(node.href)
                 textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
-            else if (node.nodeName == 'BR') textContentPlain += '\n\n'
+            else if (node.nodeName == 'BR') textContentPlain += '\n'
             else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
                 node.childNodes.forEach(c => {
                     textContentPlain += c.alt || c.textContent
-                    if (c.nodeName == 'BR') textContentPlain += '\n\n'
+                    if (c.nodeName == 'BR') textContentPlain += '\n'
                 })
             }
             else textContentPlain += node.textContent
@@ -403,10 +403,10 @@ function relativeToAbsoluteDate(relativeTime) {
         result.setDate(result.getDate() - 1);
         result.setSeconds(0);
     }
-/*     else if (relativeTime.includes('天前')) {
-        result.setDate(result.getDate() - relativeTime.match(/\d+/)[0]);
-        result.setSeconds(0);
-    } */
+    /*     else if (relativeTime.includes('天前')) {
+            result.setDate(result.getDate() - relativeTime.match(/\d+/)[0]);
+            result.setSeconds(0);
+        } */
     // 处理 "MM-DD" 格式
     else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
         const [month, day] = relativeTime.split('-').map(num => parseInt(num));

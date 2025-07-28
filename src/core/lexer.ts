@@ -55,8 +55,8 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
                 content: Tokenize(p),
             })
         }
-
-        let blocks = dom.innerHTML.replace(/\n\s*/g, "").split(/<br.{0,20}>/g)
+        // 在这里修复了保存想法时，很短的段落可能会消失的问题（从第二段起，变为空白行），请大家自查之前保存的想法 07.28
+        let blocks = dom.innerHTML.replace(/\n\s*/g, "").split(/<br><br>|<br data-first-child=""><br>/)
         for (let block of blocks) {
             let p = document.createElement("p")
             p.innerHTML = block

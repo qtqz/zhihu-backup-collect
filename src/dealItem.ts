@@ -104,7 +104,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
             return;
         }
         return {
-            title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+            title: getFilename()
         }
     }
 
@@ -148,7 +148,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
     /**
      * 生成文件名
      */
-    const getFilename = (): string => {
+    function getFilename(): string {
         let fm = title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
         try {
             // @ts-ignore
@@ -328,7 +328,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         }
         return {
             textString: getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + parser(lex).join("\n\n") + md2.join("\n\n") + commentText,
-            title: getFilename()//title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+            title: getFilename()
         }
     }
 
@@ -351,7 +351,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
             commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
             md.push(commentText)
         }
-        else
+        else if (commentText)
             zip.file("comments.md", commentText)
 
         zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"))
@@ -393,6 +393,6 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
 
     return {
         zip,
-        title: title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark
+        title: getFilename()
     }
 }
