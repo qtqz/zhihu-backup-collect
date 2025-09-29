@@ -146,10 +146,10 @@ export const getURL = (dom: HTMLElement, scene: string, type: string): string =>
 }
 
 /**
- * 
+ *
  * 时间：
  * 使用内容下显示的时间
- * 
+ *
  */
 export const getTime = async (dom: HTMLElement, scene: string, type?: string): Promise<{
     created: string,
@@ -160,9 +160,9 @@ export const getTime = async (dom: HTMLElement, scene: string, type?: string): P
     //  if (type != "" || type == "article") {
     let created, modified, time_dom
     if (scene != "article") {
-        time_dom = dom.closest('.ContentItem').querySelector(".ContentItem-time")
-        created = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
-        modified = time_dom.querySelector("span").innerText.slice(4)
+        time_dom = dom.closest('.ContentItem').querySelector<HTMLElement>(".ContentItem-time [data-tooltip]")
+        created = time_dom.getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
+        modified = time_dom.innerText.slice(4)
         return { created, modified }
     }
     else {//文章
