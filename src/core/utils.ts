@@ -161,8 +161,8 @@ export const getTime = async (dom: HTMLElement, scene: string, type?: string): P
     let created, modified, time_dom
     if (scene != "article") {
         time_dom = dom.closest('.ContentItem').querySelector(".ContentItem-time")
-        created = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
-        modified = time_dom.querySelector("span").innerText.slice(4)
+        created = time_dom.querySelector("a").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
+        modified = time_dom.querySelector("a").innerText.slice(4)
         return { created, modified }
     }
     else {//文章

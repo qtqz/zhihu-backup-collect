@@ -334,7 +334,8 @@ export const mountParseComments = () => {
                     copy_save_fm = GM_getValue("copy_save_fm"),
                     copy_save_cm = GM_getValue("copy_save_cm"),
                     no_save_img = GM_getValue("no_save_img"),
-                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+                    edit_Filename = GM_getValue("edit_Filename")||'未启用',
+                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}\n自定义文件名：${edit_Filename}`
             } catch (e) {
             }
             alert(HINT + HINT2)

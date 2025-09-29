@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.48
+// @version      0.10.51
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,9 +26,11 @@
 /** 
 ## Changelog
 
+* 0.10.51（2025-09-29）:
+    - 修复知乎更新后保存失败的问题
 * 0.10.48（2025-07-28）:
-    - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，变为空白行），请大家自查之前保存的想法
-    - 允许自定义保存后的文件名格式
+    - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，短段落变为空白行），请大家自查之前保存的想法
+    - 允许自定义保存后的文件名格式（通过油猴菜单输入）
     - 使评论区的换行与原来的一致
     - 存 zip 且无评论时，不再生成空的评论文件
 * 0.10.44（2025-06-19）:
@@ -250,6 +252,7 @@ const lexer = (input, type) => {
             });
         }
         // 在这里修复了保存想法时，很短的段落可能会消失的问题（从第二段起，变为空白行），请大家自查之前保存的想法 07.28
+        // 例 pin/1862470667586396160 pin/1845764257590939648 pin/1930759768441591386
         let blocks = dom.innerHTML.replace(/\n\s*/g, "").split(/<br><br>|<br data-first-child=""><br>/);
         for (let block of blocks) {
             let p = document.createElement("p");
@@ -485,7 +488,7 @@ const Tokenize = (node) => {
             childs = Array.from(childs[0].childNodes);
         }
     }
-    catch (_a) { }
+    catch { }
     for (let child of childs) {
         if (child.nodeType == child.TEXT_NODE) {
             res.push({
@@ -786,31 +789,20 @@ var jszip_min = __webpack_require__(434);
 // EXTERNAL MODULE: ./src/core/tokenTypes.ts
 var tokenTypes = __webpack_require__(307);
 ;// CONCATENATED MODULE: ./src/core/download2zip.ts
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 /**
  * 下载文件并将其添加到zip文件中
  * @param url 下载文件的URL
  * @param zip JSZip对象，用于创建zip文件
  * @returns 添加了下载文件的zip文件
  */
-function downloadAndZip(url, zip) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const response = yield fetch(url);
-        const arrayBuffer = yield response.arrayBuffer();
-        let fileName = url.replace(/\?.*?$/g, "").split("/").pop();
-        fileName.endsWith('.image') ? fileName += '.jpg' : 0;
-        // 添加到zip文件
-        zip.file(fileName, arrayBuffer);
-        return { zip, file_name: fileName };
-    });
+async function downloadAndZip(url, zip) {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    let fileName = url.replace(/\?.*?$/g, "").split("/").pop();
+    fileName.endsWith('.image') ? fileName += '.jpg' : 0;
+    // 添加到zip文件
+    zip.file(fileName, arrayBuffer);
+    return { zip, file_name: fileName };
 }
 /**
  * 下载一系列文件并将其添加到zip文件中
@@ -818,28 +810,17 @@ function downloadAndZip(url, zip) {
  * @param zip JSZip对象，用于创建zip文件
  * @returns 添加了下载文件的zip文件
  */
-function downloadAndZipAll(urls, zip) {
-    return __awaiter(this, void 0, void 0, function* () {
-        for (let url of urls)
-            zip = (yield downloadAndZip(url, zip)).zip;
-        return zip;
-    });
+async function downloadAndZipAll(urls, zip) {
+    for (let url of urls)
+        zip = (await downloadAndZip(url, zip)).zip;
+    return zip;
 }
 
 ;// CONCATENATED MODULE: ./src/core/savelex.ts
-var savelex_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
-/* harmony default export */ const savelex = ((lex, assetsPath = "assets") => savelex_awaiter(void 0, void 0, void 0, function* () {
+/* harmony default export */ const savelex = (async (lex, assetsPath = "assets") => {
     const zip = new jszip_min();
     let FigureFlag = false;
     for (let token of lex) {
@@ -856,7 +837,7 @@ var savelex_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
                     case tokenTypes/* TokenType */.i.Figure:
                     case tokenTypes/* TokenType */.i.Video:
                     case tokenTypes/* TokenType */.i.Gif: {
-                        const { file_name } = yield downloadAndZip(token.src, assetsFolder);
+                        const { file_name } = await downloadAndZip(token.src, assetsFolder);
                         token.localSrc = `./${assetsPath}/${file_name}`;
                         token.local = true;
                         break;
@@ -872,7 +853,7 @@ var savelex_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
     /*const markdown = parser(lex).join("\n\n")
     zip.file("index.md", markdown)*/
     return { zip: zip, localLex: lex };
-}));
+});
 
 
 /***/ }),
@@ -930,15 +911,6 @@ var TokenType;
 /* harmony export */   vE: () => (/* binding */ getCommentSwitch),
 /* harmony export */   vb: () => (/* binding */ getUpvote)
 /* harmony export */ });
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 /**
  * Converts a Zhihu link to a normal link.
  * @param link - The Zhihu link to convert.
@@ -1090,22 +1062,22 @@ const getURL = (dom, scene, type) => {
  * 使用内容下显示的时间
  *
  */
-const getTime = (dom, scene, type) => __awaiter(void 0, void 0, void 0, function* () {
+const getTime = async (dom, scene, type) => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
     //  if (type != "" || type == "article") {
     let created, modified, time_dom;
     if (scene != "article") {
         time_dom = dom.closest('.ContentItem').querySelector(".ContentItem-time");
-        created = time_dom.querySelector("span").getAttribute("data-tooltip").slice(4); //2023-12-30 16:12
-        modified = time_dom.querySelector("span").innerText.slice(4);
+        created = time_dom.querySelector("a").getAttribute("data-tooltip").slice(4); //2023-12-30 16:12
+        modified = time_dom.querySelector("a").innerText.slice(4);
         return { created, modified };
     }
     else { //文章
         time_dom = dom.closest('.Post-content').querySelector(".ContentItem-time");
         modified = time_dom.childNodes[0].textContent.slice(4);
         time_dom.click();
-        yield new Promise((resolve) => {
+        await new Promise((resolve) => {
             setTimeout(() => {
                 resolve();
             }, 1000);
@@ -1116,7 +1088,7 @@ const getTime = (dom, scene, type) => __awaiter(void 0, void 0, void 0, function
     }
     //  }
     //}
-});
+};
 const getUpvote = (dom, scene, type) => {
     //关注/个人/问题/回答页
     //if (scene == "follow" || scene == "people" || scene == "question" || scene == "answer") {//收藏夹
@@ -1215,7 +1187,6 @@ const getCommentSwitch = (dom) => {
  * @returns string | null
  */
 const getLocation = (dom, scene, type) => {
-    var _a;
     let location, el = dom.closest('.ContentItem'); //想法类型、文章页没有
     if (!el)
         el = dom.closest('.PinItem');
@@ -1223,7 +1194,7 @@ const getLocation = (dom, scene, type) => {
         el = dom.closest('.Post-content');
     try {
         if (el) {
-            location = (_a = el.querySelector('.ContentItem-time').childNodes[1]) === null || _a === void 0 ? void 0 : _a.textContent.slice(6);
+            location = el.querySelector('.ContentItem-time').childNodes[1]?.textContent.slice(6);
         }
         if (!location && scene == "people") {
             let name = document.querySelector('.ProfileHeader-name').childNodes[0].textContent;
@@ -1251,18 +1222,9 @@ const getLocation = (dom, scene, type) => {
 /* harmony import */ var _core_lexer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(108);
 /* harmony import */ var _core_tokenTypes__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(307);
 /* harmony import */ var _core_parser__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(940);
-/* harmony import */ var _core_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(465);
-/* harmony import */ var _core_savelex__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(546);
+/* harmony import */ var _core_utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(465);
+/* harmony import */ var _core_savelex__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(546);
 /* harmony import */ var _core_renderComments__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(385);
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
@@ -1325,7 +1287,7 @@ function detectType(dom, bt, ev) {
     }
     return type;
 }
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((dom, button, event) => __awaiter(void 0, void 0, void 0, function* () {
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (async (dom, button, event) => {
     //console.log(dom)
     //确认场景
     let scene = detectScene();
@@ -1343,9 +1305,9 @@ function detectType(dom, bt, ev) {
             script.name
         } catch (e) {
         } */
-    const title = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getTitle */ .YQ)(dom, scene, type), author = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getAuthor */ .Au)(dom, scene, type), time = yield (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getTime */ .hK)(dom, scene), //?????????
-    url = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getURL */ .Ax)(dom, scene, type), upvote_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getUpvote */ .vb)(dom, scene, type), comment_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getCommentNum */ .og)(dom, scene, type), Location = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getLocation */ .k$)(dom, scene, type);
-    let remark = (0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getRemark */ .iw)(dom);
+    const title = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getTitle */ .YQ)(dom, scene, type), author = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getAuthor */ .Au)(dom, scene, type), time = await (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getTime */ .hK)(dom, scene), //?????????
+    url = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getURL */ .Ax)(dom, scene, type), upvote_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getUpvote */ .vb)(dom, scene, type), comment_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getCommentNum */ .og)(dom, scene, type), Location = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getLocation */ .k$)(dom, scene, type);
+    let remark = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getRemark */ .iw)(dom);
     if (remark === "非法备注") {
         alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"));
         return;
@@ -1484,10 +1446,9 @@ function detectType(dom, bt, ev) {
     }
     //解析评论
     let commentText = '', commentsImgs = [];
-    const dealComments = () => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
+    const dealComments = async () => {
         try {
-            if ((0,_core_utils__WEBPACK_IMPORTED_MODULE_3__/* .getCommentSwitch */ .vE)(dom)) {
+            if ((0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getCommentSwitch */ .vE)(dom)) {
                 let p = dom.closest('.ContentItem') || dom.closest('.Post-content');
                 let openComment = p.querySelector(".Comments-container");
                 let itemId = type + url.split('/').pop();
@@ -1503,7 +1464,7 @@ function detectType(dom, bt, ev) {
                     if (openComment && openComment.querySelector('.css-1tdhe7b'))
                         tip = '**评论内容由作者筛选后展示**\n\n';
                     // @ts-ignore 
-                    let commentsData = (_a = window.ArticleComments[itemId]) === null || _a === void 0 ? void 0 : _a.comments;
+                    let commentsData = window.ArticleComments[itemId]?.comments;
                     if (!commentsData) {
                         if (!openComment)
                             return; //既没评论数据也没展开评论区
@@ -1530,8 +1491,8 @@ function detectType(dom, bt, ev) {
                         if (commentsImgs.length) {
                             const assetsFolder = zip.folder('assets');
                             for (let i = 0; i < commentsImgs.length; i++) {
-                                const response = yield fetch(commentsImgs[i]);
-                                const arrayBuffer = yield response.arrayBuffer();
+                                const response = await fetch(commentsImgs[i]);
+                                const arrayBuffer = await response.arrayBuffer();
                                 const fileName = commentsImgs[i].replace(/\?.*?$/, "").split("/").pop();
                                 assetsFolder.file(fileName, arrayBuffer);
                             }
@@ -1544,7 +1505,7 @@ function detectType(dom, bt, ev) {
             console.warn("评论:", e);
             alert('主要工作已完成，但是评论保存出错了');
         }
-    });
+    };
     if (button == 'copy') {
         try {
             // @ts-ignore
@@ -1563,7 +1524,7 @@ function detectType(dom, bt, ev) {
             md = [getFrontmatter()].concat(md); //放到剪贴板，string[]
         }
         if (copy_save_cm) {
-            if ((yield dealComments()) == 'return')
+            if (await dealComments() == 'return')
                 return;
             commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0;
             md.push(commentText);
@@ -1575,7 +1536,7 @@ function detectType(dom, bt, ev) {
     }
     // ============================以下只有 text 或 zip 2种情况===========================
     if (button == 'text') {
-        if ((yield dealComments()) == 'return')
+        if (await dealComments() == 'return')
             return;
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0;
         let md2 = [];
@@ -1589,8 +1550,8 @@ function detectType(dom, bt, ev) {
     }
     if (button == 'zip') {
         //对lex的再处理，保存资产，并将lex中链接改为本地
-        var { zip, localLex } = yield (0,_core_savelex__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z)(lex);
-        if ((yield dealComments()) == 'return')
+        var { zip, localLex } = await (0,_core_savelex__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z)(lex);
+        if (await dealComments() == 'return')
             return;
         if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
             md = (0,_core_parser__WEBPACK_IMPORTED_MODULE_2__/* .parser */ .E)(localLex).concat(md);
@@ -1652,7 +1613,7 @@ function detectType(dom, bt, ev) {
         zip,
         title: getFilename()
     };
-}));
+});
 
 
 /***/ }),
@@ -3230,7 +3191,8 @@ const mountParseComments = () => {
                     copy_save_fm = GM_getValue("copy_save_fm"),
                     copy_save_cm = GM_getValue("copy_save_cm"),
                     no_save_img = GM_getValue("no_save_img"),
-                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}`
+                    edit_Filename = GM_getValue("edit_Filename")||'未启用',
+                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}\n自定义文件名：${edit_Filename}`
             } catch (e) {
             }
             alert(HINT + HINT2)
@@ -3331,15 +3293,6 @@ function formatDate(date) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
@@ -3467,7 +3420,7 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
     <button class="Button VoteButton">
         <label><input type="checkbox" checked class="to-cm"> 保存评论</label>
     </button></div>`;
-const main = () => __awaiter(void 0, void 0, void 0, function* () {
+const main = async () => {
     //console.log("Starting…")
     const RichTexts = Array.from(document.querySelectorAll(".RichText"));
     for (let RichText of RichTexts) {
@@ -3512,9 +3465,9 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer');
             p.prepend(aButtonContainer);
             const ButtonMarkdown = parent_dom.querySelector(".to-copy");
-            ButtonMarkdown.addEventListener("click", throttle((event) => __awaiter(void 0, void 0, void 0, function* () {
+            ButtonMarkdown.addEventListener("click", throttle(async (event) => {
                 try {
-                    const res = yield (0,dealItem/* default */.Z)(RichText, 'copy', event);
+                    const res = await (0,dealItem/* default */.Z)(RichText, 'copy', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3536,19 +3489,19 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
                         ButtonMarkdown.innerHTML = "复制为Markdown";
                     }, 3000);
                 }
-            })));
+            }));
             const ButtonZip = parent_dom.querySelector(".to-zip");
-            ButtonZip.addEventListener("click", throttle((event) => __awaiter(void 0, void 0, void 0, function* () {
+            ButtonZip.addEventListener("click", throttle(async (event) => {
                 try {
                     ButtonZip.innerHTML = "下载中……";
-                    const res = yield (0,dealItem/* default */.Z)(RichText, 'zip', event);
+                    const res = await (0,dealItem/* default */.Z)(RichText, 'zip', event);
                     if (!res)
                         return ButtonZip.innerHTML = "下载为 Zip"; // 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
                     };
-                    const blob = yield result.zip.generateAsync({ type: "blob" });
+                    const blob = await result.zip.generateAsync({ type: "blob" });
                     (0,FileSaver_min.saveAs)(blob, result.title + ".zip");
                     ButtonZip.innerHTML = "下载成功✅<br>请看下载记录";
                     setTimeout(() => {
@@ -3562,11 +3515,11 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
                         ButtonZip.innerHTML = "下载为 Zip";
                     }, 5000);
                 }
-            })));
+            }));
             const ButtonPNG = parent_dom.querySelector(".to-png");
-            ButtonPNG.addEventListener("click", throttle((event) => __awaiter(void 0, void 0, void 0, function* () {
+            ButtonPNG.addEventListener("click", throttle(async (event) => {
                 try {
-                    const res = yield (0,dealItem/* default */.Z)(RichText, 'png', event);
+                    const res = await (0,dealItem/* default */.Z)(RichText, 'png', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3607,11 +3560,11 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
                         ButtonPNG.innerHTML = "剪藏为 PNG";
                     }, 5000);
                 }
-            })));
+            }));
             const ButtonText = parent_dom.querySelector(".to-text");
-            ButtonText.addEventListener("click", throttle((event) => __awaiter(void 0, void 0, void 0, function* () {
+            ButtonText.addEventListener("click", throttle(async (event) => {
                 try {
-                    const res = yield (0,dealItem/* default */.Z)(RichText, 'text', event);
+                    const res = await (0,dealItem/* default */.Z)(RichText, 'text', event);
                     if (!res)
                         return; // 取消保存
                     result = {
@@ -3632,13 +3585,13 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
                         ButtonText.innerHTML = "下载为纯文本";
                     }, 5000);
                 }
-            })));
+            }));
         }
         catch (e) {
             console.log(e);
         }
     }
-});
+};
 function throttle(fn, delay = 2000) {
     let flag = true;
     return function (...args) {
@@ -3826,7 +3779,6 @@ setTimeout(() => {
     }
 }, 30);
 setTimeout(() => {
-    var _a;
     main();
     mountParseComments();
     // @ts-ignore
@@ -3834,7 +3786,7 @@ setTimeout(() => {
     // 在window对象上创建存储空间
     // @ts-ignore
     window.ArticleComments = window.ArticleComments || {};
-    (_a = document.querySelector('.Topstory-tabs')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+    document.querySelector('.Topstory-tabs')?.addEventListener('click', () => {
         setTimeout(registerBtn, 100);
     });
 }, 300);
