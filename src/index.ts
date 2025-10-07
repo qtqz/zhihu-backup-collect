@@ -4,7 +4,12 @@ import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
 import { mountParseComments } from "./core/parseComments"
-
+import {
+	selectObsidianVault,
+	saveToObsidian,
+	loadObsidianConfig,
+	saveObsidianConfig,
+} from "./core/obsidianSaver";
 /**
  * 修改版
  * 
@@ -142,6 +147,7 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
     <button class="to-copy Button VoteButton">复制为Markdown</button>
     <button class="to-zip Button VoteButton">下载为 ZIP</button>
     <button class="to-text Button VoteButton">下载为纯文本</button>
+    <button class="to-obsidian Button VoteButton">Obsidian</button>
     <button class="to-png Button VoteButton">剪藏为 PNG</button>
     <button class="Button VoteButton">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
@@ -313,6 +319,17 @@ const main = async () => {
                 }
             }))
 
+            const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
+            ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
+                try {
+                    let obsidianVaultHandle = await selectObsidianVault()
+                    console.log(obsidianVaultHandle);
+                    
+                } catch (e) {
+                    console.log(e)
+                }
+            }))
+
         } catch (e) {
             console.log(e)
         }
@@ -378,7 +395,7 @@ setTimeout(() => {
     .zhihubackup-container textarea {
         /*border: 1px solid #777;*/
         background-color: #0000;
-        font-size: 14px;
+        font-size: 16px;
         color: #1772f6;
         border: unset;
         text-align: center;
