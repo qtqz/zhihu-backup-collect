@@ -5,10 +5,7 @@ import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
 import { mountParseComments } from "./core/parseComments"
 import {
-	selectObsidianVault,
-	saveToObsidian,
-	loadObsidianConfig,
-	saveObsidianConfig,
+	selectObsidianVault
 } from "./core/obsidianSaver";
 /**
  * 修改版

@@ -9,10 +9,12 @@ let selectedVaultHandle: FileSystemDirectoryHandle | null = null;
 let rootVaultHandle: FileSystemDirectoryHandle | null = null; // 存储最初选择的根路径
 let currentSelectedPath: string = ''; // 存储当前选择的相对路径
 
-// 扩展 FileSystemDirectoryHandle 类型以包含 entries 方法
+// 扩展 FileSystemDirectoryHandle 类型以包含必要的方法
 declare global {
     interface FileSystemDirectoryHandle {
         entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+        queryPermission(descriptor?: { mode?: 'read' | 'readwrite' }): Promise<PermissionState>;
+        requestPermission(descriptor?: { mode?: 'read' | 'readwrite' }): Promise<PermissionState>;
     }
 }
 
@@ -47,6 +49,15 @@ function injectObsidianModal(): void {
                     </div>
                     <div class="folder-structure" id="folder-structure">
                         <!-- 文件夹结构将在这里显示 -->
+                    </div>
+                    <div class="user-notes">
+                        <ul>
+                            <li>首次使用需要选择您的 Obsidian Vault 根目录</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置</li>
+                            <li>授权一次后，下次打开会自动记住您的选择</li>
+                            <li>建议选择专门的文件夹存放备份内容，避免与现有笔记混合</li>
+                            <li>支持 Chrome、Edge 等现代浏览器，需要 HTTPS 环境</li>
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -253,6 +264,26 @@ function injectObsidianModal(): void {
         #zhihu-obsidian-modal .cancel-btn:hover {
             background-color: rgb(221, 232, 249);
         }
+        
+        #zhihu-obsidian-modal .user-notes {
+            margin-top: 20px;
+            padding: 16px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #zhihu-obsidian-modal .user-notes ul {
+            margin: 0;
+            padding-left: 16px;
+        }
+        
+        #zhihu-obsidian-modal .user-notes li {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
     `;
 
     // 将样式和弹框添加到页面
@@ -285,9 +316,18 @@ function bindModalEvents(): void {
             if (selectedVaultHandle) {
                 rootVaultHandle = selectedVaultHandle; // 保存根路径
                 currentSelectedPath = ''; // 重置为根路径
+                
+                // 保存到IndexedDB
+                await fileHandleManager.saveRootFolderHandle(selectedVaultHandle);
+                await fileHandleManager.saveCurrentSelectedHandle(selectedVaultHandle);
+                fileHandleManager.setRootFolder(selectedVaultHandle);
+                fileHandleManager.setCurrentSelected(selectedVaultHandle);
+                
                 updateSelectedFolderInfo();
-                updateFolderStructure();
+                await updateFolderStructure();
                 enableConfirmButton();
+                
+                console.log('新文件夹选择完成:', selectedVaultHandle.name);
             }
         } catch (error) {
             console.error('选择文件夹失败:', error);
@@ -314,6 +354,88 @@ export function showObsidianModal(): void {
     }
     if (obsidianModal) {
         obsidianModal.style.display = 'block';
+        
+        // 加载上次的选择状态
+        loadLastSelection();
+    }
+}
+
+/**
+ * 加载上次的选择状态
+ */
+async function loadLastSelection(): Promise<void> {
+    console.log('尝试恢复文件夹访问权限...');
+    
+    // 显示加载状态
+    const structureElement = obsidianModal?.querySelector('#folder-structure') as HTMLElement;
+    if (structureElement) {
+        structureElement.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <p>正在恢复文件夹访问权限...</p>
+            </div>
+        `;
+    }
+    
+    // 尝试从IndexedDB恢复根文件夹句柄
+    const rootHandle = await fileHandleManager.loadAndVerifyRootFolderHandle();
+    
+    if (rootHandle) {
+        console.log('成功恢复根文件夹访问权限:', rootHandle.name);
+        
+        // 设置根目录状态
+        rootVaultHandle = rootHandle;
+        fileHandleManager.setRootFolder(rootHandle);
+        
+        // 尝试恢复当前选择的文件夹句柄
+        const currentSelectedHandle = await fileHandleManager.loadAndVerifyCurrentSelectedHandle();
+        
+        if (currentSelectedHandle) {
+            console.log('成功恢复当前选择文件夹访问权限:', currentSelectedHandle.name);
+            selectedVaultHandle = currentSelectedHandle;
+            fileHandleManager.setCurrentSelected(currentSelectedHandle);
+        } else {
+            console.log('未找到当前选择的文件夹，使用根目录');
+            selectedVaultHandle = rootHandle;
+            fileHandleManager.setCurrentSelected(null);
+        }
+        
+        // 加载保存的路径配置
+        const saved = loadDirectorySelection();
+        currentSelectedPath = saved.selectedPath || '';
+        
+        // 更新UI显示
+        updateSelectedFolderInfo(currentSelectedPath);
+        
+        // 显示文件夹结构
+        await updateFolderStructure();
+        
+        // 如果有保存的相对路径，尝试高亮显示
+        if (currentSelectedPath) {
+            updateFolderHighlight(currentSelectedPath);
+        }
+        
+        // 启用确认按钮
+        enableConfirmButton();
+        
+        console.log('文件夹结构已恢复，当前路径:', currentSelectedPath);
+        console.log('当前选择的句柄:', selectedVaultHandle.name);
+    } else {
+        console.log('需要重新选择文件夹');
+        
+        // 显示默认状态
+        const infoElement = obsidianModal?.querySelector('#selected-folder-info');
+        if (infoElement) {
+            infoElement.textContent = '未选择文件夹';
+        }
+        
+        const structureElement = obsidianModal?.querySelector('#folder-structure') as HTMLElement;
+        if (structureElement) {
+            structureElement.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <p>点击"选择文件夹"开始选择您的 Obsidian Vault</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -380,18 +502,18 @@ function enableConfirmButton(): void {
  */
 async function updateFolderStructure(): Promise<void> {
     const structureElement = obsidianModal?.querySelector('#folder-structure') as HTMLElement;
-    if (!structureElement || !selectedVaultHandle) return;
+    if (!structureElement || !rootVaultHandle) return;
 
     try {
         // 清除之前的事件监听器
         structureElement.innerHTML = '';
 
-        // 创建根文件夹显示
-        const rootElement = createFolderElement(selectedVaultHandle.name, selectedVaultHandle, '');
+        // 创建根文件夹显示（始终从根文件夹开始）
+        const rootElement = createFolderElement(rootVaultHandle.name, rootVaultHandle, '');
         structureElement.appendChild(rootElement);
 
-        // 添加子文件夹
-        await addSubFolders(structureElement, selectedVaultHandle, '', 4);
+        // 添加子文件夹（从根文件夹开始展开）
+        await addSubFolders(structureElement, rootVaultHandle, '', 4);
 
     } catch (error) {
         structureElement.innerHTML = '<div class="error">无法读取文件夹结构</div>';
@@ -408,12 +530,11 @@ function createFolderElement(name: string, handle: FileSystemDirectoryHandle, pa
     element.dataset.path = path;
     element.dataset.name = name;
     element.dataset.handle = JSON.stringify({ name: handle.name }); // 存储句柄信息
-    console.log('createFolderElement ' + path);
-
-    element.addEventListener('click', () => {
-        selectFolder(handle, path ? `${path}` : name);
+    
+    element.addEventListener('click', async () => {
+        await selectFolder(handle, path ? `${path}` : name);
     });
-
+    
     return element;
 }
 
@@ -473,10 +594,14 @@ async function addSubFolders(
 /**
  * 选择文件夹
  */
-function selectFolder(handle: FileSystemDirectoryHandle, path: string): void {
+async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Promise<void> {
     // 更新全局变量
     selectedVaultHandle = handle;
     currentSelectedPath = path;
+
+    // 保存当前选择的句柄到IndexedDB
+    await fileHandleManager.saveCurrentSelectedHandle(handle);
+    fileHandleManager.setCurrentSelected(handle);
 
     // 更新显示路径
     updateSelectedFolderInfo(path);
@@ -486,55 +611,9 @@ function selectFolder(handle: FileSystemDirectoryHandle, path: string): void {
 
     // 启用确认按钮
     enableConfirmButton();
+    
+    console.log('选择子文件夹:', path, '句柄:', handle.name);
 }
-
-/**
- * 获取目录结构（只显示文件夹）
- */
-/* async function getDirectoryStructure(
-    dirHandle: FileSystemDirectoryHandle,
-    indent: string = '',
-    maxDepth: number = 4,
-    currentPath: string = ''
-): Promise<string> {
-    if (maxDepth <= 0) return '...\n';
-
-    let structure = '';
-    const entries: Array<{ name: string, handle: FileSystemHandle }> = [];
-
-    try {
-        for await (const [name, handle] of dirHandle.entries()) {
-            entries.push({ name, handle });
-        }
-    } catch (error) {
-        return '无法访问文件夹内容\n';
-    }
-
-    // 只筛选出文件夹
-    const folders = entries.filter(entry => entry.handle.kind === 'directory');
-
-    // 限制显示条目数量
-    const limitedFolders = folders.slice(0, 20);
-
-    for (const { name, handle } of limitedFolders) {
-        const fullPath = currentPath ? `${currentPath}/${name}` : name;
-        structure += indent + '📁 ' + name + '\n';
-        if (maxDepth > 1) {
-            structure += await getDirectoryStructure(
-                handle as FileSystemDirectoryHandle,
-                indent + '  ',
-                maxDepth - 1,
-                fullPath
-            );
-        }
-    }
-
-    if (folders.length > 20) {
-        structure += indent + `... 还有 ${folders.length - 20} 个文件夹\n`;
-    }
-
-    return structure;
-} */
 
 /**
  * 获取相对路径（简化版本，实际实现可能需要更复杂的逻辑）
@@ -552,6 +631,7 @@ async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promis
     const timestamp = new Date().getTime();
     const filename = `debug_${timestamp}.txt`;
     const content = `调试文件 - 创建时间: ${new Date().toLocaleString()}\n时间戳: ${timestamp}`;
+    console.log('dirHandle ' + dirHandle.name);
 
     try {
         const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
@@ -589,22 +669,221 @@ async function selectObsidianVaultInternal(): Promise<FileSystemDirectoryHandle 
     }
 }
 
-// ============= 5. 配置管理 =============
+// ============= 5. IndexedDB 持久化 =============
+
+/**
+ * 简化的 IndexedDB 操作类
+ */
+class SimpleDB {
+    private dbName: string;
+    private version: number;
+
+    constructor(dbName: string, version: number = 1) {
+        this.dbName = dbName;
+        this.version = version;
+    }
+
+    async open(): Promise<IDBDatabase> {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.version);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            
+            request.onupgradeneeded = (event) => {
+                const db = (event.target as IDBOpenDBRequest).result;
+                if (!db.objectStoreNames.contains('handles')) {
+                    db.createObjectStore('handles');
+                }
+            };
+        });
+    }
+
+    async put(storeName: string, value: any, key: string): Promise<void> {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.put(value, key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async get(storeName: string, key: string): Promise<any> {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readonly');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.get(key);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async delete(storeName: string, key: string): Promise<void> {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.delete(key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+}
+
+/**
+ * FileSystemDirectoryHandle 管理器
+ */
+class FileHandleManager {
+    private db: SimpleDB;
+    private storeName: string = 'handles';
+    private rootFolderHandle: FileSystemDirectoryHandle | null = null;
+    private currentSelectedHandle: FileSystemDirectoryHandle | null = null;
+
+    constructor() {
+        this.db = new SimpleDB('zhihu-obsidian-handles');
+    }
+
+    // 保存根文件夹句柄
+    async saveRootFolderHandle(folderHandle: FileSystemDirectoryHandle): Promise<boolean> {
+        try {
+            await this.db.put(this.storeName, folderHandle, 'rootFolder');
+            console.log('根文件夹句柄已保存到 IndexedDB');
+            return true;
+        } catch (error) {
+            console.error('保存根文件夹句柄失败:', error);
+            return false;
+        }
+    }
+
+    // 保存当前选择的文件夹句柄
+    async saveCurrentSelectedHandle(folderHandle: FileSystemDirectoryHandle): Promise<boolean> {
+        try {
+            await this.db.put(this.storeName, folderHandle, 'currentSelected');
+            console.log('当前选择文件夹句柄已保存到 IndexedDB');
+            return true;
+        } catch (error) {
+            console.error('保存当前选择文件夹句柄失败:', error);
+            return false;
+        }
+    }
+
+    // 加载并验证根文件夹句柄
+    async loadAndVerifyRootFolderHandle(): Promise<FileSystemDirectoryHandle | null> {
+        try {
+            const folderHandle = await this.db.get(this.storeName, 'rootFolder');
+            
+            if (!folderHandle) {
+                console.log('未找到保存的根文件夹句柄');
+                return null;
+            }
+
+            return await this.verifyFolderHandle(folderHandle, 'rootFolder');
+        } catch (error) {
+            console.error('加载根文件夹句柄失败:', error);
+            return null;
+        }
+    }
+
+    // 加载并验证当前选择的文件夹句柄
+    async loadAndVerifyCurrentSelectedHandle(): Promise<FileSystemDirectoryHandle | null> {
+        try {
+            const folderHandle = await this.db.get(this.storeName, 'currentSelected');
+            
+            if (!folderHandle) {
+                console.log('未找到保存的当前选择文件夹句柄');
+                return null;
+            }
+
+            return await this.verifyFolderHandle(folderHandle, 'currentSelected');
+        } catch (error) {
+            console.error('加载当前选择文件夹句柄失败:', error);
+            return null;
+        }
+    }
+
+    // 验证文件夹句柄权限
+    private async verifyFolderHandle(folderHandle: FileSystemDirectoryHandle, key: string): Promise<FileSystemDirectoryHandle | null> {
+        try {
+            // 检查权限
+            const permissionStatus = await folderHandle.queryPermission();
+            console.log(`${key} 权限状态: ${permissionStatus}`);
+
+            if (permissionStatus === 'granted') {
+                console.log(`${key} 文件夹权限仍然有效`);
+                return folderHandle;
+            }
+
+            // 尝试重新请求权限
+            console.log(`尝试重新请求 ${key} 文件夹权限...`);
+            const newPermissionStatus = await folderHandle.requestPermission();
+
+            if (newPermissionStatus === 'granted') {
+                console.log(`重新获得 ${key} 文件夹权限`);
+                return folderHandle;
+            }
+
+            // 权限被拒绝，从存储中移除
+            console.log(`${key} 权限被拒绝，清除保存的句柄`);
+            await this.db.delete(this.storeName, key);
+            return null;
+        } catch (error) {
+            console.error(`验证 ${key} 文件夹句柄失败:`, error);
+            return null;
+        }
+    }
+
+    // 设置根文件夹句柄
+    setRootFolder(folderHandle: FileSystemDirectoryHandle | null): void {
+        this.rootFolderHandle = folderHandle;
+    }
+
+    // 设置当前选择的文件夹句柄
+    setCurrentSelected(folderHandle: FileSystemDirectoryHandle | null): void {
+        this.currentSelectedHandle = folderHandle;
+    }
+
+    // 获取根文件夹句柄
+    getRootFolder(): FileSystemDirectoryHandle | null {
+        return this.rootFolderHandle;
+    }
+
+    // 获取当前选择的文件夹句柄
+    getCurrentSelected(): FileSystemDirectoryHandle | null {
+        return this.currentSelectedHandle;
+    }
+
+    // 兼容性方法：获取当前文件夹句柄（返回当前选择的，如果没有则返回根目录）
+    getCurrentFolder(): FileSystemDirectoryHandle | null {
+        return this.currentSelectedHandle || this.rootFolderHandle;
+    }
+}
+
+// 全局文件句柄管理器实例
+const fileHandleManager = new FileHandleManager();
+
+// ============= 6. 配置管理 =============
 
 /**
  * Obsidian 保存器配置
  */
-export interface ObsidianConfig {
+interface ObsidianConfig {
     /** Obsidian vault 根目录句柄 */
     vaultHandle?: FileSystemDirectoryHandle;
     /** 附件文件夹名称 */
     attachmentFolder: string;
+    /** 上次选择的根目录名称 */
+    lastRootName?: string;
+    /** 上次选择的相对路径 */
+    lastSelectedPath?: string;
 }
 
 /**
  * 保存到 Obsidian 的结果
  */
-export interface SaveToObsidianResult {
+interface SaveToObsidianResult {
     success: boolean;
     message: string;
     mdPath?: string;
@@ -613,12 +892,14 @@ export interface SaveToObsidianResult {
 /**
  * 从 localStorage 加载 Obsidian 配置
  */
-export function loadObsidianConfig(): ObsidianConfig {
+function loadObsidianConfig(): ObsidianConfig {
     const config = localStorage.getItem("zhihu-obsidian-config");
     if (config) {
         const parsed = JSON.parse(config);
         return {
             attachmentFolder: parsed.attachmentFolder || "Attachments",
+            lastRootName: parsed.lastRootName,
+            lastSelectedPath: parsed.lastSelectedPath,
         };
     }
     return {
@@ -633,6 +914,27 @@ export function saveObsidianConfig(config: Partial<ObsidianConfig>): void {
     const current = loadObsidianConfig();
     const updated = { ...current, ...config };
     localStorage.setItem("zhihu-obsidian-config", JSON.stringify(updated));
+}
+
+/**
+ * 保存目录选择状态到 localStorage
+ */
+function saveDirectorySelection(rootName: string, selectedPath: string): void {
+    saveObsidianConfig({
+        lastRootName: rootName,
+        lastSelectedPath: selectedPath,
+    });
+}
+
+/**
+ * 从 localStorage 加载目录选择状态
+ */
+function loadDirectorySelection(): { rootName?: string; selectedPath?: string } {
+    const config = loadObsidianConfig();
+    return {
+        rootName: config.lastRootName,
+        selectedPath: config.lastSelectedPath,
+    };
 }
 
 /**
@@ -693,22 +995,42 @@ export async function selectObsidianVault(): Promise<FileSystemDirectoryHandle |
             cleanup();
             hideObsidianModal();
 
-            // 调试：输出当前选择的路径
-            if (selectedVaultHandle && rootVaultHandle) {
+            // 优先使用当前选择的句柄（可能是子文件夹）
+            let finalHandle = selectedVaultHandle;
+            
+            // 如果当前没有选择句柄，则使用IndexedDB中保存的当前选择句柄
+            if (!finalHandle) {
+                finalHandle = fileHandleManager.getCurrentSelected();
+            }
+            
+            // 如果还是没有，使用根目录句柄
+            if (!finalHandle) {
+                finalHandle = fileHandleManager.getRootFolder();
+            }
+            
+            console.log('确认保存 - finalHandle:', finalHandle?.name);
+            console.log('确认保存 - selectedVaultHandle:', selectedVaultHandle?.name);
+            console.log('确认保存 - currentSelectedPath:', currentSelectedPath);
+
+            if (finalHandle && rootVaultHandle) {
                 const currentPath = currentSelectedPath
                     ? `${rootVaultHandle.name}/${currentSelectedPath}`
                     : rootVaultHandle.name;
+                
+                // 保存到localStorage
+                saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
+                
                 console.log('当前选择的路径:', currentPath);
 
                 // 调试：创建时间戳文件
                 try {
-                    await createTimestampFile(selectedVaultHandle);
+                    await createTimestampFile(finalHandle);
                 } catch (error) {
                     console.error('创建时间戳文件失败:', error);
                 }
             }
 
-            resolve(selectedVaultHandle);
+            resolve(finalHandle);
         };
 
         const onCancel = () => {
