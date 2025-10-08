@@ -320,16 +320,24 @@ const main = async () => {
             ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     let saveType = await selectObsidianVault()
-                    console.log(saveType);
+
                     if (saveType == 'text') {
                         const res = await dealItem(RichText, 'text')
-                        if (!res) return;// 取消保存
+                        if (!res || !saveType) return;// 取消保存
                         result = {
                             textString: res.textString,
                             title: res.title,
                         }
                         await saveFile(result, saveType as any)
-
+                    }
+                    else if (saveType.slice(0, 3) == 'zip') {
+                        const res = await dealItem(RichText, 'zip')
+                        if (!res || !saveType) return;// 取消保存
+                        result = {
+                            zip: res.zip,
+                            title: res.title,
+                        }
+                        await saveFile(result, saveType as any)
                     }
                 } catch (e) {
                     console.log(e)

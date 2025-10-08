@@ -70,9 +70,9 @@ function injectObsidianModal(): void {
                     <div class="user-notes">
                         <ul>
                             <li>首次使用需要选择您的 Obsidian Vault 根目录</li>
-                            <li>选择后可以点击任意子文件夹作为保存位置</li>
-                            <li>授权一次后，下次打开会自动记住您的选择</li>
-                            <li>建议选择专门的文件夹存放备份内容，避免与现有笔记混合</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置，已过滤掉了长度超过25字符的文件夹</li>
+                            <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
+                            <li>建议专门建立一个文件夹存放内容，避免与现有笔记混合</li>
                             <li>支持 Chrome、Edge 等现代浏览器，需要 HTTPS 环境</li>
                         </ul>
                     </div>
@@ -382,11 +382,11 @@ function loadSelectedOption(): string | null {
 function restoreButtonSelection(): void {
     const selectedOption = loadSelectedOption();
     let targetButton;
-    
+
     if (selectedOption) {
         targetButton = obsidianModal?.querySelector(`[data-text="${selectedOption}"]`);
     }
-    
+
     // 如果没有保存的选项，默认选中第4个按钮
     if (!targetButton) {
         targetButton = obsidianModal?.querySelector('#btn-4');
@@ -398,7 +398,7 @@ function restoreButtonSelection(): void {
             }
         }
     }
-    
+
     if (targetButton) {
         // 移除所有按钮的选中状态
         const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
@@ -680,8 +680,10 @@ async function addSubFolders(
             entries.push({ name, handle });
         }
 
-        // 只筛选出文件夹
-        const folders = entries.filter(entry => entry.handle.kind === 'directory');
+        // 只筛选出文件夹，并过滤掉名称长度超过25字符的文件夹
+        const folders = entries.filter(entry => 
+            entry.handle.kind === 'directory' && entry.name.length <= 25
+        );
 
         // 限制显示条目数量
         const limitedFolders = folders.slice(0, 20);
@@ -1121,7 +1123,7 @@ export async function selectObsidianVault(): Promise<string | null> {
             // 获取当前选中的按钮内容
             const selectedButton = obsidianModal?.querySelector('.option-btn.selected');
             const selectedOption = selectedButton?.getAttribute('data-text');
-            
+
             console.log('确认保存 - selectedVaultHandle:', selectedVaultHandle?.name);
             console.log('确认保存 - currentSelectedPath:', currentSelectedPath);
             console.log('确认保存 - 选择的按钮内容:', selectedOption);
@@ -1184,32 +1186,110 @@ interface Result {
 
 type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text'
 
+/**
+ * 解包ZIP文件到指定文件夹
+ * @param zip JSZip对象
+ * @param targetFolder 目标文件夹句柄
+ */
+async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHandle): Promise<void> {
+    const files = Object.keys(zip.files);
+
+    for (const filepath of files) {
+        const file = zip.files[filepath];
+
+        // 跳过文件夹条目
+        if (file.dir) {
+            continue;
+        }
+
+        try {
+            // 分割路径，处理嵌套文件夹
+            const pathParts = filepath.split('/');
+            const filename = pathParts.pop(); // 最后一部分是文件名
+
+            if (!filename) {
+                continue;
+            }
+
+            // 如果有子文件夹，先创建子文件夹
+            let currentFolder = targetFolder;
+            for (const folderName of pathParts) {
+                if (folderName) {
+                    const safeFolderName = sanitizeFilename(folderName);
+                    currentFolder = await currentFolder.getDirectoryHandle(safeFolderName, { create: true });
+                }
+            }
+
+            // 获取文件内容
+            const content = await file.async('uint8array');
+
+            // 清理文件名
+            const safeFilename = sanitizeFilename(filename);
+
+            // 创建并写入文件
+            const fileHandle = await currentFolder.getFileHandle(safeFilename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content as FileSystemWriteChunkType);
+            await writable.close();
+
+            console.log(`已保存文件: ${filepath} -> ${safeFilename}`);
+        } catch (error) {
+            console.error(`保存文件失败 ${filepath}:`, error);
+            // 继续处理其他文件
+        }
+    }
+}
+
 export async function saveFile(result: Result, saveType: SaveType) {
+    console.log(saveType);
+    console.log(result);
 
     let finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
 
-
     if (saveType == 'zip-single') {
+        const folderName = sanitizeFilename(result.title);
+        const zip = result.zip;
+        if (!zip) {
+            throw new Error('zip对象不存在');
+        }
+
+        try {
+            const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
+            await unpackZipToFolder(zip, targetFolder);
+            console.log(`成功解包ZIP文件到文件夹: ${folderName}`);
+        } catch (error) {
+            console.error('解包ZIP文件失败:', error);
+            throw error;
+        }
+    }
+    else if (saveType == 'zip-common') {
+
+        alert('暂不支持')
+
+    }
+    if (saveType == 'zip-none') {
+        const filename = result.title + '.zip';
+        const zip = result.zip;
+        try {
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(zipBlob);
+            await writable.close();
+            console.log(`成功保存ZIP文件: ${filename}`);
+        } catch (error) {
+            console.error('保存ZIP文件失败:', error);
+            throw error;
+        }
+    }
+    else if (saveType == 'png') {
 
 
 
-
-    } else if (saveType == 'zip-common') {
-
-
-
-    } else if (saveType == 'zip-none') {
-
-
-
-    } else if (saveType == 'png') {
-
-
-
-    } else if (saveType == 'text') {
+    }
+    else if (saveType == 'text') {
         const filename = result.title + '.md';
         const content = result.textString;
-    
         try {
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
@@ -1220,8 +1300,6 @@ export async function saveFile(result: Result, saveType: SaveType) {
             console.error('创建文件失败:', error);
             throw error;
         }
-
-
     }
 }
 
