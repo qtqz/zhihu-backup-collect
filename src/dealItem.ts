@@ -30,7 +30,7 @@ function detectScene(): string {
     return scene
 }
 
-function detectType(dom: HTMLElement, bt: string, ev: Event): string | null {
+function detectType(dom: HTMLElement, bt: string, ev?: Event): string | null {
     //ContentItem
     let type
     if (dom.closest('.AnswerItem')) type = "answer"
@@ -40,6 +40,12 @@ function detectType(dom: HTMLElement, bt: string, ev: Event): string | null {
     else {
         console.log("未知内容")
 
+        if (!ev) {
+            alert('请勿收起又展开内容，否则会保存失败。请手动重新保存。')
+            // @ts-ignore
+            setTimeout(window.zhbf, 100)
+            return;
+        }
         let zhw = (ev.target as HTMLElement).closest('.zhihubackup-wrap'),
             bz = zhw.querySelector('textarea').value,
             fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem')
@@ -253,11 +259,12 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
                     let commentsData = window.ArticleComments[itemId]?.comments as Map<string, object>
                     if (!commentsData) {
                         if (!openComment) return;//既没评论数据也没展开评论区
-                        let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）')
+                        let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存此页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）')
                         if (!s) return 'return'
                         else {
                             (openComment.querySelector('.save') as HTMLElement).click()
                             setTimeout(() => {
+                                if (button == 'obsidian') return alert('已【暂存此页评论】，请手动保存文件'); //todo
                                 (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
                             }, 1900)
                             return 'return'

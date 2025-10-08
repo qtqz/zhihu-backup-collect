@@ -5,7 +5,8 @@ import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
 import { mountParseComments } from "./core/parseComments"
 import {
-	selectObsidianVault
+    selectObsidianVault,
+    saveFile
 } from "./core/obsidianSaver";
 /**
  * 修改版
@@ -204,7 +205,6 @@ const main = async () => {
                     if (!res) return;// 取消保存
                     result = {
                         textString: res.textString,
-                        zip: res.zip,
                         title: res.title,
                     }
                     /*console.log(result.markdown.join("\n\n"))*/
@@ -319,11 +319,21 @@ const main = async () => {
             const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
             ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
                 try {
-                    let obsidianVaultHandle = await selectObsidianVault()
-                    console.log(obsidianVaultHandle);
-                    
+                    let saveType = await selectObsidianVault()
+                    console.log(saveType);
+                    if (saveType == 'text') {
+                        const res = await dealItem(RichText, 'text')
+                        if (!res) return;// 取消保存
+                        result = {
+                            textString: res.textString,
+                            title: res.title,
+                        }
+                        await saveFile(result, saveType as any)
+
+                    }
                 } catch (e) {
                     console.log(e)
+                    alert('发生错误❌请打开控制台查看')
                 }
             }))
 

@@ -5,7 +5,7 @@ import { LexType, TokenType } from "./tokenTypes";
 
 // 全局变量存储弹框元素和当前选择的文件夹
 let obsidianModal: HTMLElement | null = null;
-let selectedVaultHandle: FileSystemDirectoryHandle | null = null;
+let selectedVaultHandle: FileSystemDirectoryHandle | null = null; // 存储选择的文件夹
 let rootVaultHandle: FileSystemDirectoryHandle | null = null; // 存储最初选择的根路径
 let currentSelectedPath: string = ''; // 存储当前选择的相对路径
 
@@ -39,6 +39,23 @@ function injectObsidianModal(): void {
                     <button class="close-btn" type="button">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <div class="button-group">
+                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single">
+                            ZIP单独解包
+                        </button>
+                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common">
+                            ZIP共同解包
+                        </button>
+                        <button id="btn-3" type="button" class="option-btn" data-text="zip-none">
+                            ZIP不解包
+                        </button>
+                        <button id="btn-4" type="button" class="option-btn" data-text="text">
+                            纯文本
+                        </button>
+                        <button id="btn-5" type="button" class="option-btn" data-text="png">
+                            图片
+                        </button>
+                    </div>
                     <div class="folder-selection">
                         <div id="selected-folder-info" class="selected-folder-info">
                             未选择文件夹
@@ -265,6 +282,34 @@ function injectObsidianModal(): void {
             background-color: rgb(221, 232, 249);
         }
         
+        #zhihu-obsidian-modal .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        #zhihu-obsidian-modal .option-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid rgb(23, 114, 246);
+            border-radius: 6px;
+            background-color: white;
+            color: rgb(23, 114, 246);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #zhihu-obsidian-modal .option-btn:hover {
+            background-color: rgba(23, 114, 246, 0.1);
+        }
+        
+        #zhihu-obsidian-modal .option-btn.selected {
+            background-color: rgb(23, 114, 246);
+            color: white;
+        }
+        
         #zhihu-obsidian-modal .user-notes {
             margin-top: 20px;
             padding: 16px;
@@ -295,6 +340,78 @@ function injectObsidianModal(): void {
 }
 
 /**
+ * 绑定选项按钮事件
+ */
+function bindOptionButtons(): void {
+    const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
+    optionButtons?.forEach(button => {
+        button.addEventListener('click', () => {
+            // 移除所有按钮的选中状态
+            optionButtons.forEach(btn => btn.classList.remove('selected'));
+
+            // 添加当前按钮的选中状态
+            button.classList.add('selected');
+
+            // 获取按钮文字并保存到localStorage
+            const buttonText = button.getAttribute('data-text');
+            if (buttonText) {
+                saveSelectedOption(buttonText);
+                console.log('选中选项:', buttonText);
+            }
+        });
+    });
+}
+
+/**
+ * 保存选中的选项到localStorage
+ */
+function saveSelectedOption(optionText: string): void {
+    localStorage.setItem('zhihu-obsidian-selected-option', optionText);
+}
+
+/**
+ * 从localStorage加载选中的选项
+ */
+function loadSelectedOption(): string | null {
+    return localStorage.getItem('zhihu-obsidian-selected-option');
+}
+
+/**
+ * 恢复按钮选中状态
+ */
+function restoreButtonSelection(): void {
+    const selectedOption = loadSelectedOption();
+    let targetButton;
+    
+    if (selectedOption) {
+        targetButton = obsidianModal?.querySelector(`[data-text="${selectedOption}"]`);
+    }
+    
+    // 如果没有保存的选项，默认选中第4个按钮
+    if (!targetButton) {
+        targetButton = obsidianModal?.querySelector('#btn-4');
+        if (targetButton) {
+            // 保存默认选择到localStorage
+            const defaultText = targetButton.getAttribute('data-text');
+            if (defaultText) {
+                saveSelectedOption(defaultText);
+            }
+        }
+    }
+    
+    if (targetButton) {
+        // 移除所有按钮的选中状态
+        const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
+        optionButtons?.forEach(btn => btn.classList.remove('selected'));
+
+        // 添加目标按钮的选中状态
+        targetButton.classList.add('selected');
+        const buttonText = targetButton.getAttribute('data-text');
+        console.log('恢复选中状态:', buttonText);
+    }
+}
+
+/**
  * 绑定弹框事件监听器
  */
 function bindModalEvents(): void {
@@ -308,6 +425,9 @@ function bindModalEvents(): void {
     const cancelBtn = obsidianModal.querySelector('#cancel-btn');
     cancelBtn?.addEventListener('click', hideObsidianModal);
 
+    // 绑定选项按钮事件
+    bindOptionButtons();
+
     // 选择文件夹按钮
     const selectFolderBtn = obsidianModal.querySelector('#select-folder-btn');
     selectFolderBtn?.addEventListener('click', async () => {
@@ -316,17 +436,17 @@ function bindModalEvents(): void {
             if (selectedVaultHandle) {
                 rootVaultHandle = selectedVaultHandle; // 保存根路径
                 currentSelectedPath = ''; // 重置为根路径
-                
+
                 // 保存到IndexedDB
                 await fileHandleManager.saveRootFolderHandle(selectedVaultHandle);
                 await fileHandleManager.saveCurrentSelectedHandle(selectedVaultHandle);
                 fileHandleManager.setRootFolder(selectedVaultHandle);
                 fileHandleManager.setCurrentSelected(selectedVaultHandle);
-                
+
                 updateSelectedFolderInfo();
                 await updateFolderStructure();
                 enableConfirmButton();
-                
+
                 console.log('新文件夹选择完成:', selectedVaultHandle.name);
             }
         } catch (error) {
@@ -354,7 +474,10 @@ export function showObsidianModal(): void {
     }
     if (obsidianModal) {
         obsidianModal.style.display = 'block';
-        
+
+        // 恢复按钮选中状态
+        restoreButtonSelection();
+
         // 加载上次的选择状态
         loadLastSelection();
     }
@@ -365,7 +488,7 @@ export function showObsidianModal(): void {
  */
 async function loadLastSelection(): Promise<void> {
     console.log('尝试恢复文件夹访问权限...');
-    
+
     // 显示加载状态
     const structureElement = obsidianModal?.querySelector('#folder-structure') as HTMLElement;
     if (structureElement) {
@@ -375,20 +498,20 @@ async function loadLastSelection(): Promise<void> {
             </div>
         `;
     }
-    
+
     // 尝试从IndexedDB恢复根文件夹句柄
     const rootHandle = await fileHandleManager.loadAndVerifyRootFolderHandle();
-    
+
     if (rootHandle) {
         console.log('成功恢复根文件夹访问权限:', rootHandle.name);
-        
+
         // 设置根目录状态
         rootVaultHandle = rootHandle;
         fileHandleManager.setRootFolder(rootHandle);
-        
+
         // 尝试恢复当前选择的文件夹句柄
         const currentSelectedHandle = await fileHandleManager.loadAndVerifyCurrentSelectedHandle();
-        
+
         if (currentSelectedHandle) {
             console.log('成功恢复当前选择文件夹访问权限:', currentSelectedHandle.name);
             selectedVaultHandle = currentSelectedHandle;
@@ -398,36 +521,36 @@ async function loadLastSelection(): Promise<void> {
             selectedVaultHandle = rootHandle;
             fileHandleManager.setCurrentSelected(null);
         }
-        
+
         // 加载保存的路径配置
         const saved = loadDirectorySelection();
         currentSelectedPath = saved.selectedPath || '';
-        
+
         // 更新UI显示
         updateSelectedFolderInfo(currentSelectedPath);
-        
+
         // 显示文件夹结构
         await updateFolderStructure();
-        
+
         // 如果有保存的相对路径，尝试高亮显示
         if (currentSelectedPath) {
             updateFolderHighlight(currentSelectedPath);
         }
-        
+
         // 启用确认按钮
         enableConfirmButton();
-        
+
         console.log('文件夹结构已恢复，当前路径:', currentSelectedPath);
         console.log('当前选择的句柄:', selectedVaultHandle.name);
     } else {
         console.log('需要重新选择文件夹');
-        
+
         // 显示默认状态
         const infoElement = obsidianModal?.querySelector('#selected-folder-info');
         if (infoElement) {
             infoElement.textContent = '未选择文件夹';
         }
-        
+
         const structureElement = obsidianModal?.querySelector('#folder-structure') as HTMLElement;
         if (structureElement) {
             structureElement.innerHTML = `
@@ -530,11 +653,11 @@ function createFolderElement(name: string, handle: FileSystemDirectoryHandle, pa
     element.dataset.path = path;
     element.dataset.name = name;
     element.dataset.handle = JSON.stringify({ name: handle.name }); // 存储句柄信息
-    
+
     element.addEventListener('click', async () => {
         await selectFolder(handle, path ? `${path}` : name);
     });
-    
+
     return element;
 }
 
@@ -611,7 +734,7 @@ async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Pr
 
     // 启用确认按钮
     enableConfirmButton();
-    
+
     console.log('选择子文件夹:', path, '句柄:', handle.name);
 }
 
@@ -631,7 +754,6 @@ async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promis
     const timestamp = new Date().getTime();
     const filename = `debug_${timestamp}.txt`;
     const content = `调试文件 - 创建时间: ${new Date().toLocaleString()}\n时间戳: ${timestamp}`;
-    console.log('dirHandle ' + dirHandle.name);
 
     try {
         const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
@@ -686,10 +808,10 @@ class SimpleDB {
     async open(): Promise<IDBDatabase> {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
-            
+
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
-            
+
             request.onupgradeneeded = (event) => {
                 const db = (event.target as IDBOpenDBRequest).result;
                 if (!db.objectStoreNames.contains('handles')) {
@@ -774,7 +896,7 @@ class FileHandleManager {
     async loadAndVerifyRootFolderHandle(): Promise<FileSystemDirectoryHandle | null> {
         try {
             const folderHandle = await this.db.get(this.storeName, 'rootFolder');
-            
+
             if (!folderHandle) {
                 console.log('未找到保存的根文件夹句柄');
                 return null;
@@ -791,7 +913,7 @@ class FileHandleManager {
     async loadAndVerifyCurrentSelectedHandle(): Promise<FileSystemDirectoryHandle | null> {
         try {
             const folderHandle = await this.db.get(this.storeName, 'currentSelected');
-            
+
             if (!folderHandle) {
                 console.log('未找到保存的当前选择文件夹句柄');
                 return null;
@@ -969,13 +1091,14 @@ function sanitizeFilename(filename: string): string {
         || 'untitled';
 }
 
-// ============= 6. 主函数 =============
+// ============= 7. 主函数 =============
 
 /**
  * 请求选择 Obsidian vault 目录
  * 现在通过弹框界面进行选择
+ * Promise<FileSystemDirectoryHandle | null>
  */
-export async function selectObsidianVault(): Promise<FileSystemDirectoryHandle | null> {
+export async function selectObsidianVault(): Promise<string | null> {
     return new Promise((resolve) => {
         // 显示弹框
         showObsidianModal();
@@ -995,42 +1118,48 @@ export async function selectObsidianVault(): Promise<FileSystemDirectoryHandle |
             cleanup();
             hideObsidianModal();
 
-            // 优先使用当前选择的句柄（可能是子文件夹）
-            let finalHandle = selectedVaultHandle;
+            // 获取当前选中的按钮内容
+            const selectedButton = obsidianModal?.querySelector('.option-btn.selected');
+            const selectedOption = selectedButton?.getAttribute('data-text');
             
-            // 如果当前没有选择句柄，则使用IndexedDB中保存的当前选择句柄
-            if (!finalHandle) {
-                finalHandle = fileHandleManager.getCurrentSelected();
-            }
-            
-            // 如果还是没有，使用根目录句柄
-            if (!finalHandle) {
-                finalHandle = fileHandleManager.getRootFolder();
-            }
-            
-            console.log('确认保存 - finalHandle:', finalHandle?.name);
             console.log('确认保存 - selectedVaultHandle:', selectedVaultHandle?.name);
             console.log('确认保存 - currentSelectedPath:', currentSelectedPath);
+            console.log('确认保存 - 选择的按钮内容:', selectedOption);
 
-            if (finalHandle && rootVaultHandle) {
-                const currentPath = currentSelectedPath
-                    ? `${rootVaultHandle.name}/${currentSelectedPath}`
-                    : rootVaultHandle.name;
-                
-                // 保存到localStorage
-                saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
-                
-                console.log('当前选择的路径:', currentPath);
+            if (selectedOption) {
+                // 优先使用当前选择的句柄（可能是子文件夹）
+                let finalHandle = selectedVaultHandle;
 
-                // 调试：创建时间戳文件
-                try {
-                    await createTimestampFile(finalHandle);
-                } catch (error) {
-                    console.error('创建时间戳文件失败:', error);
+                // 如果当前没有选择句柄，则使用IndexedDB中保存的当前选择句柄
+                if (!finalHandle) {
+                    finalHandle = fileHandleManager.getCurrentSelected();
+                }
+
+                // 如果还是没有，使用根目录句柄
+                if (!finalHandle) {
+                    finalHandle = fileHandleManager.getRootFolder();
+                }
+
+                if (finalHandle && rootVaultHandle) {
+                    const currentPath = currentSelectedPath
+                        ? `${rootVaultHandle.name}/${currentSelectedPath}`
+                        : rootVaultHandle.name;
+
+                    // 保存到localStorage
+                    saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
+
+                    console.log('当前选择的路径:', currentPath);
+
+                    // 调试：创建时间戳文件
+                    try {
+                        await createTimestampFile(finalHandle);
+                    } catch (error) {
+                        console.error('创建时间戳文件失败:', error);
+                    }
                 }
             }
 
-            resolve(finalHandle);
+            resolve(selectedOption || null);
         };
 
         const onCancel = () => {
@@ -1044,6 +1173,62 @@ export async function selectObsidianVault(): Promise<FileSystemDirectoryHandle |
         closeBtn?.addEventListener('click', onCancel);
     });
 }
+
+// ============= 8. 文件处理与保存 =============
+
+interface Result {
+    zip?: JSZip,
+    textString?: string,
+    title: string,
+}
+
+type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text'
+
+export async function saveFile(result: Result, saveType: SaveType) {
+
+    let finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
+
+
+    if (saveType == 'zip-single') {
+
+
+
+
+    } else if (saveType == 'zip-common') {
+
+
+
+    } else if (saveType == 'zip-none') {
+
+
+
+    } else if (saveType == 'png') {
+
+
+
+    } else if (saveType == 'text') {
+        const filename = result.title + '.md';
+        const content = result.textString;
+    
+        try {
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            console.log(`成功创建调试文件: ${filename}`);
+        } catch (error) {
+            console.error('创建文件失败:', error);
+            throw error;
+        }
+
+
+    }
+}
+
+
+
+
+
 
 /**
  * 生成 Obsidian 兼容的 Markdown 内容
