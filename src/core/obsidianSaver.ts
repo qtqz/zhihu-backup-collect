@@ -1,5 +1,8 @@
 import * as JSZip from "jszip";
 import { LexType, TokenType } from "./tokenTypes";
+import { showToast } from './toast';
+
+showToast('欢迎使用知乎助手-备份到obsidian插件');
 
 // ============= 1. 全局状态管理 =============
 
@@ -1257,8 +1260,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
             await unpackZipToFolder(zip, targetFolder);
             console.log(`成功解包ZIP文件到文件夹: ${folderName}`);
+            showToast('保存成功');
         } catch (error) {
             console.error('解包ZIP文件失败:', error);
+            showToast('保存失败');
             throw error;
         }
     }
@@ -1277,8 +1282,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             await writable.write(zipBlob);
             await writable.close();
             console.log(`成功保存ZIP文件: ${filename}`);
+            showToast('保存成功');
         } catch (error) {
             console.error('保存ZIP文件失败:', error);
+            showToast('保存失败');
             throw error;
         }
     }
@@ -1296,8 +1303,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             await writable.write(content);
             await writable.close();
             console.log(`成功创建调试文件: ${filename}`);
+            showToast('保存成功');
         } catch (error) {
             console.error('创建文件失败:', error);
+            showToast('保存失败');
             throw error;
         }
     }
