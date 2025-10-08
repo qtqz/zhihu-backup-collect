@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.51
+// @version      0.10.52
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,8 @@
 /** 
 ## Changelog
 
+* 0.10.52（2025-10-08）:
+    - 修复知乎更新后保存想法中图片失败的问题
 * 0.10.51（2025-09-29）:
     - 修复知乎更新后保存失败的问题
 * 0.10.48（2025-07-28）:
@@ -1272,6 +1274,12 @@ function detectType(dom, bt, ev) {
         type = "pin";
     else {
         console.log("未知内容");
+        if (!ev) {
+            alert('请勿收起又展开内容，否则会保存失败。请手动重新保存。');
+            // @ts-ignore
+            setTimeout(window.zhbf, 100);
+            return;
+        }
         let zhw = ev.target.closest('.zhihubackup-wrap'), bz = zhw.querySelector('textarea').value, fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem');
         !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0;
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove());
@@ -1434,8 +1442,8 @@ function detectType(dom, bt, ev) {
                         text: '**' + pinItem.querySelector(".ContentItem-title").textContent + '**'
                     }]
             });
-        if (pinItem.querySelector(".Image-PreviewVague")) {
-            const imgs = pinItem.querySelectorAll(".Image-PreviewVague > img");
+        if (pinItem.querySelector(".PinItem-remainContentRichText")) {
+            const imgs = pinItem.querySelectorAll(".PinItem-remainContentRichText img");
             imgs.forEach((img) => {
                 lex.push({
                     type: _core_tokenTypes__WEBPACK_IMPORTED_MODULE_1__/* .TokenType */ .i.Figure,
@@ -1468,12 +1476,14 @@ function detectType(dom, bt, ev) {
                     if (!commentsData) {
                         if (!openComment)
                             return; //既没评论数据也没展开评论区
-                        let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存当前页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）');
+                        let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存此页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）');
                         if (!s)
                             return 'return';
                         else {
                             openComment.querySelector('.save').click();
                             setTimeout(() => {
+                                if (button == 'obsidian')
+                                    return alert('已【暂存此页评论】，请手动保存文件'); //todo
                                 p.querySelector(`.zhihubackup-wrap .to-${button}`).click();
                             }, 1900);
                             return 'return';
@@ -3298,6 +3308,7 @@ function formatDate(date) {
 
 
 
+//import { selectObsidianVault, saveFile } from "./core/obsidianSaver";
 /**
  * 修改版
  *
@@ -3413,6 +3424,7 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
     <button class="to-copy Button VoteButton">复制为Markdown</button>
     <button class="to-zip Button VoteButton">下载为 ZIP</button>
     <button class="to-text Button VoteButton">下载为纯文本</button>
+    <!--<button class="to-obsidian Button VoteButton">Obsidian</button>-->
     <button class="to-png Button VoteButton">剪藏为 PNG</button>
     <button class="Button VoteButton">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
@@ -3472,7 +3484,6 @@ const main = async () => {
                         return; // 取消保存
                     result = {
                         textString: res.textString,
-                        zip: res.zip,
                         title: res.title,
                     };
                     /*console.log(result.markdown.join("\n\n"))*/
@@ -3586,6 +3597,34 @@ const main = async () => {
                     }, 5000);
                 }
             }));
+            /* const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
+            ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
+                try {
+                    let saveType = await selectObsidianVault()
+
+                    if (saveType == 'text') {
+                        const res = await dealItem(RichText, 'text')
+                        if (!res || !saveType) return;// 取消保存
+                        result = {
+                            textString: res.textString,
+                            title: res.title,
+                        }
+                        await saveFile(result, saveType as any)
+                    }
+                    else if (saveType.slice(0, 3) == 'zip') {
+                        const res = await dealItem(RichText, 'zip')
+                        if (!res || !saveType) return;// 取消保存
+                        result = {
+                            zip: res.zip,
+                            title: res.title,
+                        }
+                        await saveFile(result, saveType as any)
+                    }
+                } catch (e) {
+                    console.log(e)
+                    alert('发生错误❌请打开控制台查看')
+                }
+            })) */
         }
         catch (e) {
             console.log(e);
@@ -3650,7 +3689,7 @@ setTimeout(() => {
     .zhihubackup-container textarea {
         /*border: 1px solid #777;*/
         background-color: #0000;
-        font-size: 14px;
+        font-size: 16px;
         color: #1772f6;
         border: unset;
         text-align: center;

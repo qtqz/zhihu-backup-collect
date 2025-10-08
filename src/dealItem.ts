@@ -225,8 +225,8 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
                     text: '**' + pinItem.querySelector(".ContentItem-title").textContent + '**'
                 }]
             })
-        if (pinItem.querySelector(".Image-PreviewVague")) {
-            const imgs = pinItem.querySelectorAll(".Image-PreviewVague > img")
+        if (pinItem.querySelector(".PinItem-remainContentRichText")) {
+            const imgs = pinItem.querySelectorAll(".PinItem-remainContentRichText img")
             imgs.forEach((img) => {
                 lex.push({
                     type: TokenType.Figure,
