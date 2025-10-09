@@ -25,14 +25,15 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
     ];
 
     if (comment.img) {
+        let img = comment.img
         if (isLocalImg) {
             commentsImgs.push(comment.img)
-            comment.img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
+            img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
         }
         // @ts-ignore
         window.no_save_img && !isLocalImg ?
             markdown.push(`${prefix}[图片]`, prefix) :
-            markdown.push(`${prefix}![](${comment.img})`, prefix)
+            markdown.push(`${prefix}![](${img})`, prefix)
         // @ts-ignore
         console.log('comment.img', window.no_save_img);
     }
