@@ -38,7 +38,8 @@ function injectObsidianModal(): void {
         <div class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>选择 Obsidian Vault</h3>
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" style="width: 2.5em;height: 2.5em;opacity: 0.7;" width="1.5em" height="1.5em" viewBox="0 0 512 512"><g fill-rule="evenodd"><path fill="#673ab7" d="M463.47 192H151.06c-13.77 0-26 8.82-30.35 21.89L64 384V160h384c0-17.67-14.33-32-32-32H241.98a32 32 0 0 1-20.48-7.42l-20.6-17.15c-5.75-4.8-13-7.43-20.48-7.43H64c-17.67 0-32 14.33-32 32v256c0 17.67 14.33 32 32 32h352l76.88-179.39c1.7-3.98 2.59-8.28 2.59-12.61c0-17.67-14.33-32-32-32"/><g fill="#d1c4e9"><path d="M336.2 318.24c8.07-1.51 12.6-2.02 21.66-2.02c-34.18-89.72 48.95-139.27 18.63-155.11c-17-8.88-52.32 37.77-72.93 56.26l-10.67 37.41c19.77 16.2 36.25 39.63 43.31 63.46m75.04 128.91c13.05 3.85 26.66-5.92 28.52-19.42c1.35-9.81 3.51-20.65 8.24-30.94c-2.66-7.51-25.72-71.18-104.74-56.39c7.6 31.4-4.15 64.54-22.83 91.02c33.14.31 59.29 6.45 90.81 15.73"/><path d="M478.76 346.86c7.02-12.43-16.61-22.28-28.74-50.78c-10.52-24.69 4.93-53.82-8.18-66.23l-40.17-38.02c-14.09 38.27-40.29 56.91-17.12 123.38c37.13 6.98 67.48 27.2 77.55 58.42c0 0 13.67-21.49 16.66-26.77m-221.26 5.78c-8.21 18.67 17.96 36.81 43.46 63.29c29-40.73 24.17-88.95-15.12-127.91z"/></g></g></svg>
+                    <span>选择存储库</span></h3>
                     <button class="close-btn" type="button">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -72,11 +73,11 @@ function injectObsidianModal(): void {
                     </div>
                     <div class="user-notes">
                         <ul>
-                            <li>首次使用需要选择您的 Obsidian Vault 根目录</li>
-                            <li>选择后可以点击任意子文件夹作为保存位置，已过滤掉了长度超过25字符的文件夹</li>
+                            <li>首次使用需要选择您的存储库，如果您有 Obsidian，可以选择您的 Obsidian 仓库目录。建议专门建立一个存储库文件夹存放内容，避免与现有笔记混合</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字符的文件夹</li>
                             <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
-                            <li>建议专门建立一个文件夹存放内容，避免与现有笔记混合</li>
-                            <li>支持 Chrome、Edge 等现代浏览器，需要 HTTPS 环境</li>
+                            <li>支持 Chrome、Edge 等浏览器，暂未在 Firefox 测试</li>
+                            <li>使用此功能时，请确保此程序是从可信的来源获取的，并定期备份您的文件</li>
                         </ul>
                     </div>
                 </div>
@@ -101,7 +102,7 @@ function injectObsidianModal(): void {
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10000;
+            z-index: 100;
             display: none;
         }
         
@@ -123,7 +124,7 @@ function injectObsidianModal(): void {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             width: 90%;
             max-width: 600px;
-            max-height: 80vh;
+            max-height: 84vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -143,6 +144,9 @@ function injectObsidianModal(): void {
             color: black;
             font-size: 18px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
         }
         
         #zhihu-obsidian-modal .close-btn {
@@ -216,7 +220,7 @@ function injectObsidianModal(): void {
             border-radius: 4px;
             padding: 16px;
             min-height: 200px;
-            max-height: 300px;
+            max-height: 280px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 14px;
@@ -580,7 +584,7 @@ export function hideObsidianModal(): void {
  * 更新选中的文件夹信息显示
  */
 function updateSelectedFolderInfo(customPath?: string): void {
-    const infoElement = obsidianModal?.querySelector('#selected-folder-info');
+    const infoElement = obsidianModal?.querySelector('#selected-folder-info');showToast('✅ 已选择');
     if (infoElement && selectedVaultHandle && rootVaultHandle) {
         let displayPath;
         if (customPath) {
@@ -1281,10 +1285,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
             await unpackZipToFolder(zip, targetFolder);
             console.log(`成功解包ZIP文件到文件夹: ${folderName}`);
-            showToast('保存成功');
+            showToast('✅ 保存成功');
         } catch (error) {
             console.error('解包ZIP文件失败:', error);
-            showToast('保存失败');
+            showToast('❌ 保存失败');
             throw error;
         }
     }
@@ -1303,10 +1307,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             await writable.write(zipBlob);
             await writable.close();
             console.log(`成功保存ZIP文件: ${filename}`);
-            showToast('保存成功');
+            showToast('✅ 保存成功');
         } catch (error) {
             console.error('保存ZIP文件失败:', error);
-            showToast('保存失败');
+            showToast('❌ 保存失败');
             throw error;
         }
     }
@@ -1320,10 +1324,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             await writable.write(blob);
             await writable.close();
             console.log(`成功保存图片文件: ${filename}`);
-            showToast('保存成功');
+            showToast('✅ 保存成功');
         } catch (error) {
             console.error('保存图片文件失败:', error);
-            showToast('保存失败');
+            showToast('❌ 保存失败');
             throw error;
         }
     }
@@ -1336,10 +1340,10 @@ export async function saveFile(result: Result, saveType: SaveType) {
             await writable.write(content);
             await writable.close();
             console.log(`成功创建调试文件: ${filename}`);
-            showToast('保存成功');
+            showToast('✅ 保存成功');
         } catch (error) {
             console.error('创建文件失败:', error);
-            showToast('保存失败');
+            showToast('❌ 保存失败');
             throw error;
         }
     }
