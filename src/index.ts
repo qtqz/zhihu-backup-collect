@@ -4,7 +4,7 @@ import * as JSZip from "jszip"
 import { domToPng } from "modern-screenshot"
 import { getCommentSwitch } from "./core/utils"
 import { mountParseComments } from "./core/parseComments"
-//import { selectObsidianVault, saveFile } from "./core/obsidianSaver";
+import { selectObsidianVault, saveFile } from "./core/obsidianSaver";
 /**
  * 修改版
  * 
@@ -313,14 +313,15 @@ const main = async () => {
                 }
             }))
 
-            /* const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
+            const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
             ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     let saveType = await selectObsidianVault()
+                    if (!saveType) return;// 取消保存
 
                     if (saveType == 'text') {
                         const res = await dealItem(RichText, 'text')
-                        if (!res || !saveType) return;// 取消保存
+                        if (!res) return;// 取消保存
                         result = {
                             textString: res.textString,
                             title: res.title,
@@ -329,18 +330,45 @@ const main = async () => {
                     }
                     else if (saveType.slice(0, 3) == 'zip') {
                         const res = await dealItem(RichText, 'zip')
-                        if (!res || !saveType) return;// 取消保存
+                        if (!res) return;// 取消保存
                         result = {
                             zip: res.zip,
                             title: res.title,
                         }
                         await saveFile(result, saveType as any)
                     }
+                    else if (saveType == 'png') {
+                        const res = await dealItem(RichText, 'png')
+                        if (!res) return;// 取消保存
+
+                        let clip = parent_dom
+                        clip.classList.add("to-screenshot")
+                        let saveCM = getCommentSwitch(RichText)
+                        !saveCM ? clip.classList.add("no-cm") : 0
+                        let svgDefs = document.querySelector("#MathJax_SVG_glyphs") as HTMLElement
+                        svgDefs ? svgDefs.style.visibility = "visible" : 0
+
+                        domToPng(clip, {
+                            backgroundColor: "#fff",
+                            filter(el) {
+                                if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
+                                else return true
+                            },
+                        }).then(async (dataUrl: any) => {
+                            result = {
+                                textString: dataUrl,
+                                title: res.title,
+                            }
+                            clip.classList.remove("to-screenshot")
+                            !saveCM ? clip.classList.remove("no-cm") : 0
+                            await saveFile(result, saveType as any)
+                        })
+                    }
                 } catch (e) {
                     console.log(e)
                     alert('发生错误❌请打开控制台查看')
                 }
-            })) */
+            }))
 
         } catch (e) {
             console.log(e)

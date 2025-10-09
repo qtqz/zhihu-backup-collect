@@ -43,19 +43,19 @@ function injectObsidianModal(): void {
                 </div>
                 <div class="modal-body">
                     <div class="button-group">
-                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single">
+                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single" title="【推荐】每个ZIP单独解包到一个文件夹，文件夹名称与ZIP名称相同，图片放到各自的文件夹内">
                             ZIP单独解包
                         </button>
-                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common">
+                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common" title="所有ZIP共同解包，所有图片放到同一个文件夹（assets），文本和评论合并，放在外面，文件名与ZIP名称相同">
                             ZIP共同解包
                         </button>
-                        <button id="btn-3" type="button" class="option-btn" data-text="zip-none">
+                        <button id="btn-3" type="button" class="option-btn" data-text="zip-none" title="不解压缩">
                             ZIP不解包
                         </button>
-                        <button id="btn-4" type="button" class="option-btn" data-text="text">
+                        <button id="btn-4" type="button" class="option-btn" data-text="text" title="纯文本MD文件">
                             纯文本
                         </button>
-                        <button id="btn-5" type="button" class="option-btn" data-text="png">
+                        <button id="btn-5" type="button" class="option-btn" data-text="png" title="图片PNG文件">
                             图片
                         </button>
                     </div>
@@ -294,7 +294,7 @@ function injectObsidianModal(): void {
         #zhihu-obsidian-modal .option-btn {
             flex: 1;
             padding: 10px;
-            border: 2px solid rgb(23, 114, 246);
+            border: 1px solid rgb(23, 114, 246);
             border-radius: 6px;
             background-color: white;
             color: rgb(23, 114, 246);
@@ -528,17 +528,17 @@ async function loadLastSelection(): Promise<void> {
         // 加载保存的路径配置
         const saved = loadDirectorySelection();
         currentSelectedPath = saved.selectedPath || '';
-
-        // 更新UI显示
+        /* if (currentSelectedPath != rootHandle.name) { */
+        // 更新UI显示，高亮显示
         updateSelectedFolderInfo(currentSelectedPath);
+        updateFolderHighlight(currentSelectedPath);
+        /* }
+        else {
+            updateSelectedFolderInfo('');
+            updateFolderHighlight('');
+        } */
 
-        // 显示文件夹结构
         await updateFolderStructure();
-
-        // 如果有保存的相对路径，尝试高亮显示
-        if (currentSelectedPath) {
-            updateFolderHighlight(currentSelectedPath);
-        }
 
         // 启用确认按钮
         enableConfirmButton();
@@ -558,7 +558,7 @@ async function loadLastSelection(): Promise<void> {
         if (structureElement) {
             structureElement.innerHTML = `
                 <div style="padding: 20px; text-align: center; color: #666;">
-                    <p>点击"选择文件夹"开始选择您的 Obsidian Vault</p>
+                    <p>点击"选择文件夹"开始选择您的存储仓库</p>
                 </div>
             `;
         }
@@ -608,10 +608,13 @@ function updateFolderHighlight(selectedPath: string): void {
     });
 
     // 高亮选中的文件夹
-    const selectedItem = structureElement.querySelector(`[data-path="${selectedPath}"]`);
-    if (selectedItem) {
-        selectedItem.classList.add('selected');
-    }
+    setTimeout(() => {
+        const selectedItem = structureElement.querySelector(`[data-path="${selectedPath}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+        }
+    }, 100);
+
 }
 
 /**
@@ -658,7 +661,7 @@ function createFolderElement(name: string, handle: FileSystemDirectoryHandle, pa
     element.dataset.handle = JSON.stringify({ name: handle.name }); // 存储句柄信息
 
     element.addEventListener('click', async () => {
-        await selectFolder(handle, path ? `${path}` : name);
+        await selectFolder(handle, path);
     });
 
     return element;
@@ -684,7 +687,7 @@ async function addSubFolders(
         }
 
         // 只筛选出文件夹，并过滤掉名称长度超过25字符的文件夹
-        const folders = entries.filter(entry => 
+        const folders = entries.filter(entry =>
             entry.handle.kind === 'directory' && entry.name.length <= 25
         );
 
@@ -731,6 +734,11 @@ async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Pr
     await fileHandleManager.saveCurrentSelectedHandle(handle);
     fileHandleManager.setCurrentSelected(handle);
 
+    // 保存到localStorage
+    if (rootVaultHandle) {
+        saveDirectorySelection(rootVaultHandle.name, path);
+    }
+
     // 更新显示路径
     updateSelectedFolderInfo(path);
 
@@ -755,7 +763,7 @@ async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Pr
 /**
  * 创建时间戳文件
  */
-async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promise<void> {
+/* async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promise<void> {
     const timestamp = new Date().getTime();
     const filename = `debug_${timestamp}.txt`;
     const content = `调试文件 - 创建时间: ${new Date().toLocaleString()}\n时间戳: ${timestamp}`;
@@ -770,7 +778,7 @@ async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promis
         console.error('创建文件失败:', error);
         throw error;
     }
-}
+} */
 
 /**
  * 内部的选择文件夹函数（实际执行选择操作）
@@ -1151,16 +1159,9 @@ export async function selectObsidianVault(): Promise<string | null> {
                         : rootVaultHandle.name;
 
                     // 保存到localStorage
-                    saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
+                    // saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
 
-                    console.log('当前选择的路径:', currentPath);
-
-                    // 调试：创建时间戳文件
-                    try {
-                        await createTimestampFile(finalHandle);
-                    } catch (error) {
-                        console.error('创建时间戳文件失败:', error);
-                    }
+                    console.log('当前保存的路径:', currentPath);
                 }
             }
 
@@ -1188,6 +1189,28 @@ interface Result {
 }
 
 type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text'
+
+/**
+ * 将dataUrl转换为Blob
+ * @param dataUrl 图片的data URL
+ * @returns Blob对象
+ */
+function dataUrlToBlob(dataUrl: string): Blob {
+    // 分离dataUrl的元数据和数据部分
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const bstr = atob(parts[1]); // base64解码
+
+    // 将字符串转换为Uint8Array
+    const n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+    }
+
+    // 创建Blob
+    return new Blob([u8arr], { type: mime });
+}
 
 /**
  * 解包ZIP文件到指定文件夹
@@ -1225,8 +1248,6 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
 
             // 获取文件内容
             const content = await file.async('uint8array');
-
-            // 清理文件名
             const safeFilename = sanitizeFilename(filename);
 
             // 创建并写入文件
@@ -1234,7 +1255,6 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
             const writable = await fileHandle.createWritable();
             await writable.write(content as FileSystemWriteChunkType);
             await writable.close();
-
             console.log(`已保存文件: ${filepath} -> ${safeFilename}`);
         } catch (error) {
             console.error(`保存文件失败 ${filepath}:`, error);
@@ -1243,6 +1263,11 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
     }
 }
 
+/**
+ * 保存文件
+ * @param result 结果
+ * @param saveType 保存类型
+ */
 export async function saveFile(result: Result, saveType: SaveType) {
     console.log(saveType);
     console.log(result);
@@ -1252,10 +1277,6 @@ export async function saveFile(result: Result, saveType: SaveType) {
     if (saveType == 'zip-single') {
         const folderName = sanitizeFilename(result.title);
         const zip = result.zip;
-        if (!zip) {
-            throw new Error('zip对象不存在');
-        }
-
         try {
             const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
             await unpackZipToFolder(zip, targetFolder);
@@ -1290,9 +1311,21 @@ export async function saveFile(result: Result, saveType: SaveType) {
         }
     }
     else if (saveType == 'png') {
-
-
-
+        const filename = result.title + '.png';
+        const dataUrl = result.textString;
+        try {
+            const blob = dataUrlToBlob(dataUrl);
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            console.log(`成功保存图片文件: ${filename}`);
+            showToast('保存成功');
+        } catch (error) {
+            console.error('保存图片文件失败:', error);
+            showToast('保存失败');
+            throw error;
+        }
     }
     else if (saveType == 'text') {
         const filename = result.title + '.md';
