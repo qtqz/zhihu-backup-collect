@@ -7,43 +7,9 @@ import { mountParseComments } from "./core/parseComments"
 import { selectObsidianVault, saveFile } from "./core/obsidianSaver";
 import { showToast } from './core/toast';
 /**
- * 修改版
- * 
- * 适配关注推送时间线，用户时间线
- * 按钮改为鼠标悬停才显示，绝对定位，减少侵入
- * 代码风格：大部分改为空格缩进、无分号
- * 
- * 优化逻辑与性能，减少多余操作：
- * 无限循环改为每1秒监听滚动
- * 点击按钮后才开始处理内容
- * 
- * 文件名添加作者名、时间
- * 保存为HTML/PNG
  * 适配复杂的想法：转发、带卡片链接、带@
- * 
- * 
  * 页：推送页，个人/机构主页，回答页，问题页，文章页，想法页，收藏夹页，搜索结果页
  */
-
-/**
- * 
- * 路线图
- * 
- * 03-原版
- * 04-接手
- * 05-截图
- * 054-想法
- * 06-想法完全支持
- * 07-zip添加评论
- * 071-测试
- * 072-预发布
- * 073-修复文章截图
- * 
- * 更多见 readme
- * 
- * 
- */
-
 
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -407,8 +373,8 @@ setTimeout(() => {
         transition: opacity 0.5s;
         position: absolute;
         left: -10em;
-        top: -50px;
-        height: 100%;
+        top: -100px;
+        /* height: 100%; */
         user-select: none;
         width: 12em;
     }

@@ -1,8 +1,12 @@
 import * as JSZip from "jszip";
-import { LexType, TokenType } from "./tokenTypes";
 import { showToast } from './toast';
 
-showToast('欢迎使用知乎助手-备份到obsidian插件');
+// showToast('欢迎使用知乎助手-备份到obsidian插件');
+/**
+ * 下一步
+ * 解决再次打开时，文件夹列表闪动的问题，尽量不重新读取文件夹
+ * 
+ */
 
 // ============= 1. 全局状态管理 =============
 
@@ -44,7 +48,7 @@ function injectObsidianModal(): void {
                 </div>
                 <div class="modal-body">
                     <div class="button-group">
-                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single" title="【推荐】每个ZIP单独解包到一个文件夹，文件夹名称与ZIP名称相同，图片放到各自的文件夹内">
+                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single" title="每个ZIP单独解包到一个文件夹，文件夹名称与ZIP名称相同，图片放到各自的文件夹内">
                             ZIP单独解包
                         </button>
                         <button id="btn-2" type="button" class="option-btn" data-text="zip-common" title="所有ZIP共同解包，所有图片放到同一个文件夹（assets），强制合并文本和评论，放在外面，文件名与ZIP名称相同">
@@ -563,6 +567,7 @@ async function loadLastSelection(): Promise<void> {
             updateFolderHighlight('');
         } */
 
+        // 打开一次后，可能不需要更新了
         await updateFolderStructure();
 
         // 启用确认按钮
@@ -773,16 +778,9 @@ async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Pr
  */
 async function selectObsidianVaultInternal(): Promise<FileSystemDirectoryHandle | null> {
     try {
-        // 检查浏览器是否支持 File System Access API
-        if (!("showDirectoryPicker" in window)) {
-            alert("您的浏览器不支持文件系统访问功能，请使用 Chrome 或 Edge 浏览器");
-            return null;
-        }
-
         const dirHandle = await (window as any).showDirectoryPicker({
             mode: "readwrite",
         });
-
         return dirHandle;
     } catch (err) {
         if (err.name !== "AbortError") {
@@ -992,7 +990,7 @@ const fileHandleManager = new FileHandleManager();
 /**
  * Obsidian 保存器配置
  */
-interface ObsidianConfig {
+export interface ObsidianConfig {
     /** Obsidian vault 根目录句柄 */
     vaultHandle?: FileSystemDirectoryHandle;
     /** 附件文件夹名称 */
@@ -1087,10 +1085,16 @@ function sanitizeFilename(filename: string): string {
 
 /**
  * 请求选择 Obsidian vault 目录
- * 现在通过弹框界面进行选择
+ * 现在打开弹框，通过弹框界面进行选择
  * Promise<FileSystemDirectoryHandle | null>
  */
 export async function selectObsidianVault(): Promise<string | null> {
+    // 检查浏览器是否支持 File System Access API
+    if (!(window as any).showDirectoryPicker) {
+        alert("您的浏览器不支持文件系统访问功能，请使用 Chrome 或 Edge 浏览器");
+        return null;
+    }
+
     return new Promise((resolve) => {
         // 显示弹框
         showObsidianModal();
@@ -1157,13 +1161,19 @@ export async function selectObsidianVault(): Promise<string | null> {
 
 // ============= 8. 文件处理与保存 =============
 
-interface Result {
-    zip?: JSZip,
-    textString?: string,
-    title: string,
+/**
+ * 保存结果接口
+ */
+export interface SaveResult {
+    zip?: JSZip;
+    textString?: string;
+    title: string;
 }
 
-type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text'
+/**
+ * 保存类型
+ */
+export type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text';
 
 /**
  * 将dataUrl转换为Blob
@@ -1239,22 +1249,27 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
 }
 
 /**
- * 保存文件
- * @param result 结果
+ * 保存文件到本地文件系统
+ * @param result 保存结果数据
  * @param saveType 保存类型
  */
-export async function saveFile(result: Result, saveType: SaveType) {
-    console.log(saveType);
-    console.log(result);
+export async function saveFile(result: SaveResult, saveType: SaveType): Promise<void> {
 
-    let finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
+    const finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
+    
+    if (!finalHandle) {
+        throw new Error('未选择保存文件夹');
+    }
 
-    if (saveType == 'zip-single') {
+    if (saveType === 'zip-single') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        
         const folderName = sanitizeFilename(result.title);
-        const zip = result.zip;
         try {
             const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
-            await unpackZipToFolder(zip, targetFolder);
+            await unpackZipToFolder(result.zip, targetFolder);
             console.log(`成功解包ZIP文件到文件夹: ${folderName}`);
             showToast('✅ 保存成功');
         } catch (error) {
@@ -1263,13 +1278,14 @@ export async function saveFile(result: Result, saveType: SaveType) {
             throw error;
         }
     }
-    else if (saveType == 'zip-common') {
-        const name = result.title;
-        const zip = result.zip;
+    else if (saveType === 'zip-common') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        
         try {
-            // 共同解包到目标文件夹，所有图片放到同一个assets文件夹
-            await unpackZipCommon(zip, name, finalHandle);
-            console.log(`成功共同解包ZIP文件: ${name}`);
+            await unpackZipCommon(result.zip, result.title, finalHandle);
+            console.log(`成功共同解包ZIP文件: ${result.title}`);
             showToast('✅ 保存成功');
         } catch (error) {
             console.error('共同解包ZIP文件失败:', error);
@@ -1277,11 +1293,14 @@ export async function saveFile(result: Result, saveType: SaveType) {
             throw error;
         }
     }
-    if (saveType == 'zip-none') {
+    else if (saveType === 'zip-none') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        
         const filename = result.title + '.zip';
-        const zip = result.zip;
         try {
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipBlob = await result.zip.generateAsync({ type: 'blob' });
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(zipBlob);
@@ -1294,11 +1313,14 @@ export async function saveFile(result: Result, saveType: SaveType) {
             throw error;
         }
     }
-    else if (saveType == 'png') {
+    else if (saveType === 'png') {
+        if (!result.textString) {
+            throw new Error('图片数据不存在');
+        }
+        
         const filename = result.title + '.png';
-        const dataUrl = result.textString;
         try {
-            const blob = dataUrlToBlob(dataUrl);
+            const blob = dataUrlToBlob(result.textString);
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(blob);
@@ -1311,18 +1333,21 @@ export async function saveFile(result: Result, saveType: SaveType) {
             throw error;
         }
     }
-    else if (saveType == 'text') {
+    else if (saveType === 'text') {
+        if (!result.textString) {
+            throw new Error('文本内容不存在');
+        }
+        
         const filename = result.title + '.md';
-        const content = result.textString;
         try {
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
-            await writable.write(content);
+            await writable.write(result.textString);
             await writable.close();
-            console.log(`成功创建调试文件: ${filename}`);
+            console.log(`成功保存MD文件: ${filename}`);
             showToast('✅ 保存成功');
         } catch (error) {
-            console.error('创建文件失败:', error);
+            console.error('保存MD文件失败:', error);
             showToast('❌ 保存失败');
             throw error;
         }
@@ -1386,7 +1411,7 @@ async function unpackZipCommon(
                 await writable.close();
 
                 console.log(`已保存MD文件: ${mdFilename}`);
-            } else if (!pureFilename.endsWith('.json')) {
+            } else {
                 // 其他文件（图片等）保存到assets文件夹
                 const fileHandle = await assetsDirHandle.getFileHandle(safeFilename, {
                     create: true,

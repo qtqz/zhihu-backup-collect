@@ -387,40 +387,6 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"))
     }
 
-    const zopQuestion = (() => {
-        try {
-            let el = document.querySelector("[data-zop-question]")
-            if (el) return JSON.parse(el.getAttribute("data-zop-question"))
-            return null
-        } catch (e) {
-            console.error('保存data-zop-question出错', e)
-        }
-    })()
-
-    const { zop, zaExtra } = (() => {
-        let el = dom.closest('.ContentItem')//想法类型、文章页没有
-        if (!el) el = dom.closest('.PinItem')
-        if (!el) el = dom.closest('.Post-content')
-        try {
-            if (el)
-                return {
-                    zop: JSON.parse(el.getAttribute("data-zop")),
-                    zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
-                }
-        } catch (e) {
-            console.error('保存zop, zaExtra出错', e)
-        }
-        return null
-    })()
-
-    zip.file("info.json", JSON.stringify({
-        title, url, author, time, upvote_num, comment_num,
-        zop,
-        "location": Location,
-        "zop-question": zopQuestion,
-        "zop-extra-module": zaExtra,
-    }, null, 4))
-
     return {
         zip,
         title: getFilename()
