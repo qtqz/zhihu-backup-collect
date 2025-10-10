@@ -9,7 +9,7 @@ showToast('欢迎使用知乎助手-备份到obsidian插件');
 // 全局变量存储弹框元素和当前选择的文件夹
 let obsidianModal: HTMLElement | null = null;
 let selectedVaultHandle: FileSystemDirectoryHandle | null = null; // 存储选择的文件夹
-let rootVaultHandle: FileSystemDirectoryHandle | null = null; // 存储最初选择的根路径
+let rootVaultHandle: FileSystemDirectoryHandle | null = null; // 存储最初选择的根文件夹
 let currentSelectedPath: string = ''; // 存储当前选择的相对路径
 
 // 扩展 FileSystemDirectoryHandle 类型以包含必要的方法
@@ -47,7 +47,7 @@ function injectObsidianModal(): void {
                         <button id="btn-1" type="button" class="option-btn" data-text="zip-single" title="【推荐】每个ZIP单独解包到一个文件夹，文件夹名称与ZIP名称相同，图片放到各自的文件夹内">
                             ZIP单独解包
                         </button>
-                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common" title="所有ZIP共同解包，所有图片放到同一个文件夹（assets），文本和评论合并，放在外面，文件名与ZIP名称相同">
+                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common" title="所有ZIP共同解包，所有图片放到同一个文件夹（assets），强制合并文本和评论，放在外面，文件名与ZIP名称相同">
                             ZIP共同解包
                         </button>
                         <button id="btn-3" type="button" class="option-btn" data-text="zip-none" title="不解压缩">
@@ -74,7 +74,7 @@ function injectObsidianModal(): void {
                     <div class="user-notes">
                         <ul>
                             <li>首次使用需要选择您的存储库，如果您有 Obsidian，可以选择您的 Obsidian 仓库目录。建议专门建立一个存储库文件夹存放内容，避免与现有笔记混合</li>
-                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字符的文件夹</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字的文件夹</li>
                             <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
                             <li>支持 Chrome、Edge 等浏览器，暂未在 Firefox 测试</li>
                             <li>使用此功能时，请确保此程序是从可信的来源获取的，并定期备份您的文件</li>
@@ -104,6 +104,8 @@ function injectObsidianModal(): void {
             height: 100%;
             z-index: 100;
             display: none;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
         }
         
         #zhihu-obsidian-modal .modal-overlay {
@@ -124,7 +126,7 @@ function injectObsidianModal(): void {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             width: 90%;
             max-width: 600px;
-            max-height: 84vh;
+            max-height: 85vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -219,8 +221,8 @@ function injectObsidianModal(): void {
             border: 1px solid #dee2e6;
             border-radius: 4px;
             padding: 16px;
-            min-height: 200px;
-            max-height: 280px;
+            min-height: 180px;
+            max-height: 260px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 14px;
@@ -491,6 +493,25 @@ export function showObsidianModal(): void {
 }
 
 /**
+ * 隐藏 Obsidian 选择弹框
+ */
+export function hideObsidianModal(): void {
+    if (obsidianModal) {
+        // 先设置透明度过渡
+        obsidianModal.style.opacity = '0';
+        
+        // 等待过渡完成后再彻底隐藏
+        setTimeout(() => {
+            if (obsidianModal) {
+                obsidianModal.style.display = 'none';
+                // 重置透明度，为下次显示做准备
+                obsidianModal.style.opacity = '1';
+            }
+        }, 300);
+    }
+}
+
+/**
  * 加载上次的选择状态
  */
 async function loadLastSelection(): Promise<void> {
@@ -569,22 +590,13 @@ async function loadLastSelection(): Promise<void> {
     }
 }
 
-/**
- * 隐藏 Obsidian 选择弹框
- */
-export function hideObsidianModal(): void {
-    if (obsidianModal) {
-        obsidianModal.style.display = 'none';
-    }
-}
-
 // ============= 3. 辅助函数 =============
 
 /**
  * 更新选中的文件夹信息显示
  */
 function updateSelectedFolderInfo(customPath?: string): void {
-    const infoElement = obsidianModal?.querySelector('#selected-folder-info');showToast('✅ 已选择');
+    const infoElement = obsidianModal?.querySelector('#selected-folder-info');
     if (infoElement && selectedVaultHandle && rootVaultHandle) {
         let displayPath;
         if (customPath) {
@@ -727,7 +739,7 @@ async function addSubFolders(
 }
 
 /**
- * 选择文件夹
+ * 点击后选择文件夹
  */
 async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Promise<void> {
     // 更新全局变量
@@ -752,37 +764,9 @@ async function selectFolder(handle: FileSystemDirectoryHandle, path: string): Pr
     // 启用确认按钮
     enableConfirmButton();
 
-    console.log('选择子文件夹:', path, '句柄:', handle.name);
+    console.log('点击选择子文件夹:', path, '句柄:', handle.name);
 }
 
-/**
- * 获取相对路径（简化版本，实际实现可能需要更复杂的逻辑）
- */
-/* function getRelativePath(handle: FileSystemDirectoryHandle): string {
-    // 这里简化处理，实际项目中可能需要更复杂的路径计算
-    // 由于FileSystemDirectoryHandle没有直接的路径属性，我们返回名称
-    return handle.name;
-} */
-
-/**
- * 创建时间戳文件
- */
-/* async function createTimestampFile(dirHandle: FileSystemDirectoryHandle): Promise<void> {
-    const timestamp = new Date().getTime();
-    const filename = `debug_${timestamp}.txt`;
-    const content = `调试文件 - 创建时间: ${new Date().toLocaleString()}\n时间戳: ${timestamp}`;
-
-    try {
-        const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(content);
-        await writable.close();
-        console.log(`成功创建调试文件: ${filename}`);
-    } catch (error) {
-        console.error('创建文件失败:', error);
-        throw error;
-    }
-} */
 
 /**
  * 内部的选择文件夹函数（实际执行选择操作）
@@ -1020,15 +1004,6 @@ interface ObsidianConfig {
 }
 
 /**
- * 保存到 Obsidian 的结果
- */
-interface SaveToObsidianResult {
-    success: boolean;
-    message: string;
-    mdPath?: string;
-}
-
-/**
  * 从 localStorage 加载 Obsidian 配置
  */
 function loadObsidianConfig(): ObsidianConfig {
@@ -1036,13 +1011,13 @@ function loadObsidianConfig(): ObsidianConfig {
     if (config) {
         const parsed = JSON.parse(config);
         return {
-            attachmentFolder: parsed.attachmentFolder || "Attachments",
+            attachmentFolder: parsed.attachmentFolder || "assets",
             lastRootName: parsed.lastRootName,
             lastSelectedPath: parsed.lastSelectedPath,
         };
     }
     return {
-        attachmentFolder: "Attachments",
+        attachmentFolder: "assets",
     };
 }
 
@@ -1133,7 +1108,7 @@ export async function selectObsidianVault(): Promise<string | null> {
 
         const onConfirm = async () => {
             cleanup();
-            hideObsidianModal();
+            // hideObsidianModal();
 
             // 获取当前选中的按钮内容
             const selectedButton = obsidianModal?.querySelector('.option-btn.selected');
@@ -1162,13 +1137,9 @@ export async function selectObsidianVault(): Promise<string | null> {
                         ? `${rootVaultHandle.name}/${currentSelectedPath}`
                         : rootVaultHandle.name;
 
-                    // 保存到localStorage
-                    // saveDirectorySelection(rootVaultHandle.name, currentSelectedPath);
-
                     console.log('当前保存的路径:', currentPath);
                 }
             }
-
             resolve(selectedOption || null);
         };
 
@@ -1293,9 +1264,18 @@ export async function saveFile(result: Result, saveType: SaveType) {
         }
     }
     else if (saveType == 'zip-common') {
-
-        alert('暂不支持')
-
+        const name = result.title;
+        const zip = result.zip;
+        try {
+            // 共同解包到目标文件夹，所有图片放到同一个assets文件夹
+            await unpackZipCommon(zip, name, finalHandle);
+            console.log(`成功共同解包ZIP文件: ${name}`);
+            showToast('✅ 保存成功');
+        } catch (error) {
+            console.error('共同解包ZIP文件失败:', error);
+            showToast('❌ 保存失败');
+            throw error;
+        }
     }
     if (saveType == 'zip-none') {
         const filename = result.title + '.zip';
@@ -1347,136 +1327,79 @@ export async function saveFile(result: Result, saveType: SaveType) {
             throw error;
         }
     }
+    // 等保存成功后再隐藏弹框，不然共同解包ZIP会出问题，不能正常合并评论
+    hideObsidianModal();
 }
 
 
-
-
-
-
 /**
- * 生成 Obsidian 兼容的 Markdown 内容
- * 将图片路径转换为 Obsidian 的 [[attachments/filename]] 或 ![](Attachments/filename) 格式
- */
-export function generateObsidianMarkdown(
-    markdown: string[],
-    lex: LexType[],
-    config: ObsidianConfig
-): string {
-    let result = markdown.join("\n\n");
-
-    // 清理附件文件夹名
-    const safeAttachmentFolder = sanitizeFilename(config.attachmentFolder);
-
-    // 遍历 lex 找出所有图片和视频，替换路径
-    for (const token of lex) {
-        if (token.type === TokenType.Figure || token.type === TokenType.Gif) {
-            // 优先使用 localSrc，如果没有则使用 src
-            const originalSrc = token.local && token.localSrc ? token.localSrc : token.src;
-
-            if (originalSrc) {
-                // 从路径中提取文件名
-                const filename = originalSrc.split("/").pop();
-                // 清理文件名（与保存时保持一致）
-                const safeFilename = sanitizeFilename(filename);
-                const obsidianPath = `${safeAttachmentFolder}/${safeFilename}`;
-
-                // 替换 Markdown 中的路径 - 尝试多种可能的格式
-                result = result.replace(`![](${originalSrc})`, `![](${obsidianPath})`);
-                result = result.replace(`![](${token.src})`, `![](${obsidianPath})`);
-            }
-        } else if (token.type === TokenType.Video) {
-            const originalSrc = token.local && token.localSrc ? token.localSrc : token.src;
-
-            if (originalSrc) {
-                const filename = originalSrc.split("/").pop();
-                // 清理文件名（与保存时保持一致）
-                const safeFilename = sanitizeFilename(filename);
-                const obsidianPath = `${safeAttachmentFolder}/${safeFilename}`;
-
-                result = result.replace(originalSrc, obsidianPath);
-                result = result.replace(token.src, obsidianPath);
-            }
-        }
-    }
-
-    return result;
-}
-
-/**
- * 保存 ZIP 内容到 Obsidian vault
- * @param zip JSZip 对象
+ * 共同解包ZIP文件
+ * @param zip JSZip对象
  * @param title 文件标题
- * @param markdown Markdown 内容数组
- * @param lex Lex 数组
- * @param vaultHandle Obsidian vault 目录句柄
- * @param config Obsidian 配置
+ * @param targetFolder 目标文件夹句柄
+ * @param assetsFolder assets文件夹名称，默认为'assets'
  */
-export async function saveToObsidian(
+async function unpackZipCommon(
     zip: JSZip,
     title: string,
-    markdown: string[],
-    lex: LexType[],
-    vaultHandle: FileSystemDirectoryHandle,
-    config: ObsidianConfig
-): Promise<SaveToObsidianResult> {
-    try {
-        // 1. 创建或获取 Attachments 文件夹
-        const safeAttachmentFolder = sanitizeFilename(config.attachmentFolder);
+    targetFolder: FileSystemDirectoryHandle,
+    assetsFolder: string = 'assets'
+): Promise<void> {
+    const safeAssetsFolder = sanitizeFilename(assetsFolder);
 
-        const attachmentDirHandle = await vaultHandle.getDirectoryHandle(
-            safeAttachmentFolder,
-            { create: true }
-        );
+    // 1. 创建或获取assets文件夹
+    const assetsDirHandle = await targetFolder.getDirectoryHandle(
+        safeAssetsFolder,
+        { create: true }
+    );
 
-        // 2. 保存所有附件文件
-        const files = Object.keys(zip.files);
-        const attachmentFiles = files.filter(
-            (name) => !name.endsWith("info.json") && !name.endsWith(".md")
-        );
+    // 2. 遍历ZIP中的所有文件
+    const files = Object.keys(zip.files);
+    for (const filepath of files) {
+        const file = zip.files[filepath];
 
-        for (const filename of attachmentFiles) {
-            const file = zip.files[filename];
-            if (!file.dir) {
-                const content = await file.async("uint8array");
-                // 从完整路径中提取文件名（去掉文件夹路径）
-                const pureFilename = filename.split("/").pop();
-                // 清理文件名
-                const safeFilename = sanitizeFilename(pureFilename);
+        // 跳过文件夹条目
+        if (file.dir) {
+            continue;
+        }
 
-                const fileHandle = await attachmentDirHandle.getFileHandle(safeFilename, {
+        try {
+            const content = await file.async('uint8array');
+            const pureFilename = filepath.split('/').pop();
+
+            if (!pureFilename) {
+                continue;
+            }
+
+            const safeFilename = sanitizeFilename(pureFilename);
+            // 判断是md文件还是资源文件
+            if (pureFilename.endsWith('.md')) {
+                // MD文件保存到目标文件夹根目录
+                const safeTitle = sanitizeFilename(title);
+                const mdFilename = `${safeTitle}.md`;
+
+                const mdFileHandle = await targetFolder.getFileHandle(mdFilename, {
+                    create: true,
+                });
+                const writable = await mdFileHandle.createWritable();
+                await writable.write(content as FileSystemWriteChunkType);
+                await writable.close();
+
+                console.log(`已保存MD文件: ${mdFilename}`);
+            } else if (!pureFilename.endsWith('.json')) {
+                // 其他文件（图片等）保存到assets文件夹
+                const fileHandle = await assetsDirHandle.getFileHandle(safeFilename, {
                     create: true,
                 });
                 const writable = await fileHandle.createWritable();
                 await writable.write(content as FileSystemWriteChunkType);
                 await writable.close();
+
+                console.log(`已保存资源文件: ${safeAssetsFolder}/${safeFilename}`);
             }
+        } catch (error) {
+            console.error(`保存文件失败 ${filepath}:`, error);
+            // 继续处理其他文件
         }
-
-        // 3. 生成 Obsidian 兼容的 Markdown
-        const obsidianMarkdown = generateObsidianMarkdown(markdown, lex, config);
-
-        // 4. 保存 Markdown 文件到 vault 根目录
-        const safeTitle = sanitizeFilename(title);
-        const mdFilename = `${safeTitle}.md`;
-
-        const mdFileHandle = await vaultHandle.getFileHandle(mdFilename, {
-            create: true,
-        });
-        const writable = await mdFileHandle.createWritable();
-        await writable.write(obsidianMarkdown);
-        await writable.close();
-
-        return {
-            success: true,
-            message: `已保存到 Obsidian: ${mdFilename}`,
-            mdPath: mdFilename,
-        };
-    } catch (err) {
-        console.error("保存到 Obsidian 失败:", err);
-        return {
-            success: false,
-            message: `保存失败: ${err.message}`,
-        };
     }
 }

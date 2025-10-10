@@ -5,6 +5,8 @@ import { parser } from "./core/parser"
 import { getAuthor, getTitle, getURL, getTime, getUpvote, getCommentNum, getRemark, getCommentSwitch, getLocation } from "./core/utils"
 import savelex from "./core/savelex"
 import { renderAllComments } from "./core/renderComments"
+import { showToast } from "./core/toast"
+import { hideObsidianModal } from "./core/obsidianSaver"
 
 interface DealItemResult {
     zip?: JSZip;
@@ -84,6 +86,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         } catch (e) {
         } */
 
+    showToast('✅ 开始保存');
     const title = getTitle(dom, scene, type),
         author = getAuthor(dom, scene, type),
         time = await getTime(dom, scene),//?????????
@@ -260,11 +263,23 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
                     if (!commentsData) {
                         if (!openComment) return;//既没评论数据也没展开评论区
                         let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存此页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）')
-                        if (!s) return 'return'
+                        let obsidian = document.querySelector("#zhihu-obsidian-modal") as HTMLElement
+                        let display = obsidian?.style.display
+                        if (!s) {
+                            showToast('❎ 取消保存');
+                            if (display == "block") {
+                                hideObsidianModal()
+                            }
+                            return 'return'
+                        }
                         else {
                             (openComment.querySelector('.save') as HTMLElement).click()
                             setTimeout(() => {
-                                if (button == 'obsidian') return alert('已【暂存此页评论】，请手动保存文件'); //todo
+                                if (display == "block") {
+                                    showToast('❎ 取消保存');
+                                    hideObsidianModal()
+                                    return alert('已【暂存此页评论】，由于这次是自定义文件夹保存，请再次手动保存文件。')
+                                }
                                 (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
                             }, 1900)
                             return 'return'
@@ -351,6 +366,14 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         try {
             // @ts-ignore
             var zip_merge_cm = GM_getValue("zip_merge_cm")
+
+            // ZIP共同解包模式下，强制合并文本和评论
+            let obsidian = document.querySelector("#zhihu-obsidian-modal") as HTMLElement
+            let display = obsidian?.style.display
+            let btn2 = document.querySelector("#zhihu-obsidian-modal #btn-2") as HTMLElement
+            if (display == "block" && btn2?.classList.contains("selected")) {
+                zip_merge_cm = true
+            }
         } catch (e) {
             console.warn(e)
         }

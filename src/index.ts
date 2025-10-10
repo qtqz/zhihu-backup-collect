@@ -231,7 +231,7 @@ const main = async () => {
                     ButtonZip.innerHTML = "下载中……"
                     const res = await dealItem(RichText, 'zip', event)
                     if (!res)
-                        return ButtonZip.innerHTML = "下载为 Zip";// 取消保存
+                        return ButtonZip.innerHTML = "下载为 ZIP";// 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
@@ -240,13 +240,13 @@ const main = async () => {
                     saveAs(blob, result.title + ".zip")
                     ButtonZip.innerHTML = "下载成功✅<br>请看下载记录"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为 Zip"
+                        ButtonZip.innerHTML = "下载为 ZIP"
                     }, 5000)
                 } catch (e) {
                     console.log(e)
                     ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看"
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为 Zip"
+                        ButtonZip.innerHTML = "下载为 ZIP"
                     }, 5000)
                 }
             },))
