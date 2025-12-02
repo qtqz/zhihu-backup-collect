@@ -77,10 +77,9 @@ function injectObsidianModal(): void {
                     </div>
                     <div class="user-notes">
                         <ul>
-                            <li>首次使用需要选择您的存储库，如果您有 Obsidian，可以选择您的 Obsidian 仓库目录。建议专门建立一个存储库文件夹存放内容，避免与现有笔记混合</li>
-                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字的文件夹</li>
+                            <li>首次使用需要选择您的存储库文件夹，如果您有 Obsidian，可以选择您的 Obsidian 仓库目录。建议专门建立一个存储库文件夹存放内容，避免与现有笔记混合</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字符的文件夹，以及 assets 文件夹。鼠标移到保存选项，会浮现出详细说明</li>
                             <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
-                            <li>支持 Chrome、Edge 等浏览器，暂未在 Firefox 测试</li>
                             <li>使用此功能时，请确保此程序是从可信的来源获取的，并定期备份您的文件</li>
                         </ul>
                     </div>
@@ -503,7 +502,7 @@ export function hideObsidianModal(): void {
     if (obsidianModal) {
         // 先设置透明度过渡
         obsidianModal.style.opacity = '0';
-        
+
         // 等待过渡完成后再彻底隐藏
         setTimeout(() => {
             if (obsidianModal) {
@@ -709,7 +708,9 @@ async function addSubFolders(
 
         // 只筛选出文件夹，并过滤掉名称长度超过25字符的文件夹
         const folders = entries.filter(entry =>
-            entry.handle.kind === 'directory' && entry.name.length <= 25
+            entry.handle.kind === 'directory' &&
+            entry.name.length <= 25 &&
+            entry.name !== 'assets'
         );
 
         // 限制显示条目数量
@@ -1256,7 +1257,7 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
 export async function saveFile(result: SaveResult, saveType: SaveType): Promise<void> {
 
     const finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
-    
+
     if (!finalHandle) {
         throw new Error('未选择保存文件夹');
     }
@@ -1265,7 +1266,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         if (!result.zip) {
             throw new Error('ZIP数据不存在');
         }
-        
+
         const folderName = sanitizeFilename(result.title);
         try {
             const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
@@ -1282,7 +1283,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         if (!result.zip) {
             throw new Error('ZIP数据不存在');
         }
-        
+
         try {
             await unpackZipCommon(result.zip, result.title, finalHandle);
             console.log(`成功共同解包ZIP文件: ${result.title}`);
@@ -1297,7 +1298,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         if (!result.zip) {
             throw new Error('ZIP数据不存在');
         }
-        
+
         const filename = result.title + '.zip';
         try {
             const zipBlob = await result.zip.generateAsync({ type: 'blob' });
@@ -1317,7 +1318,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         if (!result.textString) {
             throw new Error('图片数据不存在');
         }
-        
+
         const filename = result.title + '.png';
         try {
             const blob = dataUrlToBlob(result.textString);
@@ -1337,7 +1338,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         if (!result.textString) {
             throw new Error('文本内容不存在');
         }
-        
+
         const filename = result.title + '.md';
         try {
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
