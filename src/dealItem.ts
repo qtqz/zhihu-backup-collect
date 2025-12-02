@@ -44,24 +44,22 @@ function detectType(dom: HTMLElement, bt: string, ev?: Event): string | null {
 
         if (!ev) {
             alert('请勿收起又展开内容，否则会保存失败。请手动重新保存。')
-            // @ts-ignore
-            setTimeout(window.zhbf, 100)
-            return;
         }
-        let zhw = (ev.target as HTMLElement).closest('.zhihubackup-wrap'),
-            bz = zhw.querySelector('textarea').value,
-            fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem')
-        !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0
+        else {
+            let zhw = (ev.target as HTMLElement).closest('.zhihubackup-wrap'),
+                bz = zhw.querySelector('textarea').value,
+                fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem')
+            !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0
+            setTimeout(() => {
+                fa.querySelector('textarea').value = bz
+            }, 200)
+            setTimeout(() => {
+                (fa.querySelector(`.to-${bt}`) as HTMLElement).click()
+            }, 250)
+        }
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
         // @ts-ignore
         setTimeout(window.zhbf, 100)
-        setTimeout(() => {
-            fa.querySelector('textarea').value = bz
-        }, 200)
-        setTimeout(() => {
-            (fa.querySelector(`.to-${bt}`) as HTMLElement).click()
-        }, 250)
-
         return;
     }
     return type
