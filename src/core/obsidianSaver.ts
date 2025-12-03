@@ -81,6 +81,7 @@ function injectObsidianModal(): void {
                             <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字符的文件夹，以及 assets 文件夹。鼠标移到保存选项，会浮现出详细说明</li>
                             <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
                             <li>使用此功能时，请确保此程序是从可信的来源获取的，并定期备份您的文件</li>
+                            <li><a href="https://github.com/qtqz/zhihu-backup-collect" target="_blank" style="color: inherit!important;">点击前往项目主页，阅读更多内容/支持我</a></li>
                         </ul>
                     </div>
                 </div>

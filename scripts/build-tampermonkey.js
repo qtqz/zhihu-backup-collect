@@ -24,7 +24,7 @@ const TampermonkeyConfig = Object.entries(UserScript).map(([key, value]) => {
 const readme = fs.readFileSync("./README.md", "utf-8").toString().replace(/# .*?\n/s,'').replace(/## Dev.*?(?=##)/s,'').replace(/<!--.*-->/gs,'')
 
 fs.writeFileSync("./dist/tampermonkey.md", `
-源代码：[github:qtqz/zhihu-backup-collect](https://github.com/qtqz/zhihu-backup-collect)
+项目主页：[github:qtqz/zhihu-backup-collect](https://github.com/qtqz/zhihu-backup-collect)
 部分代码来自：[知乎下载器](https://greasyfork.org/zh-CN/scripts/478608-%E7%9F%A5%E4%B9%8E%E4%B8%8B%E8%BD%BD%E5%99%A8)
 
 ${readme}
@@ -37,7 +37,7 @@ ${TampermonkeyConfig}
 // ==/UserScript==
 
 /** 
-${readme.match(/## Changelog.*$/s)[0]}
+${readme.match(/## Changelog.*$/s)[0].slice(0,450).trim() + '...\n...\n'}
  */
 
 ${UserScriptContent}`, "utf-8")

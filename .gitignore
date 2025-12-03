@@ -6,3 +6,4 @@ test/
 pnpm-lock.yaml
 dist/bundle.js
 dist/bundle.min.js
+dist/tampermonkey.md

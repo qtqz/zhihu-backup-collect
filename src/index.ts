@@ -372,14 +372,15 @@ setTimeout(() => {
         left: -10em;
         top: -100px;
         height: 100%;
+        min-height: 200px;
         user-select: none;
         width: 12em;
     }
     .RichContent:hover .zhihubackup-wrap,
     .ContentItem:hover .zhihubackup-wrap,
     .Post-content:hover .zhihubackup-wrap,
-    .zhihubackup-wrap:hover,
-    .Post-RichTextContainer:hover .zhihubackup-wrap{
+    .Post-RichTextContainer:hover .zhihubackup-wrap,
+    .zhihubackup-wrap:hover {
         opacity: 1;
         pointer-events: initial;
     }

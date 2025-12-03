@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.10.52
+// @version      0.11.0
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,159 +26,22 @@
 /** 
 ## Changelog
 
+* 0.11.0（2025-10-08）:
+    - **可以保存内容到本地的指定目录**，便于分类，支持以多种格式保存
+    - 添加消息提示系统
+    - 样式和体验优化
+    - 删除无用的 info.json
+    - 为自定义保存文件名添加了默认值，方便修改
+    - 修复此问题：对于同一个内容，保存过 ZIP 后，评论中图片链接就永久变为本地链接，影响再次保存
 * 0.10.52（2025-10-08）:
-    - 修复知乎更新后保存想法中图片失败的问题
+    - 修复知乎更新后无法保存想法中图片的问题
 * 0.10.51（2025-09-29）:
     - 修复知乎更新后保存失败的问题
 * 0.10.48（2025-07-28）:
     - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，短段落变为空白行），请大家自查之前保存的想法
     - 允许自定义保存后的文件名格式（通过油猴菜单输入）
-    - 使评论区的换行与原来的一致
-    - 存 zip 且无评论时，不再生成空的评论文件
-* 0.10.44（2025-06-19）:
-    - 兼容知乎美化脚本的暗黑模式
-* 0.10.43（2025-06-14）:
-    - 修复搜索结果页新的保存出错问题
-    - 优化按钮显示体验，避免按钮消失
-* 0.10.41（2025-06-01）:
-    - 修复有时不显示按钮的问题
-* 0.10.40（2025-05-30）:
-    - 修复最近保存专栏文章出错问题
-    - 修复保存赞过的评论赞数量错误问题
-    - 支持保存被折叠的评论
-    - 支持保存评论中的@
-    - 补充多行评论中缺少的换行
-    - 关注页关注问题的动态现在不会出按钮了
-* 0.10.32（2025-05-10）:
-    - 修复有时候油猴菜单会消失的问题
-    - 修复在个人主页搜索后无法保存想法的问题
-    - 修复某些页面下无法保存文章的评论的问题
-    - 试图避免无法保存需重新保存的问题
-    - 修复无法保存带下划线文字的问题（非链接）
-    - 允许**删除文中多余的换行**（需通过油猴菜单手动开启）
-* 0.10.25（2025-03-07）:
-    - 点评论区提示按钮可以显示当前油猴选项了，避免忘记当前选的是什么
-    - 下载 zip 按钮添加下载提示语
-    - 修复未存评弹框点确定太快会无效的问题
-    - 修复保存不了有且仅有多个小表情的评论的问题
-    - 元信息中添加 IP属地（如果有）
-    - **修复评论时间错误问题**，并且更精确一点了
-* 0.10.19（2025-02-25）:
-    - 下载 zip 时允许合并正文和评论（需通过油猴菜单手动开启）
-    - 修复未存评弹框点确定后无法自动复制的问题
-    - 修复在个人页搜索内容后按钮被隐藏的问题
-    - 修复文章页有时不出现评论按钮的问题
-    - 存长图时，若有图片未加载，给出提示
-    - 修复不存图选项影响 zip 内文本的问题
-* 0.10.13（2025-02-18）:
-    - **重构主线程**，整理代码
-    - 复制时支持复制评论了（需通过油猴菜单手动开启）
-    - 支持复制或存文本时不保存图片（改为“[图片]”，需通过油猴菜单手动开启）
-    - 修复在搜索结果页和文章页不能存评论的问题
-    - 修复评论按钮显示突变
-    - 点击存评论按钮后有了反馈
-* 0.10.2（2025-02-15）:
-    - 修复想法页可能不显示存评论按钮的问题
-    - 修复存 zip 可能无法存评论的问题
-* 0.10.0（2025-01-13）:
-    - **全新的评论解析器**，可以解析弹出框中的评论
-    - 优化代码与性能
-    - 评论相对时间转绝对时间
-    - 补充转发想法中缺少的换行
-* 25.1.3（0.9.32）:
-    - 保存想法的标题
-    - 移除更多的搜索推荐词
-* 24.12.20（0.9.30）:
-    - 修复无法保存无字想法问题
-    - 修复下载 zip 与油猴菜单的冲突
-    - 现在提示保存失败后无需滚动即可重新保存
-* 24.12.3（0.9.26）:
-    - 修复突然无法下载 zip 问题
-    - 现在展开内容后无需滚动即可保存
-    - 开启复制带 fm 时不再额外带标题
-* 24.11.21（0.9.23）:
-    - 复制时可以包含 frontmatter 信息了（需通过油猴菜单手动打开）
-    - 添加了油猴脚本选项**菜单**
-* 24.11.13（0.9.22）:
-    - 修复两处截图样式异常问题
-    - 修复浏览器窗口过窄时按钮溢出屏幕的问题
-    - 修复按时间排序的问题被误判为回答的问题
-* 24.10.24（0.9.18）:
-    - 修复保存分段引用内容未分段问题
-    - 修复保存带标点加粗内容在阅读器中误加粗问题
-    - 修复保存段首有空格内容在阅读器中误判为代码块问题
-    - 修复收藏夹页无法保存部分图片问题
-    - 保存图注（图片下方灰字）作为斜体的普通段落
-    - 复制除想法外内容时添加标题
-* 24.8.26（0.9.11）:
-    - 修复保存转发的想法异常
-    - 修复新的样式异常
-    - frontmatter 添加作者个性签名
-* 24.7.10（0.9.7）:
-    - 修复搜索结果页保存报错
-    - 修复获取评论数量不对
-* 24.6.13（0.9.6）:
-    - 修复新的截图出错问题
-* 24.6.12（0.9.5）:
-    - 文章页截图不会再截到按钮了
-    - 移除没图片时多余的 assets 文件夹
-    - **添加保存为单文件功能**
-    - 支持保存评论中贴纸表情
-    - 修复评论中图片重复的问题
-    - 优化体验，写备注时可以把文本框拖大
-* 24.3.29（0.8.25）:
-    - 移除没图片评论时多余的 assets 文件夹
-    - 修复新的无法保存评论问题
-    - 下载文章时包含头图
-* 24.3.28（0.8.22）:
-    - 隐藏已折叠内容下的按钮
-    - 修复保存无名用户内容出错
-    - 修复按钮干扰选择文字的问题
-    - 修复点击保存评论时奇怪的跳转问题
-* 24.3.27（0.8.18）:
-    - 保存失败时给予补救机会
-    - 修复按钮被目录遮挡无法点击
-    - 修复无法保存机构号主页内容
-    - 修复 url 获取错误
-    - 内容子标题从 h2 开始
-    - 解析参考文献
-    - 解析目录
-* 24.3.20（0.8.8）:
-    - 修复保存匿名用户内容出错
-    - 增加保存失败原因提示
-* 24.3.4（0.8.7）:
-    - 更方便的测试
-    - 解析评论为Markdown
-    - 评论图片本地化
-    - **完善解析评论**修复bug
-    - 修复zip内文件日期错误问题
-    - 修复无法下载视频问题
-    - 适配推荐页、搜索结果页
-    - info中添加ip属地（如果有）
-    - 修复想法无法保存图片
-* 24.2.29（0.7.10）:
-    - 备注改为最长60字
-    - 修复个人页无法保存想法问题
-    - 修复保存zip处理评论可能出错问题
-* 24.2.4（0.7.7）:
-    - 为Markdown添加frontmatter
-    - 修正下载md内的图片路径为本地路径
-    - 对于有目录的内容，减轻按钮与目录的重叠
-* 24.1.19（0.7.4）:
-    - 截图适配专栏文章
-* 24.1.13（0.7.x）:
-    - 粗略**解析评论**并添加到zip
-    - 修复大量bug
-    - 准备发布
-* 24.1.13（0.6.x）:
-    - **适配想法**中的复杂情形
-* 24.1.11（0.5.x）:
-    - **添加截图功能**
-    - 初步适配想法
-* 24.1.2（0.4.x）:
-    - 初步重制
-* 23.12.29:
-    - 立项
+    - 使评论区的换行与原来的一致...
+...
 
  */
 
@@ -615,6 +478,1251 @@ const Tokenize = (node) => {
 
 /***/ }),
 
+/***/ 44:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   EE: () => (/* binding */ selectObsidianVault),
+/* harmony export */   KO: () => (/* binding */ hideObsidianModal),
+/* harmony export */   yH: () => (/* binding */ saveFile)
+/* harmony export */ });
+/* unused harmony exports showObsidianModal, saveObsidianConfig */
+/* harmony import */ var _toast__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(407);
+
+// showToast('欢迎使用知乎助手-备份到obsidian插件');
+/**
+ * 下一步
+ * 解决再次打开时，文件夹列表闪动的问题，尽量不重新读取文件夹
+ *
+ */
+// ============= 1. 全局状态管理 =============
+// 全局变量存储弹框元素和当前选择的文件夹
+let obsidianModal = null;
+let selectedVaultHandle = null; // 存储选择的文件夹
+let rootVaultHandle = null; // 存储最初选择的根文件夹
+let currentSelectedPath = ''; // 存储当前选择的相对路径
+// ============= 2. 弹框生命周期管理 =============
+/**
+ * 注入 Obsidian 选择弹框到页面
+ */
+function injectObsidianModal() {
+    if (obsidianModal) {
+        return; // 已经注入过了
+    }
+    // 创建弹框容器
+    obsidianModal = document.createElement('div');
+    obsidianModal.id = 'zhihu-obsidian-modal';
+    obsidianModal.innerHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" style="width: 2.5em;height: 2.5em;opacity: 0.7;" width="1.5em" height="1.5em" viewBox="0 0 512 512"><g fill-rule="evenodd"><path fill="#673ab7" d="M463.47 192H151.06c-13.77 0-26 8.82-30.35 21.89L64 384V160h384c0-17.67-14.33-32-32-32H241.98a32 32 0 0 1-20.48-7.42l-20.6-17.15c-5.75-4.8-13-7.43-20.48-7.43H64c-17.67 0-32 14.33-32 32v256c0 17.67 14.33 32 32 32h352l76.88-179.39c1.7-3.98 2.59-8.28 2.59-12.61c0-17.67-14.33-32-32-32"/><g fill="#d1c4e9"><path d="M336.2 318.24c8.07-1.51 12.6-2.02 21.66-2.02c-34.18-89.72 48.95-139.27 18.63-155.11c-17-8.88-52.32 37.77-72.93 56.26l-10.67 37.41c19.77 16.2 36.25 39.63 43.31 63.46m75.04 128.91c13.05 3.85 26.66-5.92 28.52-19.42c1.35-9.81 3.51-20.65 8.24-30.94c-2.66-7.51-25.72-71.18-104.74-56.39c7.6 31.4-4.15 64.54-22.83 91.02c33.14.31 59.29 6.45 90.81 15.73"/><path d="M478.76 346.86c7.02-12.43-16.61-22.28-28.74-50.78c-10.52-24.69 4.93-53.82-8.18-66.23l-40.17-38.02c-14.09 38.27-40.29 56.91-17.12 123.38c37.13 6.98 67.48 27.2 77.55 58.42c0 0 13.67-21.49 16.66-26.77m-221.26 5.78c-8.21 18.67 17.96 36.81 43.46 63.29c29-40.73 24.17-88.95-15.12-127.91z"/></g></g></svg>
+                    <span>选择存储库</span></h3>
+                    <button class="close-btn" type="button">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="button-group">
+                        <button id="btn-1" type="button" class="option-btn" data-text="zip-single" title="每个ZIP单独解包到一个文件夹，文件夹名称与ZIP名称相同，图片放到各自的文件夹内">
+                            ZIP单独解包
+                        </button>
+                        <button id="btn-2" type="button" class="option-btn" data-text="zip-common" title="所有ZIP共同解包，所有图片放到同一个文件夹（assets），强制合并文本和评论，放在外面，文件名与ZIP名称相同">
+                            ZIP共同解包
+                        </button>
+                        <button id="btn-3" type="button" class="option-btn" data-text="zip-none" title="不解压缩">
+                            ZIP不解包
+                        </button>
+                        <button id="btn-4" type="button" class="option-btn" data-text="text" title="纯文本MD文件">
+                            纯文本
+                        </button>
+                        <button id="btn-5" type="button" class="option-btn" data-text="png" title="图片PNG文件">
+                            图片
+                        </button>
+                    </div>
+                    <div class="folder-selection">
+                        <div id="selected-folder-info" class="selected-folder-info">
+                            未选择文件夹
+                        </div>
+                        <button id="select-folder-btn" type="button" class="select-folder-btn">
+                            选择文件夹
+                        </button>
+                    </div>
+                    <div class="folder-structure" id="folder-structure">
+                        <!-- 文件夹结构将在这里显示 -->
+                    </div>
+                    <div class="user-notes">
+                        <ul>
+                            <li>首次使用需要选择您的存储库文件夹，如果您有 Obsidian，可以选择您的 Obsidian 仓库目录。建议专门建立一个存储库文件夹存放内容，避免与现有笔记混合</li>
+                            <li>选择后可以点击任意子文件夹作为保存位置，便于分类保存。已过滤掉了长度超过25字符的文件夹，以及 assets 文件夹。鼠标移到保存选项，会浮现出详细说明</li>
+                            <li>授权一次后，下次使用会自动记住您的选择。关闭所有页面后，下次打开可能需要重新授权，选择始终允许即可</li>
+                            <li>使用此功能时，请确保此程序是从可信的来源获取的，并定期备份您的文件</li>
+                            <li><a href="https://github.com/qtqz/zhihu-backup-collect" target="_blank" style="color: inherit!important;">点击前往项目主页，阅读更多内容/支持我</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirm-save-btn" type="button" class="confirm-btn" disabled>
+                        确认保存
+                    </button>
+                    <button id="cancel-btn" type="button" class="cancel-btn">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    // 添加CSS样式
+    const style = document.createElement('style');
+    style.textContent = `
+        #zhihu-obsidian-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: none;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        #zhihu-obsidian-modal .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #zhihu-obsidian-modal .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #zhihu-obsidian-modal .modal-header {
+            background-color: rgb(221, 232, 249);
+            padding: 16px 20px;
+            border-bottom: 1px solid rgb(23, 114, 246);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #zhihu-obsidian-modal .modal-header h3 {
+            margin: 0;
+            color: black;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+        
+        #zhihu-obsidian-modal .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: black;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #zhihu-obsidian-modal .close-btn:hover {
+            background-color: rgba(23, 114, 246, 0.1);
+            border-radius: 4px;
+        }
+        
+        #zhihu-obsidian-modal .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        #zhihu-obsidian-modal .folder-selection {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        #zhihu-obsidian-modal .selected-folder-info {
+            background-color: rgb(221, 232, 249);
+            border: 1px solid rgb(23, 114, 246);
+            border-radius: 4px;
+            padding: 12px;
+            color: black;
+            font-size: 14px;
+            min-height: 20px;
+            flex: 1;
+        }
+        
+        #zhihu-obsidian-modal .select-folder-btn {
+            background-color: rgb(23, 114, 246);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        
+        #zhihu-obsidian-modal .select-folder-btn:hover {
+            background-color: rgb(21, 101, 217);
+        }
+        
+        #zhihu-obsidian-modal .select-folder-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #zhihu-obsidian-modal .folder-structure {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 16px;
+            min-height: 180px;
+            max-height: 260px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            color: black;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        #zhihu-obsidian-modal .folder-item {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        
+        #zhihu-obsidian-modal .folder-item:hover {
+            background-color: rgba(23, 114, 246, 0.1);
+        }
+        
+        #zhihu-obsidian-modal .folder-item.selected {
+            background-color: rgb(221, 232, 249);
+            font-weight: bold;
+        }
+        
+        #zhihu-obsidian-modal .modal-footer {
+            background-color: rgb(221, 232, 249);
+            padding: 16px 20px;
+            border-top: 1px solid rgb(23, 114, 246);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        #zhihu-obsidian-modal .confirm-btn {
+            background-color: rgb(23, 114, 246);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        #zhihu-obsidian-modal .confirm-btn:hover:not(:disabled) {
+            background-color: rgb(21, 101, 217);
+        }
+        
+        #zhihu-obsidian-modal .confirm-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #zhihu-obsidian-modal .cancel-btn {
+            background-color: white;
+            color: black;
+            border: 1px solid rgb(23, 114, 246);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        #zhihu-obsidian-modal .cancel-btn:hover {
+            background-color: rgb(221, 232, 249);
+        }
+        
+        #zhihu-obsidian-modal .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        #zhihu-obsidian-modal .option-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid rgb(23, 114, 246);
+            border-radius: 6px;
+            background-color: white;
+            color: rgb(23, 114, 246);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #zhihu-obsidian-modal .option-btn:hover {
+            background-color: rgba(23, 114, 246, 0.1);
+        }
+        
+        #zhihu-obsidian-modal .option-btn.selected {
+            background-color: rgb(23, 114, 246);
+            color: white;
+        }
+        
+        #zhihu-obsidian-modal .user-notes {
+            margin-top: 20px;
+            padding: 16px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #zhihu-obsidian-modal .user-notes ul {
+            margin: 0;
+            padding-left: 16px;
+        }
+        
+        #zhihu-obsidian-modal .user-notes li {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+    `;
+    // 将样式和弹框添加到页面
+    document.head.appendChild(style);
+    document.body.appendChild(obsidianModal);
+    // 绑定事件监听器
+    bindModalEvents();
+}
+/**
+ * 绑定选项按钮事件
+ */
+function bindOptionButtons() {
+    const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
+    optionButtons?.forEach(button => {
+        button.addEventListener('click', () => {
+            // 移除所有按钮的选中状态
+            optionButtons.forEach(btn => btn.classList.remove('selected'));
+            // 添加当前按钮的选中状态
+            button.classList.add('selected');
+            // 获取按钮文字并保存到localStorage
+            const buttonText = button.getAttribute('data-text');
+            if (buttonText) {
+                saveSelectedOption(buttonText);
+                console.log('选中选项:', buttonText);
+            }
+        });
+    });
+}
+/**
+ * 保存选中的选项到localStorage
+ */
+function saveSelectedOption(optionText) {
+    localStorage.setItem('zhihu-obsidian-selected-option', optionText);
+}
+/**
+ * 从localStorage加载选中的选项
+ */
+function loadSelectedOption() {
+    return localStorage.getItem('zhihu-obsidian-selected-option');
+}
+/**
+ * 恢复按钮选中状态
+ */
+function restoreButtonSelection() {
+    const selectedOption = loadSelectedOption();
+    let targetButton;
+    if (selectedOption) {
+        targetButton = obsidianModal?.querySelector(`[data-text="${selectedOption}"]`);
+    }
+    // 如果没有保存的选项，默认选中第4个按钮
+    if (!targetButton) {
+        targetButton = obsidianModal?.querySelector('#btn-4');
+        if (targetButton) {
+            // 保存默认选择到localStorage
+            const defaultText = targetButton.getAttribute('data-text');
+            if (defaultText) {
+                saveSelectedOption(defaultText);
+            }
+        }
+    }
+    if (targetButton) {
+        // 移除所有按钮的选中状态
+        const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
+        optionButtons?.forEach(btn => btn.classList.remove('selected'));
+        // 添加目标按钮的选中状态
+        targetButton.classList.add('selected');
+        const buttonText = targetButton.getAttribute('data-text');
+        console.log('恢复选中状态:', buttonText);
+    }
+}
+/**
+ * 绑定弹框事件监听器
+ */
+function bindModalEvents() {
+    if (!obsidianModal)
+        return;
+    // 关闭按钮
+    const closeBtn = obsidianModal.querySelector('.close-btn');
+    closeBtn?.addEventListener('click', hideObsidianModal);
+    // 取消按钮
+    const cancelBtn = obsidianModal.querySelector('#cancel-btn');
+    cancelBtn?.addEventListener('click', hideObsidianModal);
+    // 绑定选项按钮事件
+    bindOptionButtons();
+    // 选择文件夹按钮
+    const selectFolderBtn = obsidianModal.querySelector('#select-folder-btn');
+    selectFolderBtn?.addEventListener('click', async () => {
+        try {
+            selectedVaultHandle = await selectObsidianVaultInternal();
+            if (selectedVaultHandle) {
+                rootVaultHandle = selectedVaultHandle; // 保存根路径
+                currentSelectedPath = ''; // 重置为根路径
+                // 保存到IndexedDB
+                await fileHandleManager.saveRootFolderHandle(selectedVaultHandle);
+                await fileHandleManager.saveCurrentSelectedHandle(selectedVaultHandle);
+                fileHandleManager.setRootFolder(selectedVaultHandle);
+                fileHandleManager.setCurrentSelected(selectedVaultHandle);
+                updateSelectedFolderInfo();
+                await updateFolderStructure();
+                enableConfirmButton();
+                console.log('新文件夹选择完成:', selectedVaultHandle.name);
+            }
+        }
+        catch (error) {
+            console.error('选择文件夹失败:', error);
+        }
+    });
+    // 确认保存按钮的事件监听器将在 selectObsidianVault 函数中动态添加
+    // 点击遮罩层关闭弹框
+    const overlay = obsidianModal.querySelector('.modal-overlay');
+    overlay?.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            hideObsidianModal();
+        }
+    });
+}
+/**
+ * 显示 Obsidian 选择弹框
+ */
+function showObsidianModal() {
+    if (!obsidianModal) {
+        injectObsidianModal();
+    }
+    if (obsidianModal) {
+        obsidianModal.style.display = 'block';
+        // 恢复按钮选中状态
+        restoreButtonSelection();
+        // 加载上次的选择状态
+        loadLastSelection();
+    }
+}
+/**
+ * 隐藏 Obsidian 选择弹框
+ */
+function hideObsidianModal() {
+    if (obsidianModal) {
+        // 先设置透明度过渡
+        obsidianModal.style.opacity = '0';
+        // 等待过渡完成后再彻底隐藏
+        setTimeout(() => {
+            if (obsidianModal) {
+                obsidianModal.style.display = 'none';
+                // 重置透明度，为下次显示做准备
+                obsidianModal.style.opacity = '1';
+            }
+        }, 300);
+    }
+}
+/**
+ * 加载上次的选择状态
+ */
+async function loadLastSelection() {
+    console.log('尝试恢复文件夹访问权限...');
+    // 显示加载状态
+    const structureElement = obsidianModal?.querySelector('#folder-structure');
+    if (structureElement) {
+        structureElement.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <p>正在恢复文件夹访问权限...</p>
+            </div>
+        `;
+    }
+    // 尝试从IndexedDB恢复根文件夹句柄
+    const rootHandle = await fileHandleManager.loadAndVerifyRootFolderHandle();
+    if (rootHandle) {
+        console.log('成功恢复根文件夹访问权限:', rootHandle.name);
+        // 设置根目录状态
+        rootVaultHandle = rootHandle;
+        fileHandleManager.setRootFolder(rootHandle);
+        // 尝试恢复当前选择的文件夹句柄
+        const currentSelectedHandle = await fileHandleManager.loadAndVerifyCurrentSelectedHandle();
+        if (currentSelectedHandle) {
+            console.log('成功恢复当前选择文件夹访问权限:', currentSelectedHandle.name);
+            selectedVaultHandle = currentSelectedHandle;
+            fileHandleManager.setCurrentSelected(currentSelectedHandle);
+        }
+        else {
+            console.log('未找到当前选择的文件夹，使用根目录');
+            selectedVaultHandle = rootHandle;
+            fileHandleManager.setCurrentSelected(null);
+        }
+        // 加载保存的路径配置
+        const saved = loadDirectorySelection();
+        currentSelectedPath = saved.selectedPath || '';
+        /* if (currentSelectedPath != rootHandle.name) { */
+        // 更新UI显示，高亮显示
+        updateSelectedFolderInfo(currentSelectedPath);
+        updateFolderHighlight(currentSelectedPath);
+        /* }
+        else {
+            updateSelectedFolderInfo('');
+            updateFolderHighlight('');
+        } */
+        // 打开一次后，可能不需要更新了
+        await updateFolderStructure();
+        // 启用确认按钮
+        enableConfirmButton();
+        console.log('文件夹结构已恢复，当前路径:', currentSelectedPath);
+        console.log('当前选择的句柄:', selectedVaultHandle.name);
+    }
+    else {
+        console.log('需要重新选择文件夹');
+        // 显示默认状态
+        const infoElement = obsidianModal?.querySelector('#selected-folder-info');
+        if (infoElement) {
+            infoElement.textContent = '未选择文件夹';
+        }
+        const structureElement = obsidianModal?.querySelector('#folder-structure');
+        if (structureElement) {
+            structureElement.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <p>点击"选择文件夹"开始选择您的存储仓库</p>
+                </div>
+            `;
+        }
+    }
+}
+// ============= 3. 辅助函数 =============
+/**
+ * 更新选中的文件夹信息显示
+ */
+function updateSelectedFolderInfo(customPath) {
+    const infoElement = obsidianModal?.querySelector('#selected-folder-info');
+    if (infoElement && selectedVaultHandle && rootVaultHandle) {
+        let displayPath;
+        if (customPath) {
+            // 如果提供了自定义路径，从根路径开始显示
+            displayPath = `${rootVaultHandle.name}/${customPath}`;
+        }
+        else {
+            // 显示当前选择的文件夹名称
+            displayPath = selectedVaultHandle.name;
+        }
+        infoElement.textContent = `已选择: ${displayPath}`;
+    }
+}
+/**
+ * 更新文件夹高亮显示
+ */
+function updateFolderHighlight(selectedPath) {
+    const structureElement = obsidianModal?.querySelector('#folder-structure');
+    if (!structureElement)
+        return;
+    // 移除所有高亮
+    const allItems = structureElement.querySelectorAll('.folder-item');
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    // 高亮选中的文件夹
+    setTimeout(() => {
+        const selectedItem = structureElement.querySelector(`[data-path="${selectedPath}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+        }
+    }, 100);
+}
+/**
+ * 启用确认按钮
+ */
+function enableConfirmButton() {
+    (obsidianModal?.querySelector('#confirm-save-btn')).disabled = false;
+}
+// ============= 4. 文件夹管理 =============
+/**
+ * 更新文件夹结构显示
+ */
+async function updateFolderStructure() {
+    const structureElement = obsidianModal?.querySelector('#folder-structure');
+    if (!structureElement || !rootVaultHandle)
+        return;
+    try {
+        // 清除之前的事件监听器
+        structureElement.innerHTML = '';
+        // 创建根文件夹显示（始终从根文件夹开始）
+        const rootElement = createFolderElement(rootVaultHandle.name, rootVaultHandle, '');
+        structureElement.appendChild(rootElement);
+        // 添加子文件夹（从根文件夹开始展开）
+        await addSubFolders(structureElement, rootVaultHandle, '', 4);
+    }
+    catch (error) {
+        structureElement.innerHTML = '<div class="error">无法读取文件夹结构</div>';
+    }
+}
+/**
+ * 创建文件夹元素
+ */
+function createFolderElement(name, handle, path) {
+    const element = document.createElement('div');
+    element.className = 'folder-item';
+    element.textContent = '📁 ' + name;
+    element.dataset.path = path;
+    element.dataset.name = name;
+    element.dataset.handle = JSON.stringify({ name: handle.name }); // 存储句柄信息
+    element.addEventListener('click', async () => {
+        await selectFolder(handle, path);
+    });
+    return element;
+}
+/**
+ * 添加子文件夹
+ */
+async function addSubFolders(container, dirHandle, currentPath, maxDepth, indent = '') {
+    if (maxDepth <= 0)
+        return;
+    try {
+        const entries = [];
+        for await (const [name, handle] of dirHandle.entries()) {
+            entries.push({ name, handle });
+        }
+        // 只筛选出文件夹，并过滤掉名称长度超过25字符的文件夹
+        const folders = entries.filter(entry => entry.handle.kind === 'directory' &&
+            entry.name.length <= 25 &&
+            entry.name !== 'assets');
+        // 限制显示条目数量
+        const limitedFolders = folders.slice(0, 20);
+        for (const { name, handle } of limitedFolders) {
+            const fullPath = currentPath ? `${currentPath}/${name}` : name;
+            const folderElement = createFolderElement(name, handle, fullPath);
+            // 添加缩进（增加每一级的缩进量）
+            folderElement.style.paddingLeft = `${indent.length * 20 + 20}px`;
+            container.appendChild(folderElement);
+            // 递归添加子文件夹
+            if (maxDepth > 1) {
+                await addSubFolders(container, handle, fullPath, maxDepth - 1, indent + ' ');
+            }
+        }
+        if (folders.length > 20) {
+            const moreElement = document.createElement('div');
+            moreElement.textContent = indent + `... 还有 ${folders.length - 20} 个文件夹`;
+            moreElement.style.paddingLeft = `${indent.length * 20 + 20}px`;
+            moreElement.style.color = '#666';
+            container.appendChild(moreElement);
+        }
+    }
+    catch (error) {
+        console.error('读取子文件夹失败:', error);
+    }
+}
+/**
+ * 点击后选择文件夹
+ */
+async function selectFolder(handle, path) {
+    // 更新全局变量
+    selectedVaultHandle = handle;
+    currentSelectedPath = path;
+    // 保存当前选择的句柄到IndexedDB
+    await fileHandleManager.saveCurrentSelectedHandle(handle);
+    fileHandleManager.setCurrentSelected(handle);
+    // 保存到localStorage
+    if (rootVaultHandle) {
+        saveDirectorySelection(rootVaultHandle.name, path);
+    }
+    // 更新显示路径
+    updateSelectedFolderInfo(path);
+    // 更新高亮显示
+    updateFolderHighlight(path);
+    // 启用确认按钮
+    enableConfirmButton();
+    console.log('点击选择子文件夹:', path, '句柄:', handle.name);
+}
+/**
+ * 内部的选择文件夹函数（实际执行选择操作）
+ */
+async function selectObsidianVaultInternal() {
+    try {
+        const dirHandle = await window.showDirectoryPicker({
+            mode: "readwrite",
+        });
+        return dirHandle;
+    }
+    catch (err) {
+        if (err.name !== "AbortError") {
+            console.error("选择目录失败:", err);
+        }
+        return null;
+    }
+}
+// ============= 5. IndexedDB 持久化 =============
+/**
+ * 简化的 IndexedDB 操作类
+ */
+class SimpleDB {
+    constructor(dbName, version = 1) {
+        this.dbName = dbName;
+        this.version = version;
+    }
+    async open() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.version);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('handles')) {
+                    db.createObjectStore('handles');
+                }
+            };
+        });
+    }
+    async put(storeName, value, key) {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.put(value, key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+    async get(storeName, key) {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readonly');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.get(key);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+    async delete(storeName, key) {
+        const db = await this.open();
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        return new Promise((resolve, reject) => {
+            const request = store.delete(key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+}
+/**
+ * FileSystemDirectoryHandle 管理器
+ */
+class FileHandleManager {
+    constructor() {
+        this.storeName = 'handles';
+        this.rootFolderHandle = null;
+        this.currentSelectedHandle = null;
+        this.db = new SimpleDB('zhihu-obsidian-handles');
+    }
+    // 保存根文件夹句柄
+    async saveRootFolderHandle(folderHandle) {
+        try {
+            await this.db.put(this.storeName, folderHandle, 'rootFolder');
+            console.log('根文件夹句柄已保存到 IndexedDB');
+            return true;
+        }
+        catch (error) {
+            console.error('保存根文件夹句柄失败:', error);
+            return false;
+        }
+    }
+    // 保存当前选择的文件夹句柄
+    async saveCurrentSelectedHandle(folderHandle) {
+        try {
+            await this.db.put(this.storeName, folderHandle, 'currentSelected');
+            console.log('当前选择文件夹句柄已保存到 IndexedDB');
+            return true;
+        }
+        catch (error) {
+            console.error('保存当前选择文件夹句柄失败:', error);
+            return false;
+        }
+    }
+    // 加载并验证根文件夹句柄
+    async loadAndVerifyRootFolderHandle() {
+        try {
+            const folderHandle = await this.db.get(this.storeName, 'rootFolder');
+            if (!folderHandle) {
+                console.log('未找到保存的根文件夹句柄');
+                return null;
+            }
+            return await this.verifyFolderHandle(folderHandle, 'rootFolder');
+        }
+        catch (error) {
+            console.error('加载根文件夹句柄失败:', error);
+            return null;
+        }
+    }
+    // 加载并验证当前选择的文件夹句柄
+    async loadAndVerifyCurrentSelectedHandle() {
+        try {
+            const folderHandle = await this.db.get(this.storeName, 'currentSelected');
+            if (!folderHandle) {
+                console.log('未找到保存的当前选择文件夹句柄');
+                return null;
+            }
+            return await this.verifyFolderHandle(folderHandle, 'currentSelected');
+        }
+        catch (error) {
+            console.error('加载当前选择文件夹句柄失败:', error);
+            return null;
+        }
+    }
+    // 验证文件夹句柄权限
+    async verifyFolderHandle(folderHandle, key) {
+        try {
+            // 检查权限
+            const permissionStatus = await folderHandle.queryPermission();
+            console.log(`${key} 权限状态: ${permissionStatus}`);
+            if (permissionStatus === 'granted') {
+                console.log(`${key} 文件夹权限仍然有效`);
+                return folderHandle;
+            }
+            // 尝试重新请求权限
+            console.log(`尝试重新请求 ${key} 文件夹权限...`);
+            const newPermissionStatus = await folderHandle.requestPermission();
+            if (newPermissionStatus === 'granted') {
+                console.log(`重新获得 ${key} 文件夹权限`);
+                return folderHandle;
+            }
+            // 权限被拒绝，从存储中移除
+            console.log(`${key} 权限被拒绝，清除保存的句柄`);
+            await this.db.delete(this.storeName, key);
+            return null;
+        }
+        catch (error) {
+            console.error(`验证 ${key} 文件夹句柄失败:`, error);
+            return null;
+        }
+    }
+    // 设置根文件夹句柄
+    setRootFolder(folderHandle) {
+        this.rootFolderHandle = folderHandle;
+    }
+    // 设置当前选择的文件夹句柄
+    setCurrentSelected(folderHandle) {
+        this.currentSelectedHandle = folderHandle;
+    }
+    // 获取根文件夹句柄
+    getRootFolder() {
+        return this.rootFolderHandle;
+    }
+    // 获取当前选择的文件夹句柄
+    getCurrentSelected() {
+        return this.currentSelectedHandle;
+    }
+    // 兼容性方法：获取当前文件夹句柄（返回当前选择的，如果没有则返回根目录）
+    getCurrentFolder() {
+        return this.currentSelectedHandle || this.rootFolderHandle;
+    }
+}
+// 全局文件句柄管理器实例
+const fileHandleManager = new FileHandleManager();
+/**
+ * 从 localStorage 加载 Obsidian 配置
+ */
+function loadObsidianConfig() {
+    const config = localStorage.getItem("zhihu-obsidian-config");
+    if (config) {
+        const parsed = JSON.parse(config);
+        return {
+            attachmentFolder: parsed.attachmentFolder || "assets",
+            lastRootName: parsed.lastRootName,
+            lastSelectedPath: parsed.lastSelectedPath,
+        };
+    }
+    return {
+        attachmentFolder: "assets",
+    };
+}
+/**
+ * 保存 Obsidian 配置到 localStorage
+ */
+function saveObsidianConfig(config) {
+    const current = loadObsidianConfig();
+    const updated = { ...current, ...config };
+    localStorage.setItem("zhihu-obsidian-config", JSON.stringify(updated));
+}
+/**
+ * 保存目录选择状态到 localStorage
+ */
+function saveDirectorySelection(rootName, selectedPath) {
+    saveObsidianConfig({
+        lastRootName: rootName,
+        lastSelectedPath: selectedPath,
+    });
+}
+/**
+ * 从 localStorage 加载目录选择状态
+ */
+function loadDirectorySelection() {
+    const config = loadObsidianConfig();
+    return {
+        rootName: config.lastRootName,
+        selectedPath: config.lastSelectedPath,
+    };
+}
+/**
+ * 清理文件名，移除所有不允许的字符
+ * Windows/macOS/Linux 文件系统禁止的字符：< > : " / \ | ? * 以及控制字符
+ */
+function sanitizeFilename(filename) {
+    if (!filename || typeof filename !== 'string') {
+        return 'untitled';
+    }
+    return filename
+        // 移除所有控制字符（包括换行、回车、制表符等）
+        .replace(/[\x00-\x1f\x7f-\x9f]/g, '')
+        // 移除或替换文件系统非法字符
+        .replace(/[<>:"/\\|?*]/g, '-')
+        // 移除 Unicode 零宽字符和其他不可见字符
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        // 替换连续空白字符为单个空格
+        .replace(/\s+/g, ' ')
+        // 移除前后空格
+        .trim()
+        // 移除连续的点（避免 .. 等）
+        .replace(/\.{2,}/g, '.')
+        // 移除文件名开头和结尾的点和空格
+        .replace(/^[.\s]+|[.\s]+$/g, '')
+        // 限制长度（Windows 文件名最大255字节，保守起见限制200字符）
+        .substring(0, 200)
+        // 再次移除末尾的空格和点
+        .replace(/[.\s]+$/, '')
+        // 如果清理后为空，使用默认名称
+        || 'untitled';
+}
+// ============= 7. 主函数 =============
+/**
+ * 请求选择 Obsidian vault 目录
+ * 现在打开弹框，通过弹框界面进行选择
+ * Promise<FileSystemDirectoryHandle | null>
+ */
+async function selectObsidianVault() {
+    // 检查浏览器是否支持 File System Access API
+    if (!window.showDirectoryPicker) {
+        alert("您的浏览器不支持文件系统访问功能，请使用 Chrome 或 Edge 浏览器");
+        return null;
+    }
+    return new Promise((resolve) => {
+        // 显示弹框
+        showObsidianModal();
+        // 监听确认按钮点击事件
+        const confirmBtn = obsidianModal?.querySelector('#confirm-save-btn');
+        const cancelBtn = obsidianModal?.querySelector('#cancel-btn');
+        const closeBtn = obsidianModal?.querySelector('.close-btn');
+        const cleanup = () => {
+            confirmBtn?.removeEventListener('click', onConfirm);
+            cancelBtn?.removeEventListener('click', onCancel);
+            closeBtn?.removeEventListener('click', onCancel);
+        };
+        const onConfirm = async () => {
+            cleanup();
+            // hideObsidianModal();
+            // 获取当前选中的按钮内容
+            const selectedButton = obsidianModal?.querySelector('.option-btn.selected');
+            const selectedOption = selectedButton?.getAttribute('data-text');
+            console.log('确认保存 - selectedVaultHandle:', selectedVaultHandle?.name);
+            console.log('确认保存 - currentSelectedPath:', currentSelectedPath);
+            console.log('确认保存 - 选择的按钮内容:', selectedOption);
+            if (selectedOption) {
+                // 优先使用当前选择的句柄（可能是子文件夹）
+                let finalHandle = selectedVaultHandle;
+                // 如果当前没有选择句柄，则使用IndexedDB中保存的当前选择句柄
+                if (!finalHandle) {
+                    finalHandle = fileHandleManager.getCurrentSelected();
+                }
+                // 如果还是没有，使用根目录句柄
+                if (!finalHandle) {
+                    finalHandle = fileHandleManager.getRootFolder();
+                }
+                if (finalHandle && rootVaultHandle) {
+                    const currentPath = currentSelectedPath
+                        ? `${rootVaultHandle.name}/${currentSelectedPath}`
+                        : rootVaultHandle.name;
+                    console.log('当前保存的路径:', currentPath);
+                }
+            }
+            resolve(selectedOption || null);
+        };
+        const onCancel = () => {
+            cleanup();
+            hideObsidianModal();
+            resolve(null);
+        };
+        confirmBtn?.addEventListener('click', onConfirm);
+        cancelBtn?.addEventListener('click', onCancel);
+        closeBtn?.addEventListener('click', onCancel);
+    });
+}
+/**
+ * 将dataUrl转换为Blob
+ * @param dataUrl 图片的data URL
+ * @returns Blob对象
+ */
+function dataUrlToBlob(dataUrl) {
+    // 分离dataUrl的元数据和数据部分
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const bstr = atob(parts[1]); // base64解码
+    // 将字符串转换为Uint8Array
+    const n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+    }
+    // 创建Blob
+    return new Blob([u8arr], { type: mime });
+}
+/**
+ * 解包ZIP文件到指定文件夹
+ * @param zip JSZip对象
+ * @param targetFolder 目标文件夹句柄
+ */
+async function unpackZipToFolder(zip, targetFolder) {
+    const files = Object.keys(zip.files);
+    for (const filepath of files) {
+        const file = zip.files[filepath];
+        // 跳过文件夹条目
+        if (file.dir) {
+            continue;
+        }
+        try {
+            // 分割路径，处理嵌套文件夹
+            const pathParts = filepath.split('/');
+            const filename = pathParts.pop(); // 最后一部分是文件名
+            if (!filename) {
+                continue;
+            }
+            // 如果有子文件夹，先创建子文件夹
+            let currentFolder = targetFolder;
+            for (const folderName of pathParts) {
+                if (folderName) {
+                    const safeFolderName = sanitizeFilename(folderName);
+                    currentFolder = await currentFolder.getDirectoryHandle(safeFolderName, { create: true });
+                }
+            }
+            // 获取文件内容
+            const content = await file.async('uint8array');
+            const safeFilename = sanitizeFilename(filename);
+            // 创建并写入文件
+            const fileHandle = await currentFolder.getFileHandle(safeFilename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            console.log(`已保存文件: ${filepath} -> ${safeFilename}`);
+        }
+        catch (error) {
+            console.error(`保存文件失败 ${filepath}:`, error);
+            // 继续处理其他文件
+        }
+    }
+}
+/**
+ * 保存文件到本地文件系统
+ * @param result 保存结果数据
+ * @param saveType 保存类型
+ */
+async function saveFile(result, saveType) {
+    const finalHandle = selectedVaultHandle || fileHandleManager.getCurrentSelected() || fileHandleManager.getRootFolder();
+    if (!finalHandle) {
+        throw new Error('未选择保存文件夹');
+    }
+    if (saveType === 'zip-single') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        const folderName = sanitizeFilename(result.title);
+        try {
+            const targetFolder = await finalHandle.getDirectoryHandle(folderName, { create: true });
+            await unpackZipToFolder(result.zip, targetFolder);
+            console.log(`成功解包ZIP文件到文件夹: ${folderName}`);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('✅ 保存成功');
+        }
+        catch (error) {
+            console.error('解包ZIP文件失败:', error);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('❌ 保存失败');
+            throw error;
+        }
+    }
+    else if (saveType === 'zip-common') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        try {
+            await unpackZipCommon(result.zip, result.title, finalHandle);
+            console.log(`成功共同解包ZIP文件: ${result.title}`);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('✅ 保存成功');
+        }
+        catch (error) {
+            console.error('共同解包ZIP文件失败:', error);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('❌ 保存失败');
+            throw error;
+        }
+    }
+    else if (saveType === 'zip-none') {
+        if (!result.zip) {
+            throw new Error('ZIP数据不存在');
+        }
+        const filename = result.title + '.zip';
+        try {
+            const zipBlob = await result.zip.generateAsync({ type: 'blob' });
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(zipBlob);
+            await writable.close();
+            console.log(`成功保存ZIP文件: ${filename}`);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('✅ 保存成功');
+        }
+        catch (error) {
+            console.error('保存ZIP文件失败:', error);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('❌ 保存失败');
+            throw error;
+        }
+    }
+    else if (saveType === 'png') {
+        if (!result.textString) {
+            throw new Error('图片数据不存在');
+        }
+        const filename = result.title + '.png';
+        try {
+            const blob = dataUrlToBlob(result.textString);
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            console.log(`成功保存图片文件: ${filename}`);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('✅ 保存成功');
+        }
+        catch (error) {
+            console.error('保存图片文件失败:', error);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('❌ 保存失败');
+            throw error;
+        }
+    }
+    else if (saveType === 'text') {
+        if (!result.textString) {
+            throw new Error('文本内容不存在');
+        }
+        const filename = result.title + '.md';
+        try {
+            const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(result.textString);
+            await writable.close();
+            console.log(`成功保存MD文件: ${filename}`);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('✅ 保存成功');
+        }
+        catch (error) {
+            console.error('保存MD文件失败:', error);
+            (0,_toast__WEBPACK_IMPORTED_MODULE_0__/* .showToast */ .C)('❌ 保存失败');
+            throw error;
+        }
+    }
+    // 等保存成功后再隐藏弹框，不然共同解包ZIP会出问题，不能正常合并评论
+    hideObsidianModal();
+}
+/**
+ * 共同解包ZIP文件
+ * @param zip JSZip对象
+ * @param title 文件标题
+ * @param targetFolder 目标文件夹句柄
+ * @param assetsFolder assets文件夹名称，默认为'assets'
+ */
+async function unpackZipCommon(zip, title, targetFolder, assetsFolder = 'assets') {
+    const safeAssetsFolder = sanitizeFilename(assetsFolder);
+    // 1. 创建或获取assets文件夹
+    const assetsDirHandle = await targetFolder.getDirectoryHandle(safeAssetsFolder, { create: true });
+    // 2. 遍历ZIP中的所有文件
+    const files = Object.keys(zip.files);
+    for (const filepath of files) {
+        const file = zip.files[filepath];
+        // 跳过文件夹条目
+        if (file.dir) {
+            continue;
+        }
+        try {
+            const content = await file.async('uint8array');
+            const pureFilename = filepath.split('/').pop();
+            if (!pureFilename) {
+                continue;
+            }
+            const safeFilename = sanitizeFilename(pureFilename);
+            // 判断是md文件还是资源文件
+            if (pureFilename.endsWith('.md')) {
+                // MD文件保存到目标文件夹根目录
+                const safeTitle = sanitizeFilename(title);
+                const mdFilename = `${safeTitle}.md`;
+                const mdFileHandle = await targetFolder.getFileHandle(mdFilename, {
+                    create: true,
+                });
+                const writable = await mdFileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                console.log(`已保存MD文件: ${mdFilename}`);
+            }
+            else {
+                // 其他文件（图片等）保存到assets文件夹
+                const fileHandle = await assetsDirHandle.getFileHandle(safeFilename, {
+                    create: true,
+                });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                console.log(`已保存资源文件: ${safeAssetsFolder}/${safeFilename}`);
+            }
+        }
+        catch (error) {
+            console.error(`保存文件失败 ${filepath}:`, error);
+            // 继续处理其他文件
+        }
+    }
+}
+
+
+/***/ }),
+
 /***/ 940:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
@@ -856,6 +1964,107 @@ async function downloadAndZipAll(urls, zip) {
     zip.file("index.md", markdown)*/
     return { zip: zip, localLex: lex };
 });
+
+
+/***/ }),
+
+/***/ 407:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   C: () => (/* binding */ showToast)
+/* harmony export */ });
+// 维护活动的 toast 列表
+const activeToasts = [];
+const TOAST_HEIGHT = 60; // 每个 toast 的高度间隔
+// 初始化样式
+const initStyles = () => {
+    if (document.getElementById('toast-styles'))
+        return;
+    const style = document.createElement('style');
+    style.id = 'toast-styles';
+    style.textContent = `
+    .toast-message {
+      position: fixed;
+      top: 30px;
+      left: 50%;
+      background: white;
+      color: #333;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.3s ease;
+    }
+    
+    .toast-message.show {
+      opacity: 1;
+      animation: toast-float-in 0.5s ease forwards;
+    }
+    
+    .toast-message.hide {
+      animation: toast-float-out 0.5s ease forwards;
+    }
+    
+    @keyframes toast-float-in {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes toast-float-out {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+  `;
+    document.head.appendChild(style);
+};
+// 显示消息
+const showToast = (message, duration = 4000) => {
+    initStyles();
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+    // 计算当前 toast 应该显示的位置（根据已有 toast 数量）
+    const offset = activeToasts.length * TOAST_HEIGHT;
+    toast.style.transform = `translate(-50%, ${offset}px)`;
+    document.body.appendChild(toast);
+    activeToasts.push(toast);
+    // 淡入显示
+    setTimeout(() => toast.classList.add('show'), 10);
+    // 淡出消失
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+            toast.remove();
+            // 从列表中移除
+            const index = activeToasts.indexOf(toast);
+            if (index > -1) {
+                activeToasts.splice(index, 1);
+                // 更新剩余 toast 的位置
+                updateToastPositions();
+            }
+        }, 500);
+    }, duration);
+};
+// 更新所有 toast 的位置
+const updateToastPositions = () => {
+    activeToasts.forEach((toast, index) => {
+        toast.style.transform = `translate(-50%, ${index * TOAST_HEIGHT}px)`;
+    });
+};
 
 
 /***/ }),
@@ -1224,9 +2433,13 @@ const getLocation = (dom, scene, type) => {
 /* harmony import */ var _core_lexer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(108);
 /* harmony import */ var _core_tokenTypes__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(307);
 /* harmony import */ var _core_parser__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(940);
-/* harmony import */ var _core_utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(465);
+/* harmony import */ var _core_utils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(465);
 /* harmony import */ var _core_savelex__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(546);
-/* harmony import */ var _core_renderComments__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(385);
+/* harmony import */ var _core_renderComments__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(385);
+/* harmony import */ var _core_toast__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(407);
+/* harmony import */ var _core_obsidianSaver__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(44);
+
+
 
 
 
@@ -1276,21 +2489,20 @@ function detectType(dom, bt, ev) {
         console.log("未知内容");
         if (!ev) {
             alert('请勿收起又展开内容，否则会保存失败。请手动重新保存。');
-            // @ts-ignore
-            setTimeout(window.zhbf, 100);
-            return;
         }
-        let zhw = ev.target.closest('.zhihubackup-wrap'), bz = zhw.querySelector('textarea').value, fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem');
-        !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0;
+        else {
+            let zhw = ev.target.closest('.zhihubackup-wrap'), bz = zhw.querySelector('textarea').value, fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem');
+            !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0;
+            setTimeout(() => {
+                fa.querySelector('textarea').value = bz;
+            }, 200);
+            setTimeout(() => {
+                fa.querySelector(`.to-${bt}`).click();
+            }, 250);
+        }
         document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove());
         // @ts-ignore
         setTimeout(window.zhbf, 100);
-        setTimeout(() => {
-            fa.querySelector('textarea').value = bz;
-        }, 200);
-        setTimeout(() => {
-            fa.querySelector(`.to-${bt}`).click();
-        }, 250);
         return;
     }
     return type;
@@ -1313,9 +2525,10 @@ function detectType(dom, bt, ev) {
             script.name
         } catch (e) {
         } */
-    const title = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getTitle */ .YQ)(dom, scene, type), author = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getAuthor */ .Au)(dom, scene, type), time = await (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getTime */ .hK)(dom, scene), //?????????
-    url = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getURL */ .Ax)(dom, scene, type), upvote_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getUpvote */ .vb)(dom, scene, type), comment_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getCommentNum */ .og)(dom, scene, type), Location = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getLocation */ .k$)(dom, scene, type);
-    let remark = (0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getRemark */ .iw)(dom);
+    (0,_core_toast__WEBPACK_IMPORTED_MODULE_5__/* .showToast */ .C)('✅ 开始保存');
+    const title = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getTitle */ .YQ)(dom, scene, type), author = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getAuthor */ .Au)(dom, scene, type), time = await (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getTime */ .hK)(dom, scene), //?????????
+    url = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getURL */ .Ax)(dom, scene, type), upvote_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getUpvote */ .vb)(dom, scene, type), comment_num = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getCommentNum */ .og)(dom, scene, type), Location = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getLocation */ .k$)(dom, scene, type);
+    let remark = (0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getRemark */ .iw)(dom);
     if (remark === "非法备注") {
         alert(decodeURIComponent("备注不可包含%20%20%2F%20%3A%20*%20%3F%20%22%20%3C%20%3E%20%7C"));
         return;
@@ -1456,7 +2669,7 @@ function detectType(dom, bt, ev) {
     let commentText = '', commentsImgs = [];
     const dealComments = async () => {
         try {
-            if ((0,_core_utils__WEBPACK_IMPORTED_MODULE_4__/* .getCommentSwitch */ .vE)(dom)) {
+            if ((0,_core_utils__WEBPACK_IMPORTED_MODULE_6__/* .getCommentSwitch */ .vE)(dom)) {
                 let p = dom.closest('.ContentItem') || dom.closest('.Post-content');
                 let openComment = p.querySelector(".Comments-container");
                 let itemId = type + url.split('/').pop();
@@ -1477,13 +2690,23 @@ function detectType(dom, bt, ev) {
                         if (!openComment)
                             return; //既没评论数据也没展开评论区
                         let s = confirm('您还未暂存任何评论，却展开了评论区，是否立即【暂存此页评论并保存】？【否】则什么也不做\n（若不想存评，请收起评论区或取消勾选框）');
-                        if (!s)
+                        let obsidian = document.querySelector("#zhihu-obsidian-modal");
+                        let display = obsidian?.style.display;
+                        if (!s) {
+                            (0,_core_toast__WEBPACK_IMPORTED_MODULE_5__/* .showToast */ .C)('❎ 取消保存');
+                            if (display == "block") {
+                                (0,_core_obsidianSaver__WEBPACK_IMPORTED_MODULE_4__/* .hideObsidianModal */ .KO)();
+                            }
                             return 'return';
+                        }
                         else {
                             openComment.querySelector('.save').click();
                             setTimeout(() => {
-                                if (button == 'obsidian')
-                                    return alert('已【暂存此页评论】，请手动保存文件'); //todo
+                                if (display == "block") {
+                                    (0,_core_toast__WEBPACK_IMPORTED_MODULE_5__/* .showToast */ .C)('❎ 取消保存');
+                                    (0,_core_obsidianSaver__WEBPACK_IMPORTED_MODULE_4__/* .hideObsidianModal */ .KO)();
+                                    return alert('已【暂存此页评论】，由于这次是自定义文件夹保存，请再次手动保存文件。');
+                                }
                                 p.querySelector(`.zhihubackup-wrap .to-${button}`).click();
                             }, 1900);
                             return 'return';
@@ -1492,11 +2715,11 @@ function detectType(dom, bt, ev) {
                     let num_text = tip + '共 ' + comment_num + ' 条评论，已存 ' + commentsData.size + ' 条' + '\n\n';
                     if (button == 'text' || button == 'copy') {
                         // 准备添加第三种图片归宿，完全舍弃
-                        [commentText, commentsImgs] = (0,_core_renderComments__WEBPACK_IMPORTED_MODULE_5__/* .renderAllComments */ .L)(commentsData, false);
+                        [commentText, commentsImgs] = (0,_core_renderComments__WEBPACK_IMPORTED_MODULE_7__/* .renderAllComments */ .L)(commentsData, false);
                         commentText = num_text + commentText;
                     }
                     else if (button == 'zip') {
-                        [commentText, commentsImgs] = (0,_core_renderComments__WEBPACK_IMPORTED_MODULE_5__/* .renderAllComments */ .L)(commentsData, true);
+                        [commentText, commentsImgs] = (0,_core_renderComments__WEBPACK_IMPORTED_MODULE_7__/* .renderAllComments */ .L)(commentsData, true);
                         commentText = num_text + commentText;
                         if (commentsImgs.length) {
                             const assetsFolder = zip.folder('assets');
@@ -1571,6 +2794,13 @@ function detectType(dom, bt, ev) {
         try {
             // @ts-ignore
             var zip_merge_cm = GM_getValue("zip_merge_cm");
+            // ZIP共同解包模式下，强制合并文本和评论
+            let obsidian = document.querySelector("#zhihu-obsidian-modal");
+            let display = obsidian?.style.display;
+            let btn2 = document.querySelector("#zhihu-obsidian-modal #btn-2");
+            if (display == "block" && btn2?.classList.contains("selected")) {
+                zip_merge_cm = true;
+            }
         }
         catch (e) {
             console.warn(e);
@@ -1583,42 +2813,6 @@ function detectType(dom, bt, ev) {
             zip.file("comments.md", commentText);
         zip.file("index.md", getFrontmatter() + (TOC ? TOC.join("\n\n") + '\n\n' : '') + md.join("\n\n"));
     }
-    const zopQuestion = (() => {
-        try {
-            let el = document.querySelector("[data-zop-question]");
-            if (el)
-                return JSON.parse(el.getAttribute("data-zop-question"));
-            return null;
-        }
-        catch (e) {
-            console.error('保存data-zop-question出错', e);
-        }
-    })();
-    const { zop, zaExtra } = (() => {
-        let el = dom.closest('.ContentItem'); //想法类型、文章页没有
-        if (!el)
-            el = dom.closest('.PinItem');
-        if (!el)
-            el = dom.closest('.Post-content');
-        try {
-            if (el)
-                return {
-                    zop: JSON.parse(el.getAttribute("data-zop")),
-                    zaExtra: JSON.parse(el.getAttribute("data-za-extra-module"))
-                };
-        }
-        catch (e) {
-            console.error('保存zop, zaExtra出错', e);
-        }
-        return null;
-    })();
-    zip.file("info.json", JSON.stringify({
-        title, url, author, time, upvote_num, comment_num,
-        zop,
-        "location": Location,
-        "zop-question": zopQuestion,
-        "zop-extra-module": zaExtra,
-    }, null, 4));
     return {
         zip,
         title: getFilename()
@@ -1662,14 +2856,15 @@ function renderCommentToMarkdown(comment, comments, level = 0, isLocalImg) {
     ];
 
     if (comment.img) {
+        let img = comment.img
         if (isLocalImg) {
             commentsImgs.push(comment.img)
-            comment.img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
+            img = './assets/' + comment.img.replace(/\?.*?$/, "").split("/").pop()
         }
         // @ts-ignore
         window.no_save_img && !isLocalImg ?
             markdown.push(`${prefix}[图片]`, prefix) :
-            markdown.push(`${prefix}![](${comment.img})`, prefix)
+            markdown.push(`${prefix}![](${img})`, prefix)
         // @ts-ignore
         console.log('comment.img', window.no_save_img);
     }
@@ -3201,8 +4396,11 @@ const mountParseComments = () => {
                     copy_save_fm = GM_getValue("copy_save_fm"),
                     copy_save_cm = GM_getValue("copy_save_cm"),
                     no_save_img = GM_getValue("no_save_img"),
-                    edit_Filename = GM_getValue("edit_Filename")||'未启用',
-                    HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}\n自定义文件名：${edit_Filename}`
+                    edit_Filename = GM_getValue("edit_Filename") || '未启用'
+                if (edit_Filename == 'title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark') {
+                    edit_Filename = '与默认值相同'
+                }
+                var HINT2 = `\n当前设置：\n跳过空白段落：${skip_empty_p}\n复制保存评论：${copy_save_cm}\n复制保存FM：${copy_save_fm}\nzip合并评论：${zip_merge_cm}\n复制与纯文本不存图片：${no_save_img}\n自定义文件名：${edit_Filename}`
             } catch (e) {
             }
             alert(HINT + HINT2)
@@ -3302,48 +4500,18 @@ function formatDate(date) {
     return `${year}-${month}-${day}`;
 }
 
+// EXTERNAL MODULE: ./src/core/obsidianSaver.ts
+var obsidianSaver = __webpack_require__(44);
 ;// CONCATENATED MODULE: ./src/index.ts
 
 
 
 
 
-//import { selectObsidianVault, saveFile } from "./core/obsidianSaver";
+
 /**
- * 修改版
- *
- * 适配关注推送时间线，用户时间线
- * 按钮改为鼠标悬停才显示，绝对定位，减少侵入
- * 代码风格：大部分改为空格缩进、无分号
- *
- * 优化逻辑与性能，减少多余操作：
- * 无限循环改为每1秒监听滚动
- * 点击按钮后才开始处理内容
- *
- * 文件名添加作者名、时间
- * 保存为HTML/PNG
  * 适配复杂的想法：转发、带卡片链接、带@
- *
- *
  * 页：推送页，个人/机构主页，回答页，问题页，文章页，想法页，收藏夹页，搜索结果页
- */
-/**
- *
- * 路线图
- *
- * 03-原版
- * 04-接手
- * 05-截图
- * 054-想法
- * 06-想法完全支持
- * 07-zip添加评论
- * 071-测试
- * 072-预发布
- * 073-修复文章截图
- *
- * 更多见 readme
- *
- *
  */
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -3407,7 +4575,7 @@ function registerBtn() {
         let menuFilename = GM_registerMenuCommand("自定义保存后的文件名格式", function () {
             // @ts-ignore
             let efm = GM_getValue("edit_Filename");
-            let fm = prompt(`是否自定义保存后的文件名格式？留空或填错恢复默认\n默认为title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark，你可以调整它的顺序，使用其他属性需要阅读源码\n(new Date).toLocaleDateString().replaceAll('/','-')添加保存日期`, efm ? efm : '');
+            let fm = prompt(`是否自定义保存后的文件名格式？留空或填错恢复默认\n默认为title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark，你可以调整它的顺序，使用其他属性需要阅读源码\n(new Date).toLocaleDateString().replaceAll('/','-')添加保存日期`, efm ? efm : 'title + "_" + author.name + "_" + time.modified.slice(0, 10) + remark');
             // @ts-ignore
             GM_setValue("edit_Filename", fm);
             //alert(GM_getValue("edit_Filename"))
@@ -3424,8 +4592,10 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
     <button class="to-copy Button VoteButton">复制为Markdown</button>
     <button class="to-zip Button VoteButton">下载为 ZIP</button>
     <button class="to-text Button VoteButton">下载为纯文本</button>
-    <!--<button class="to-obsidian Button VoteButton">Obsidian</button>-->
     <button class="to-png Button VoteButton">剪藏为 PNG</button>
+    <button class="to-obsidian Button VoteButton">
+    <svg style="width: 2em;height: 2em;width: 1.5em;height: 1.5em;opacity: 0.6;vertical-align: sub;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19.355 18.538a68.967 68.959 0 0 0 1.858-2.954a.81.81 0 0 0-.062-.9c-.516-.685-1.504-2.075-2.042-3.362c-.553-1.321-.636-3.375-.64-4.377a1.7 1.7 0 0 0-.358-1.05l-3.198-4.064a4 4 0 0 1-.076.543c-.106.503-.307 1.004-.536 1.5c-.134.29-.29.6-.446.914l-.31.626c-.516 1.068-.997 2.227-1.132 3.59c-.124 1.26.046 2.73.815 4.481q.192.016.386.044a6.36 6.36 0 0 1 3.326 1.505c.916.79 1.744 1.922 2.415 3.5zM8.199 22.569q.11.019.22.02c.78.024 2.095.092 3.16.29c.87.16 2.593.64 4.01 1.055c1.083.316 2.198-.548 2.355-1.664c.114-.814.33-1.735.725-2.58l-.01.005c-.67-1.87-1.522-3.078-2.416-3.849a5.3 5.3 0 0 0-2.778-1.257c-1.54-.216-2.952.19-3.84.45c.532 2.218.368 4.829-1.425 7.531zM5.533 9.938q-.035.15-.098.29L2.82 16.059a1.6 1.6 0 0 0 .313 1.772l4.116 4.24c2.103-3.101 1.796-6.02.836-8.3c-.728-1.73-1.832-3.081-2.55-3.831zM9.32 14.01c.615-.183 1.606-.465 2.745-.534c-.683-1.725-.848-3.233-.716-4.577c.154-1.552.7-2.847 1.235-3.95q.17-.35.328-.664c.149-.297.288-.577.419-.86c.217-.47.379-.885.46-1.27c.08-.38.08-.72-.014-1.043c-.095-.325-.297-.675-.68-1.06a1.6 1.6 0 0 0-1.475.36l-4.95 4.452a1.6 1.6 0 0 0-.513.952l-.427 2.83c.672.59 2.328 2.316 3.335 4.711q.136.317.253.653"></path></svg>
+    保存到<br>指定文件夹</button>
     <button class="Button VoteButton">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
     </button>
@@ -3507,7 +4677,7 @@ const main = async () => {
                     ButtonZip.innerHTML = "下载中……";
                     const res = await (0,dealItem/* default */.Z)(RichText, 'zip', event);
                     if (!res)
-                        return ButtonZip.innerHTML = "下载为 Zip"; // 取消保存
+                        return ButtonZip.innerHTML = "下载为 ZIP"; // 取消保存
                     result = {
                         zip: res.zip,
                         title: res.title,
@@ -3516,14 +4686,14 @@ const main = async () => {
                     (0,FileSaver_min.saveAs)(blob, result.title + ".zip");
                     ButtonZip.innerHTML = "下载成功✅<br>请看下载记录";
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为 Zip";
+                        ButtonZip.innerHTML = "下载为 ZIP";
                     }, 5000);
                 }
                 catch (e) {
                     console.log(e);
                     ButtonZip.innerHTML = "发生错误❌<br>请打开控制台查看";
                     setTimeout(() => {
-                        ButtonZip.innerHTML = "下载为 Zip";
+                        ButtonZip.innerHTML = "下载为 ZIP";
                     }, 5000);
                 }
             }));
@@ -3597,34 +4767,66 @@ const main = async () => {
                     }, 5000);
                 }
             }));
-            /* const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
-            ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
+            const ButtonObsidian = parent_dom.querySelector(".to-obsidian");
+            ButtonObsidian.addEventListener("click", throttle(async (event) => {
                 try {
-                    let saveType = await selectObsidianVault()
-
+                    let saveType = await (0,obsidianSaver/* selectObsidianVault */.EE)();
+                    if (!saveType)
+                        return; // 取消保存
                     if (saveType == 'text') {
-                        const res = await dealItem(RichText, 'text')
-                        if (!res || !saveType) return;// 取消保存
+                        const res = await (0,dealItem/* default */.Z)(RichText, 'text');
+                        if (!res)
+                            return; // 取消保存
                         result = {
                             textString: res.textString,
                             title: res.title,
-                        }
-                        await saveFile(result, saveType as any)
+                        };
+                        await (0,obsidianSaver/* saveFile */.yH)(result, saveType);
                     }
                     else if (saveType.slice(0, 3) == 'zip') {
-                        const res = await dealItem(RichText, 'zip')
-                        if (!res || !saveType) return;// 取消保存
+                        const res = await (0,dealItem/* default */.Z)(RichText, 'zip');
+                        if (!res)
+                            return; // 取消保存
                         result = {
                             zip: res.zip,
                             title: res.title,
-                        }
-                        await saveFile(result, saveType as any)
+                        };
+                        await (0,obsidianSaver/* saveFile */.yH)(result, saveType);
                     }
-                } catch (e) {
-                    console.log(e)
-                    alert('发生错误❌请打开控制台查看')
+                    else if (saveType == 'png') {
+                        const res = await (0,dealItem/* default */.Z)(RichText, 'png');
+                        if (!res)
+                            return; // 取消保存
+                        let clip = parent_dom;
+                        clip.classList.add("to-screenshot");
+                        let saveCM = (0,utils/* getCommentSwitch */.vE)(RichText);
+                        !saveCM ? clip.classList.add("no-cm") : 0;
+                        let svgDefs = document.querySelector("#MathJax_SVG_glyphs");
+                        svgDefs ? svgDefs.style.visibility = "visible" : 0;
+                        Qt(clip, {
+                            backgroundColor: "#fff",
+                            filter(el) {
+                                if (el.tagName == 'DIV' && el.classList.contains('zhihubackup-wrap'))
+                                    return false;
+                                else
+                                    return true;
+                            },
+                        }).then(async (dataUrl) => {
+                            result = {
+                                textString: dataUrl,
+                                title: res.title,
+                            };
+                            clip.classList.remove("to-screenshot");
+                            !saveCM ? clip.classList.remove("no-cm") : 0;
+                            await (0,obsidianSaver/* saveFile */.yH)(result, saveType);
+                        });
+                    }
                 }
-            })) */
+                catch (e) {
+                    console.log(e);
+                    alert('发生错误❌请打开控制台查看\n你可以关闭窗口后再试一次！');
+                }
+            }));
         }
         catch (e) {
             console.log(e);
@@ -3655,16 +4857,17 @@ setTimeout(() => {
         transition: opacity 0.5s;
         position: absolute;
         left: -10em;
-        top: -50px;
+        top: -100px;
         height: 100%;
+        min-height: 200px;
         user-select: none;
         width: 12em;
     }
     .RichContent:hover .zhihubackup-wrap,
     .ContentItem:hover .zhihubackup-wrap,
     .Post-content:hover .zhihubackup-wrap,
-    .zhihubackup-wrap:hover,
-    .Post-RichTextContainer:hover .zhihubackup-wrap{
+    .Post-RichTextContainer:hover .zhihubackup-wrap,
+    .zhihubackup-wrap:hover {
         opacity: 1;
         pointer-events: initial;
     }
@@ -3689,7 +4892,7 @@ setTimeout(() => {
     .zhihubackup-container textarea {
         /*border: 1px solid #777;*/
         background-color: #0000;
-        font-size: 16px;
+        font-size: 14px;
         color: #1772f6;
         border: unset;
         text-align: center;
