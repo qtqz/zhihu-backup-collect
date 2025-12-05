@@ -1,5 +1,5 @@
 import {
-    type LexType, TokenType, TokenText, TokenTextType, TokenTextCode, TokenTextInlineMath,
+    type LexType, TokenType, TokenText, TokenTextType, TokenTextCode, TokenTextInlineMath, TokenFootnoteList,
 } from "./tokenTypes"
 
 
@@ -124,6 +124,15 @@ export const parser = (input: LexType[]): string[] => {
 
                 break
             }
+
+            case TokenType.FootnoteList: {
+                // 渲染脚注定义列表
+                const footnotes = (token as TokenFootnoteList).items.map(item => 
+                    `[^${item.id}]: ${item.content}`
+                )
+                output.push(footnotes.join("\n"))
+                break
+            }
         }
     }
 
@@ -173,8 +182,12 @@ const renderRich = (input: TokenTextType[], joint: string = ""): string => {
             }
 
             case TokenType.Math: {
-                if (input.length == 1) res += `$$\n${(el as TokenTextInlineMath).content}\n$$`
-                else res += `$${(el as TokenTextInlineMath).content}$`
+                const mathToken = el as TokenTextInlineMath;
+                if (mathToken.display) {
+                    res += `\n\n$$\n${mathToken.content}\n$$\n\n`
+                } else {
+                    res += `$${mathToken.content}$`
+                }
                 break
             }
         }

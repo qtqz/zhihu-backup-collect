@@ -21,6 +21,7 @@ export enum TokenType {
     Link,
     Table,
     Video,
+    FootnoteList,
 }
 
 
@@ -85,6 +86,7 @@ export type TokenTextCode = {
 export type TokenTextInlineMath = {
     type: TokenType.Math;
     content: string;
+    display?: boolean; // true 表示块级公式，false 或 undefined 表示行内公式
     dom?: HTMLElement;
 };
 
@@ -237,6 +239,24 @@ export type TokenVideo = {
 }
 
 
+/**
+ * Represents a footnote/reference item.
+ */
+export type FootnoteItem = {
+    id: string; // 如 "1", "2"
+    content: string; // 脚注内容
+};
+
+/**
+ * Represents a token footnote list.
+ */
+export type TokenFootnoteList = {
+    type: TokenType.FootnoteList;
+    items: FootnoteItem[];
+    dom?: HTMLOListElement;
+}
+
+
 /** 
  * Represents a token of all kinds of lex.
  */
@@ -253,4 +273,5 @@ export type LexType =
     TokenLink |
     TokenTable |
     TokenVideo |
-    TokenGif 
+    TokenGif |
+    TokenFootnoteList 

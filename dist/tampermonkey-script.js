@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.11.0
+// @version      0.11.3
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,10 @@
 /** 
 ## Changelog
 
+* 0.11.3（2025-12-04）:
+    - 修复一大堆关于公式的问题
+    - 修复脚注不能用的问题
+    - 跳过更多空白段落
 * 0.11.0（2025-12-03）:
     - **可以保存内容到本地的指定目录**，便于分类，支持以多种格式保存
     - 添加消息提示系统
@@ -38,9 +42,7 @@
 * 0.10.51（2025-09-29）:
     - 修复知乎更新后保存失败的问题
 * 0.10.48（2025-07-28）:
-    - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，短段落变为空白行），请大家自查之前保存的想法
-    - 允许自定义保存后的文件名格式（通过油猴菜单输入）
-    - 使评论区的换行与原来的一致...
+    - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，...
 ...
 
  */
@@ -247,6 +249,22 @@ const lexer = (input, type) => {
                         });
                     }
                 }
+                else if (img.getAttribute('data-actualsrc')?.includes('/equation?tex=')) {
+                    // 图片格式的公式
+                    const altText = img.getAttribute('alt') || '';
+                    if (altText) {
+                        tokens.push({
+                            type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Text,
+                            content: [{
+                                    type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Math,
+                                    content: altText.trim(),
+                                    display: true,
+                                    dom: img
+                                }],
+                            dom: node
+                        });
+                    }
+                }
                 else {
                     const src = img.getAttribute("data-actualsrc") || img.getAttribute("data-original") || img.src;
                     if (src) {
@@ -283,16 +301,36 @@ const lexer = (input, type) => {
                 break;
             }
             case "ol": {
-                const childNodes = Array.from(node.querySelectorAll("li"));
-                tokens.push({
-                    type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Olist,
-                    content: childNodes.map((el) => Tokenize(el)),
-                    dom: node,
-                });
+                // 检查是否为脚注/参考文献列表
+                if (node.classList.contains('ReferenceList')) {
+                    const childNodes = Array.from(node.querySelectorAll("li"));
+                    const items = childNodes.map((li) => {
+                        // 提取脚注编号，从 id="ref_1" 中提取 "1"
+                        const id = li.id.replace('ref_', '');
+                        // 提取脚注内容，跳过返回链接，只取 span 中的文本
+                        const span = li.querySelector('span');
+                        const content = span ? span.textContent || '' : li.textContent || '';
+                        return { id, content: content.trim() };
+                    });
+                    tokens.push({
+                        type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.FootnoteList,
+                        items,
+                        dom: node,
+                    });
+                }
+                else {
+                    // 普通有序列表
+                    const childNodes = Array.from(node.querySelectorAll("li"));
+                    tokens.push({
+                        type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Olist,
+                        content: childNodes.map((el) => Tokenize(el)),
+                        dom: node,
+                    });
+                }
                 break;
             }
             case "p": {
-                if (node.classList.contains('ztext-empty-paragraph') && skipEmpty)
+                if (skipEmpty && (node.classList.contains('ztext-empty-paragraph') || node.textContent.length == 0))
                     break;
                 tokens.push({
                     type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Text,
@@ -342,7 +380,7 @@ const Tokenize = (node) => {
     if (typeof node == "string") {
         return [{
                 type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.PlainText,
-                text: node.trimStart(), // 修复被误识别为代码块
+                text: node.replace('\t', '').replace(/^\s{2,}/, ''), // 修复被误识别为代码块，修复公式后面缺少空格的问题
             }];
     }
     let childs = Array.from(node.childNodes);
@@ -358,7 +396,7 @@ const Tokenize = (node) => {
         if (child.nodeType == child.TEXT_NODE) {
             res.push({
                 type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.PlainText,
-                text: child.textContent.replace(/\u200B/g, '').trimStart(), // 修复被误识别为代码块
+                text: child.textContent.replace(/\u200B/g, '').replace('\t', '').replace(/^\s{2,}/, ''), // 修复被误识别为代码块，修复公式后面缺少空格的问题
                 dom: child,
             });
         }
@@ -399,9 +437,16 @@ const Tokenize = (node) => {
                 case "span": {
                     try {
                         if (el.classList.contains("ztext-math")) {
+                            // 根据是否存在 MathJax_SVG_Display 类来判断是否为块级公式
+                            const hasDisplayClass = el.querySelector(".MathJax_SVG_Display") !== null;
+                            const content = el.getAttribute("data-tex").trim();
+                            // 如果公式包含 \tag 命令，也应该是块级公式（\tag 只能在 display mode 中使用）
+                            const hasTag = content.includes('\\tag');
+                            const isDisplayMath = hasDisplayClass || hasTag;
                             res.push({
                                 type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Math,
-                                content: el.getAttribute("data-tex"),
+                                content: content,
+                                display: isDisplayMath,
                                 dom: el,
                             });
                         }
@@ -451,12 +496,13 @@ const Tokenize = (node) => {
                     break;
                 }
                 case "sup": {
-                    //参考文献引用
+                    const link = el.firstElementChild;
+                    // 提取脚注编号，如 [1] -> 1
+                    const footnoteText = link.textContent.replace(/[\[\]]/g, '');
                     res.push({
-                        type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.InlineLink,
-                        text: el.firstElementChild.textContent,
-                        href: (0,_utils__WEBPACK_IMPORTED_MODULE_1__/* .ZhihuLink2NormalLink */ .ld)(el.firstElementChild.href),
-                        dom: el.firstElementChild,
+                        type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.PlainText,
+                        text: `[^${footnoteText}]`,
+                        dom: el,
                     });
                     break;
                 }
@@ -464,7 +510,7 @@ const Tokenize = (node) => {
                     //下划线内容等question/478154391/answer/121816724037
                     res.push({
                         type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.PlainText,
-                        text: child.textContent.replace(/\u200B/g, '').trimStart(),
+                        text: child.textContent.replace(/\u200B/g, '').replace('\t', '').replace(/^\s{2,}/, ''),
                         dom: child,
                     });
                 }
@@ -1830,6 +1876,12 @@ const parser = (input) => {
                 output.push(res.join("\n"));
                 break;
             }
+            case _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.FootnoteList: {
+                // 渲染脚注定义列表
+                const footnotes = token.items.map(item => `[^${item.id}]: ${item.content}`);
+                output.push(footnotes.join("\n"));
+                break;
+            }
         }
     }
     return output;
@@ -1869,10 +1921,13 @@ const renderRich = (input, joint = "") => {
                 break;
             }
             case _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.Math: {
-                if (input.length == 1)
-                    res += `$$\n${el.content}\n$$`;
-                else
-                    res += `$${el.content}$`;
+                const mathToken = el;
+                if (mathToken.display) {
+                    res += `\n\n$$\n${mathToken.content}\n$$\n\n`;
+                }
+                else {
+                    res += `$${mathToken.content}$`;
+                }
                 break;
             }
         }
@@ -2101,6 +2156,7 @@ var TokenType;
     TokenType[TokenType["Link"] = 17] = "Link";
     TokenType[TokenType["Table"] = 18] = "Table";
     TokenType[TokenType["Video"] = 19] = "Video";
+    TokenType[TokenType["FootnoteList"] = 20] = "FootnoteList";
 })(TokenType || (TokenType = {}));
 
 

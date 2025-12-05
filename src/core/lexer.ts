@@ -1,3 +1,4 @@
+import { log } from "console"
 import type {
     TokenH2,
     TokenH3,
@@ -21,6 +22,8 @@ import type {
     TokenTable,
     TokenVideo,
     TokenGif,
+    TokenFootnoteList,
+    FootnoteItem,
 } from "./tokenTypes"
 
 import { TokenType } from "./tokenTypes"
@@ -192,7 +195,24 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
                             dom: node
                         } as TokenGif)
                     }
-                } else {
+                }
+                else if (img.getAttribute('data-actualsrc')?.includes('/equation?tex=')) {
+                    // 图片格式的公式
+                    const altText = img.getAttribute('alt') || '';
+                    if (altText) {
+                        tokens.push({
+                            type: TokenType.Text,
+                            content: [{
+                                type: TokenType.Math,
+                                content: altText.trim(),
+                                display: true,
+                                dom: img
+                            } as TokenTextInlineMath],
+                            dom: node
+                        } as TokenText)
+                    }
+                }
+                else {
                     const src = img.getAttribute("data-actualsrc") || img.getAttribute("data-original") || img.src
                     if (src) {
                         tokens.push({
@@ -231,18 +251,37 @@ export const lexer = (input: NodeListOf<Element> | Element[], type?: string): Le
             }
 
             case "ol": {
-                const childNodes = Array.from(node.querySelectorAll("li"))
-                tokens.push({
-                    type: TokenType.Olist,
-                    content: childNodes.map((el) => Tokenize(el)),
-                    dom: node,
-                } as TokenOList)
+                // 检查是否为脚注/参考文献列表
+                if (node.classList.contains('ReferenceList')) {
+                    const childNodes = Array.from(node.querySelectorAll("li"))
+                    const items: FootnoteItem[] = childNodes.map((li) => {
+                        // 提取脚注编号，从 id="ref_1" 中提取 "1"
+                        const id = li.id.replace('ref_', '')
+                        // 提取脚注内容，跳过返回链接，只取 span 中的文本
+                        const span = li.querySelector('span')
+                        const content = span ? span.textContent || '' : li.textContent || ''
+                        return { id, content: content.trim() }
+                    })
+                    tokens.push({
+                        type: TokenType.FootnoteList,
+                        items,
+                        dom: node,
+                    } as TokenFootnoteList)
+                } else {
+                    // 普通有序列表
+                    const childNodes = Array.from(node.querySelectorAll("li"))
+                    tokens.push({
+                        type: TokenType.Olist,
+                        content: childNodes.map((el) => Tokenize(el)),
+                        dom: node,
+                    } as TokenOList)
+                }
 
                 break
             }
 
             case "p": {
-                if (node.classList.contains('ztext-empty-paragraph') && skipEmpty)
+                if (skipEmpty && (node.classList.contains('ztext-empty-paragraph') || node.textContent.length == 0))
                     break
 
                 tokens.push({
@@ -314,7 +353,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
     if (typeof node == "string") {
         return [{
             type: TokenType.PlainText,
-            text: node.trimStart(), // 修复被误识别为代码块
+            text: node.replace('\t', '').replace(/^\s{2,}/, ''), // 修复被误识别为代码块，修复公式后面缺少空格的问题
         } as TokenTextPlain]
     }
 
@@ -333,7 +372,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
         if (child.nodeType == child.TEXT_NODE) {
             res.push({
                 type: TokenType.PlainText,
-                text: child.textContent.replace(/\u200B/g, '').trimStart(), // 修复被误识别为代码块
+                text: child.textContent.replace(/\u200B/g, '').replace('\t', '').replace(/^\s{2,}/, ''), // 修复被误识别为代码块，修复公式后面缺少空格的问题
                 dom: child,
             } as TokenTextPlain)
         } else {
@@ -378,9 +417,16 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
                 case "span": {
                     try {
                         if (el.classList.contains("ztext-math")) {
+                            // 根据是否存在 MathJax_SVG_Display 类来判断是否为块级公式
+                            const hasDisplayClass = el.querySelector(".MathJax_SVG_Display") !== null;
+                            const content = el.getAttribute("data-tex").trim();
+                            // 如果公式包含 \tag 命令，也应该是块级公式（\tag 只能在 display mode 中使用）
+                            const hasTag = content.includes('\\tag');
+                            const isDisplayMath = hasDisplayClass || hasTag;
                             res.push({
                                 type: TokenType.Math,
-                                content: el.getAttribute("data-tex"),
+                                content: content,
+                                display: isDisplayMath,
                                 dom: el,
                             } as TokenTextInlineMath)
                         } else if (el.children[0].classList.contains("RichContent-EntityWord")) {//搜索词
@@ -429,13 +475,14 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
                 }
 
                 case "sup": {
-                    //参考文献引用
+                    const link = el.firstElementChild as HTMLAnchorElement
+                    // 提取脚注编号，如 [1] -> 1
+                    const footnoteText = link.textContent.replace(/[\[\]]/g, '')
                     res.push({
-                        type: TokenType.InlineLink,
-                        text: el.firstElementChild.textContent,
-                        href: ZhihuLink2NormalLink((el.firstElementChild as HTMLAnchorElement).href),
-                        dom: el.firstElementChild,
-                    } as TokenTextLink)
+                        type: TokenType.PlainText,
+                        text: `[^${footnoteText}]`,
+                        dom: el,
+                    } as TokenTextPlain)
                     break
                 }
 
@@ -443,7 +490,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
                     //下划线内容等question/478154391/answer/121816724037
                     res.push({
                         type: TokenType.PlainText,
-                        text: child.textContent.replace(/\u200B/g, '').trimStart(),
+                        text: child.textContent.replace(/\u200B/g, '').replace('\t', '').replace(/^\s{2,}/, ''),
                         dom: child,
                     } as TokenTextPlain)
                 }
