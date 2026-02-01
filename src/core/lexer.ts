@@ -436,7 +436,7 @@ const Tokenize = (node: Element | string): TokenTextType[] => {
                                 dom: el,
                             } as TokenTextPlain)
                         }
-                        else if (el.children[0].classList.contains("UserLink")) {//想法中的@
+                        else if (el.querySelector('a')) {//想法中的用户名片
                             res.push({
                                 type: TokenType.InlineLink,
                                 text: el.innerText,
