@@ -2,7 +2,7 @@
 // @name         知乎备份剪藏
 // @namespace    qtqz
 // @source       https://github.com/qtqz/zhihu-backup-collect
-// @version      0.11.3
+// @version      0.11.6
 // @description  将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png
 // @author       qtqz
 // @match        https://www.zhihu.com/follow
@@ -26,6 +26,10 @@
 /** 
 ## Changelog
 
+* 0.11.6（2026-02-01）:
+    - 修复有时候无法保存评论中链接的问题
+    - 修复无法保存想法中的用户的问题
+    - 修复突然无法输入备注的问题
 * 0.11.3（2025-12-04）:
     - 修复一大堆关于公式的问题
     - 修复脚注不能用的问题
@@ -39,10 +43,7 @@
     - 修复此问题：对于同一个内容，保存过 ZIP 后，评论中图片链接就永久变为本地链接，影响再次保存
 * 0.10.52（2025-10-08）:
     - 修复知乎更新后无法保存想法中图片的问题
-* 0.10.51（2025-09-29）:
-    - 修复知乎更新后保存失败的问题
-* 0.10.48（2025-07-28）:
-    - 修复**想法中很短的段落可能会缺失**的问题（从第二段起，...
+* 0.10.51（202...
 ...
 
  */
@@ -457,7 +458,7 @@ const Tokenize = (node) => {
                                 dom: el,
                             });
                         }
-                        else if (el.children[0].classList.contains("UserLink")) { //想法中的@
+                        else if (el.querySelector('a')) { //想法中的用户名片
                             res.push({
                                 type: _tokenTypes__WEBPACK_IMPORTED_MODULE_0__/* .TokenType */ .i.InlineLink,
                                 text: el.innerText,
@@ -4166,10 +4167,14 @@ class CommentParser {
                 textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
             else if (node.nodeName == 'BR') textContentPlain += '\n'
-            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
+            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会，还有带链接内容
                 node.childNodes.forEach(c => {
-                    textContentPlain += c.alt || c.textContent
-                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                    if (c.nodeName == 'A') {
+                        let link = ZhihuLink2NormalLink(c.href)
+                        textContentPlain += '[' + c.textContent + '](' + link + ')'
+                    }
+                    else if (c.nodeName == 'BR') textContentPlain += '\n'
+                    else textContentPlain += c.alt || c.textContent
                 })
             }
             else textContentPlain += node.textContent
@@ -4652,12 +4657,12 @@ ButtonContainer.innerHTML = `<div class="zhihubackup-container">
     <button class="to-obsidian Button VoteButton">
     <svg style="width: 2em;height: 2em;width: 1.5em;height: 1.5em;opacity: 0.6;vertical-align: sub;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19.355 18.538a68.967 68.959 0 0 0 1.858-2.954a.81.81 0 0 0-.062-.9c-.516-.685-1.504-2.075-2.042-3.362c-.553-1.321-.636-3.375-.64-4.377a1.7 1.7 0 0 0-.358-1.05l-3.198-4.064a4 4 0 0 1-.076.543c-.106.503-.307 1.004-.536 1.5c-.134.29-.29.6-.446.914l-.31.626c-.516 1.068-.997 2.227-1.132 3.59c-.124 1.26.046 2.73.815 4.481q.192.016.386.044a6.36 6.36 0 0 1 3.326 1.505c.916.79 1.744 1.922 2.415 3.5zM8.199 22.569q.11.019.22.02c.78.024 2.095.092 3.16.29c.87.16 2.593.64 4.01 1.055c1.083.316 2.198-.548 2.355-1.664c.114-.814.33-1.735.725-2.58l-.01.005c-.67-1.87-1.522-3.078-2.416-3.849a5.3 5.3 0 0 0-2.778-1.257c-1.54-.216-2.952.19-3.84.45c.532 2.218.368 4.829-1.425 7.531zM5.533 9.938q-.035.15-.098.29L2.82 16.059a1.6 1.6 0 0 0 .313 1.772l4.116 4.24c2.103-3.101 1.796-6.02.836-8.3c-.728-1.73-1.832-3.081-2.55-3.831zM9.32 14.01c.615-.183 1.606-.465 2.745-.534c-.683-1.725-.848-3.233-.716-4.577c.154-1.552.7-2.847 1.235-3.95q.17-.35.328-.664c.149-.297.288-.577.419-.86c.217-.47.379-.885.46-1.27c.08-.38.08-.72-.014-1.043c-.095-.325-.297-.675-.68-1.06a1.6 1.6 0 0 0-1.475.36l-4.95 4.452a1.6 1.6 0 0 0-.513.952l-.427 2.83c.672.59 2.328 2.316 3.335 4.711q.136.317.253.653"></path></svg>
     保存到<br>指定文件夹</button>
-    <button class="Button VoteButton">
+    <div class="Button VoteButton" style="display: inline-block;box-sizing: border-box;overflow: hidden;">
         <textarea class="to-remark" type="text" placeholder="添加备注" style="width: 100%;" maxlength="60"></textarea>
-    </button>
-    <button class="Button VoteButton">
+    </div>
+    <div class="Button VoteButton" style="display: inline-block;box-sizing: border-box;">
         <label><input type="checkbox" checked class="to-cm"> 保存评论</label>
-    </button></div>`;
+    </div>`;
 const main = async () => {
     //console.log("Starting…")
     const RichTexts = Array.from(document.querySelectorAll(".RichText"));
@@ -4702,6 +4707,13 @@ const main = async () => {
             }
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer');
             p.prepend(aButtonContainer);
+            // 为 textarea 添加事件监听器，阻止事件冒泡，确保可以正常输入
+            const textareaRemark = parent_dom.querySelector(".to-remark");
+            textareaRemark.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                textareaRemark.focus();
+            }, true); // 使用捕获阶段
             const ButtonMarkdown = parent_dom.querySelector(".to-copy");
             ButtonMarkdown.addEventListener("click", throttle(async (event) => {
                 try {
@@ -4938,7 +4950,7 @@ setTimeout(() => {
         max-width: 8em;
         z-index: 2;
     }
-    .zhihubackup-container button {
+    .zhihubackup-container .Button {
         width: 8em;
         margin-bottom: 8px;
         line-height: 24px !important;
@@ -4959,9 +4971,9 @@ setTimeout(() => {
         line-height: 1.5em;
         vertical-align: middle;
     }
-    button.Button.VoteButton:has(input:focus),
-    button.Button.VoteButton:has(textarea:focus),
-    button.Button.VoteButton:has(textarea:hover) {
+    div.Button.VoteButton:has(input:focus),
+    div.Button.VoteButton:has(textarea:focus),
+    div.Button.VoteButton:has(textarea:hover) {
         resize: both;
         overflow: hidden;
     }

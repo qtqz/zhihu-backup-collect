@@ -48,10 +48,14 @@ class CommentParser {
                 textContentPlain += '[' + node.textContent + '](' + link + ')'
             }
             else if (node.nodeName == 'BR') textContentPlain += '\n'
-            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会
+            else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会，还有带链接内容
                 node.childNodes.forEach(c => {
-                    textContentPlain += c.alt || c.textContent
-                    if (c.nodeName == 'BR') textContentPlain += '\n'
+                    if (c.nodeName == 'A') {
+                        let link = ZhihuLink2NormalLink(c.href)
+                        textContentPlain += '[' + c.textContent + '](' + link + ')'
+                    }
+                    else if (c.nodeName == 'BR') textContentPlain += '\n'
+                    else textContentPlain += c.alt || c.textContent
                 })
             }
             else textContentPlain += node.textContent

@@ -1,6 +1,6 @@
 {
   "name": "zhihu-backup-collect",
-  "version": "0.11.5",
+  "version": "0.11.6",
   "description": "将你喜欢的知乎回答/文章/想法保存为 markdown / zip / png",
   "scripts": {
     "dev": "run-s watch",
