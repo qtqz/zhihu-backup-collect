@@ -75,9 +75,12 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
         // 个人页的搜索结果的想法没有作者栏
         if (!author_dom && location.href.includes('search')) {
             author_dom = document.querySelector('.ProfileHeader-title')
+            let profileUrl = location.href.match(/(https.*)\/search/)[1]
+            let authorId = profileUrl ? profileUrl.match(/\/(?:people|org)\/([^/?#]+)/)?.[1] || '' : ''
             return {
                 name: author_dom.children[0].textContent,
                 url: location.href.match(/(https.*)\/search/)[1],
+                id: authorId,
                 badge: author_dom.children[1].textContent
             }
         }
@@ -93,9 +96,12 @@ export const getAuthor = (dom: HTMLElement, scene: string, type: string): Author
             author_dom.querySelector(".UserLink.AuthorInfo-name")//匿名用户
         let authorBadge_dom = author_dom.querySelector(".AuthorInfo-badge") as HTMLDivElement
         //console.log("authorName_dom", authorName_dom)
+        let authorUrl = authorName_dom.href
+        let authorId = authorUrl ? authorUrl.match(/\/(?:people|org)\/([^/?#]+)/)?.[1] || '' : ''
         return {
             name: authorName_dom.innerText || (authorName_dom.children[0] ? authorName_dom.children[0].getAttribute("alt") : ''),//???//没有名字的用户https://www.zhihu.com/people/8-90-74/answers
             url: authorName_dom.href,
+            id: authorId,
             badge: authorBadge_dom ? authorBadge_dom.innerText : ""
         }
     }
