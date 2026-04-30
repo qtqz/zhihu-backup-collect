@@ -502,6 +502,8 @@ setTimeout(() => {
     .to-screenshot .zhihubackup-container{
         /*display: none;*/
     }
+
+    .RichContent.is-collapsed .zhihubackup-wrap,
     .RichContent:has(.ContentItem-more) .zhihubackup-wrap,
     .Post-RichTextContainer:has(.ContentItem-more) .zhihubackup-wrap{
         display:none;
