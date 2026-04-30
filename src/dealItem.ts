@@ -12,6 +12,7 @@ interface DealItemResult {
     zip?: JSZip;
     textString?: string;
     title?: string;
+    authorId?: string;
 }
 
 function detectScene(): string {
@@ -142,6 +143,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
             + '\ntitle: ' + title
             + '\nurl: ' + url
             + '\nauthor: ' + author.name
+            + '\nauthor_id: ' + author.id
             + '\nauthor_badge: ' + author.badge
             + `${Location ? '\nlocation: ' + Location : ''}`
             + '\ncreated: ' + time.created
