@@ -36,8 +36,4 @@ fs.writeFileSync("./dist/tampermonkey-script.js", `// ==UserScript==
 ${TampermonkeyConfig}
 // ==/UserScript==
 
-/** 
-${readme.match(/## Changelog.*$/s)[0].slice(0,450).trim() + '...\n...\n'}
- */
-
 ${UserScriptContent}`, "utf-8")

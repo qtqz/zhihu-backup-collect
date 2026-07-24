@@ -32,38 +32,52 @@ function detectScene(): string {
     return scene
 }
 
-function detectType(dom: HTMLElement, bt: string, ev?: Event): string | null {
-    //ContentItem
-    let type
-    if (dom.closest('.AnswerItem')) type = "answer"
-    else if (dom.closest('.ArticleItem')) type = "article"
-    else if (dom.closest('.Post-content')) type = "article"
-    else if (dom.closest('.PinItem')) type = "pin"
-    else {
-        console.log("未知内容")
-
-        if (!ev) {
-            alert('请勿收起又展开内容，否则会保存失败。请手动重新保存。')
-        }
-        else {
-            let zhw = (ev.target as HTMLElement).closest('.zhihubackup-wrap'),
-                bz = zhw.querySelector('textarea').value,
-                fa = zhw.closest('.ContentItem') || zhw.closest('.Post-content') || zhw.closest('.HotLanding-contentItem')
-            !fa ? alert('请勿收起又展开内容，否则会保存失败。请重新保存。') : 0
-            setTimeout(() => {
-                fa.querySelector('textarea').value = bz
-            }, 200)
-            setTimeout(() => {
-                (fa.querySelector(`.to-${bt}`) as HTMLElement).click()
-            }, 250)
-        }
-        document.querySelectorAll('.zhihubackup-wrap').forEach((w) => w.remove())
-        // @ts-ignore
-        setTimeout(window.zhbf, 100)
-        return;
-    }
-    return type
+function detectType(dom: HTMLElement, bt: string, ev?: Event): string {
+    if (dom.closest('.AnswerItem')) return "answer";
+    if (dom.closest('.ArticleItem') || dom.closest('.Post-content') || dom.closest('.Post-Main')) return "article";
+    if (dom.closest('.PinItem')) return "pin";
+    if (dom.closest('.ContentItem')) return "answer";
+    return "answer";
 }
+
+
+export const getHeaderMarkdown = (dom: HTMLElement, scene: string, type: string): string => {
+    const title = getTitle(dom, scene, type);
+    const url = getURL(dom, scene, type);
+    const author = getAuthor(dom, scene, type);
+    const upvote = getUpvote(dom, scene, type);
+    
+    let item = dom.closest('.ContentItem') || dom.closest('.Post-content') || dom.closest('.PinItem') || dom;
+    let timeText = "";
+    if (item) {
+        let timeEl = item.querySelector('.ContentItem-time, .Post-Time, .PinItem-time, .ContentItem-status');
+        if (timeEl) timeText = (timeEl as HTMLElement).innerText.replace(/\s+/g, ' ').trim();
+    }
+    
+    let lines: string[] = [];
+    if (title && title !== "无标题") {
+        lines.push(`# ${title}\n`);
+    }
+    if (url && !url.includes("#WARNING")) {
+        lines.push(`> **原文链接**：[${url}](${url})`);
+    }
+    if (author && author.name) {
+        let authorStr = author.url ? `[${author.name}](${author.url})` : author.name;
+        if (author.badge) authorStr += ` (${author.badge})`;
+        lines.push(`> **作者**：${authorStr}`);
+    }
+    if (timeText) {
+        lines.push(`> **时间**：${timeText}`);
+    }
+    if (upvote) {
+        lines.push(`> **赞同数**：${upvote}`);
+    }
+    
+    if (lines.length > 0) {
+        return lines.join("\n") + "\n\n---\n\n";
+    }
+    return "";
+};
 
 export default async (dom: HTMLElement, button?: string, event?: Event): Promise<DealItemResult> => {
     //console.log(dom)
@@ -173,7 +187,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
      * 生成目录
      */
     const TOC = ((): string[] | null => {
-        let toc = (dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement).querySelector(".Catalog-content")
+        let toc = (dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement)?.querySelector(".Catalog-content")
         let items: string[] = []
         if (toc) {
             let i = 1, j = 1
@@ -208,8 +222,8 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
     }
 
     //是转发的想法，对源想法解析，并准备附加到新想法下面
-    if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
-        const dom2 = dom.closest('.PinItem').querySelector(".PinItem-content-originpin .RichText")
+    if (type == "pin" && dom.closest('.PinItem')?.querySelector(".PinItem-content-originpin")) {
+        const dom2 = dom.closest('.PinItem')?.querySelector(".PinItem-content-originpin .RichText")
         const lex2 = lexer(dom2.childNodes as NodeListOf<Element>, type)
         //markdown = markdown.concat(parser(lex2).map((l) => "> " + l))
         originPinMD.push('\n\n' + parser(lex2).map((l) => "> " + l).join("\n> \n"))
@@ -217,17 +231,17 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
 
     // 获取想法图片/标题
     if (type == "pin") {
-        const pinItem = dom.closest('.PinItem')
-        if (pinItem.querySelector(".ContentItem-title"))
+        const pinItem = dom.closest('.PinItem') as HTMLElement
+        if (pinItem?.querySelector(".ContentItem-title"))
             lex.unshift({
                 type: TokenType.Text,
                 content: [{
                     type: TokenType.PlainText,
-                    text: '**' + pinItem.querySelector(".ContentItem-title").textContent + '**'
+                    text: '**' + (pinItem.querySelector(".ContentItem-title")?.textContent || '') + '**'
                 }]
             })
-        if (pinItem.querySelector(".PinItem-remainContentRichText")) {
-            const imgs = pinItem.querySelectorAll(".PinItem-remainContentRichText img")
+        if (pinItem?.querySelector(".PinItem-remainContentRichText")) {
+            const imgs = pinItem?.querySelectorAll(".PinItem-remainContentRichText img") || []
             imgs.forEach((img) => {
                 lex.push({
                     type: TokenType.Figure,
@@ -243,18 +257,18 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
     const dealComments = async () => {
         try {
             if (getCommentSwitch(dom)) {
-                let p = dom.closest('.ContentItem') || dom.closest('.Post-content')
-                let openComment = p.querySelector(".Comments-container")
+                let p = dom.closest('.ContentItem') || dom.closest('.Post-content') as HTMLElement
+                let openComment = p?.querySelector(".Comments-container")
                 let itemId = type + url.split('/').pop()
                 let tip = ''
 
-                if (openComment && openComment.querySelector('.css-189h5o3')) {
-                    let t = '**' + openComment.querySelector('.css-189h5o3').textContent + '**' //评论区已关闭|暂无评论
+                if (openComment && openComment?.querySelector('.css-189h5o3')) {
+                    let t = '**' + (openComment.querySelector('.css-189h5o3')?.textContent || '') + '**' //评论区已关闭|暂无评论
                     if (button == 'text') commentText = t
                     else zip.file("comments.md", t)
                 }
                 else {
-                    if (openComment && openComment.querySelector('.css-1tdhe7b')) tip = '**评论内容由作者筛选后展示**\n\n'
+                    if (openComment && openComment?.querySelector('.css-1tdhe7b')) tip = '**评论内容由作者筛选后展示**\n\n'
 
                     // @ts-ignore 
                     let commentsData = window.ArticleComments[itemId]?.comments as Map<string, object>
@@ -278,7 +292,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
                                     hideObsidianModal()
                                     return alert('已【暂存此页评论】，由于这次是自定义文件夹保存，请再次手动保存文件。')
                                 }
-                                (p.querySelector(`.zhihubackup-wrap .to-${button}`) as HTMLElement).click()
+                                (p?.querySelector(`.zhihubackup-wrap .to-${button}, .zhcollect-minimal-btns .to-${button}`) as HTMLElement)?.click()
                             }, 1900)
                             return 'return'
                         }
@@ -311,7 +325,14 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
     }
 
 
-    if (button == 'copy') {
+    if (button == 'copy' || button == 'copy_context' || button == 'copy_content') {
+        let includeContext = button == 'copy_context';
+        if (button == 'copy' || button == 'copy_context' || button == 'copy_content') {
+            try {
+                // @ts-ignore
+                includeContext = GM_getValue("copy_save_title", true);
+            } catch (e) {}
+        }
         try {
             // @ts-ignore
             var copy_save_fm = GM_getValue("copy_save_fm"),
@@ -321,7 +342,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
             console.warn(e)
         }
         md = TOC ? TOC.concat(parser(lex)) : parser(lex)
-        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && dom.closest('.PinItem')?.querySelector(".PinItem-content-originpin")) {
             md = md.concat(originPinMD) //解决保存转发的想法异常
         }
         if (copy_save_fm) {
@@ -332,10 +353,13 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
             commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
             md.push(commentText)
         }
-        if (type != 'pin' && !copy_save_fm)
-            return { textString: [title].concat(md).join('\n\n') }//复制内容增加标题
-        else
-            return { textString: md.join('\n\n') }
+        let bodyText = md.join('\n\n');
+        if (button === 'copy_context') {
+            let header = getHeaderMarkdown(dom, scene, type);
+            return { textString: header + bodyText };
+        } else {
+            return { textString: bodyText };
+        }
     }
     // ============================以下只有 text 或 zip 2种情况===========================
 
@@ -343,7 +367,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         if (await dealComments() == 'return') return;
         commentText ? commentText = '\n\n---\n\n## 评论\n\n' + commentText : 0
         let md2: string[] = []
-        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && dom.closest('.PinItem')?.querySelector(".PinItem-content-originpin")) {
             md2 = originPinMD
         }
         return {
@@ -356,7 +380,7 @@ export default async (dom: HTMLElement, button?: string, event?: Event): Promise
         //对lex的再处理，保存资产，并将lex中链接改为本地
         var { zip, localLex } = await savelex(lex)
         if (await dealComments() == 'return') return;
-        if (type == "pin" && dom.closest('.PinItem').querySelector(".PinItem-content-originpin")) {
+        if (type == "pin" && dom.closest('.PinItem')?.querySelector(".PinItem-content-originpin")) {
             md = parser(localLex).concat(md)
         }
         else md = parser(localLex)
