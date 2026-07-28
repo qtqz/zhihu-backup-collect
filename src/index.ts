@@ -19,8 +19,18 @@ import { showToast } from './core/toast';
 /**
  * 油猴按钮
  */
+let registeredMenuIds: any[] = []
+
 function registerBtn() {
     try {
+        // 知乎页面切换内容列表时会再次调用此函数，先清理旧菜单避免重复注册。
+        const unregisterMenuCommand = (globalThis as any).GM_unregisterMenuCommand
+        if (typeof unregisterMenuCommand === "function") {
+            registeredMenuIds.forEach((id) => {
+                if (id !== undefined && id !== null) unregisterMenuCommand(id)
+            })
+        }
+        registeredMenuIds = []
         // @ts-ignore
         let skipEmpty = GM_registerMenuCommand(
             "（推荐）解析时跳过空白段落",
@@ -35,6 +45,7 @@ function registerBtn() {
                 } else GM_setValue("skip_empty_p", false)
             }
         )
+        registeredMenuIds.push(skipEmpty)
         // @ts-ignore
         let menuFM = GM_registerMenuCommand(
             "复制内容时添加fm元信息",
@@ -47,6 +58,7 @@ function registerBtn() {
                 //alert(GM_getValue("copy_save_fm"))
             }
         )
+        registeredMenuIds.push(menuFM)
         // @ts-ignore
         let menuSaveCM = GM_registerMenuCommand(
             "复制内容时同时复制评论",
@@ -59,6 +71,7 @@ function registerBtn() {
                 //alert(GM_getValue("copy_save_cm"))
             }
         )
+        registeredMenuIds.push(menuSaveCM)
         // @ts-ignore
         let menuMergeCM = GM_registerMenuCommand(
             "下载zip时合并正文与评论",
@@ -71,6 +84,7 @@ function registerBtn() {
                 //alert(GM_getValue("zip_merge_cm"))
             }
         )
+        registeredMenuIds.push(menuMergeCM)
         // @ts-ignore
         let menuSaveImg = GM_registerMenuCommand(
             "复制与下载纯文本时不保存图片",
@@ -83,6 +97,7 @@ function registerBtn() {
                 //alert(GM_getValue("no_save_img"))
             }
         )
+        registeredMenuIds.push(menuSaveImg)
         // @ts-ignore
         let menuFilename = GM_registerMenuCommand(
             "自定义保存后的文件名格式",
@@ -97,11 +112,35 @@ function registerBtn() {
                 //alert(GM_getValue("edit_Filename"))
             }
         )
+        registeredMenuIds.push(menuFilename)
     } catch (e) {
         console.warn(e)
     }
 }
 registerBtn()
+
+async function copyText(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text)
+            return
+        } catch (error) {
+            console.warn("浏览器剪贴板写入失败，尝试兼容方案:", error)
+        }
+    }
+
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.style.position = "fixed"
+    textarea.style.opacity = "0"
+    document.body.appendChild(textarea)
+    try {
+        textarea.select()
+        if (!document.execCommand("copy")) throw new Error("浏览器拒绝了剪贴板操作")
+    } finally {
+        textarea.remove()
+    }
+}
 
 const ButtonContainer = document.createElement("div")
 ButtonContainer.classList.add("zhihubackup-wrap")
@@ -132,9 +171,10 @@ const main = async () => {
                 title: string,
             }
             //console.log(RichText)
-            if (RichText.parentElement.classList.contains("Editable")) continue
+            if (!RichText.parentElement || RichText.parentElement.classList.contains("Editable")) continue
             if (window.location.hostname.includes('zhuanlan')) {
-                if (RichText.closest('.Post-Main').querySelector(".zhihubackup-container")) continue
+                const postMain = RichText.closest('.Post-Main');
+                if (!postMain || postMain.querySelector(".zhihubackup-container")) continue
             }
             else {
                 if (RichText.closest('.PinItem')) {
@@ -142,10 +182,11 @@ const main = async () => {
                     //if (RichText.children[0].classList.contains("Image-Wrapper-Preview")) continue
                     if (RichText.closest('.PinItem-content-originpin')) continue//被转发想法
                 }
-                if (RichText.closest('.RichContent').querySelector(".zhihubackup-container")) continue
+                const richContent = RichText.closest('.RichContent');
+                if (!richContent || richContent.querySelector(".zhihubackup-container")) continue
                 const richInner = RichText.closest('.RichContent-inner')
                 if (richInner && richInner.querySelector(".ContentItem-more")) continue//未展开
-                if (RichText.closest('.RichContent').querySelector(".ContentItem-expandButton")) continue
+                if (richContent.querySelector(".ContentItem-expandButton")) continue
                 //if (RichText.textContent.length == 0) continue
             }
             const aButtonContainer = ButtonContainer.cloneNode(true) as HTMLDivElement
@@ -156,23 +197,29 @@ const main = async () => {
                 RichText.closest('.PinItem') ||
                 RichText.closest('.CollectionDetailPageItem') ||
                 RichText.closest('.Card') as HTMLElement
+            if (!parent_dom) continue
             if (parent_dom.querySelector('.Catalog')) {
                 (aButtonContainer.firstElementChild as HTMLElement).style.position = 'fixed';
                 (aButtonContainer.firstElementChild as HTMLElement).style.top = 'unset';
                 (aButtonContainer.firstElementChild as HTMLElement).style.bottom = '60px'
             }
             let p = RichText.closest('.RichContent') || RichText.closest('.Post-RichTextContainer') as HTMLElement
+            if (!p) continue
             p.prepend(aButtonContainer)
 
             // 为 textarea 添加事件监听器，阻止事件冒泡，确保可以正常输入
-            const textareaRemark = parent_dom.querySelector(".to-remark") as HTMLTextAreaElement
-            textareaRemark.addEventListener("click", (e) => {
+            const textareaRemark = aButtonContainer.querySelector(".to-remark") as HTMLTextAreaElement
+            textareaRemark?.addEventListener("click", (e) => {
                 e.stopPropagation()
                 e.preventDefault()
                 textareaRemark.focus()
             }, true) // 使用捕获阶段
 
-            const ButtonMarkdown = parent_dom.querySelector(".to-copy")
+            const ButtonMarkdown = aButtonContainer.querySelector(".to-copy") as HTMLElement
+            if (!ButtonMarkdown) {
+                aButtonContainer.remove()
+                continue
+            }
             ButtonMarkdown.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     const res = await dealItem(RichText, 'copy', event)
@@ -182,7 +229,7 @@ const main = async () => {
                         title: res.title,
                     }
                     /*console.log(result.markdown.join("\n\n"))*/
-                    navigator.clipboard.writeText(result.textString)
+                    await copyText(result.textString || "")
                     ButtonMarkdown.innerHTML = "复制成功✅"
                     setTimeout(() => {
                         ButtonMarkdown.innerHTML = "复制为Markdown"
@@ -196,7 +243,7 @@ const main = async () => {
                 }
             }))
 
-            const ButtonZip = parent_dom.querySelector(".to-zip")
+            const ButtonZip = aButtonContainer.querySelector(".to-zip") as HTMLElement
             ButtonZip.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     ButtonZip.innerHTML = "下载中……"
@@ -222,7 +269,7 @@ const main = async () => {
                 }
             },))
 
-            const ButtonPNG = parent_dom.querySelector(".to-png")
+            const ButtonPNG = aButtonContainer.querySelector(".to-png") as HTMLElement
             ButtonPNG.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     const res = await dealItem(RichText, 'png', event)
@@ -236,27 +283,28 @@ const main = async () => {
                     let saveCM = getCommentSwitch(RichText)
                     !saveCM ? clip.classList.add("no-cm") : 0
                     let svgDefs = document.querySelector("#MathJax_SVG_glyphs") as HTMLElement
+                    let svgVisibility = svgDefs?.style.visibility
                     svgDefs ? svgDefs.style.visibility = "visible" : 0
 
-                    domToPng(clip, {
-                        backgroundColor: "#fff",
-                        filter(el) {
-                            if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
-                            else return true
-                        },
-                    }).then((dataUrl: any) => {
+                    try {
+                        const dataUrl = await domToPng(clip, {
+                            backgroundColor: "#fff",
+                            filter(el) {
+                                if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
+                                else return true
+                            },
+                        })
                         const link = document.createElement('a')
                         link.download = result.title + ".png"
                         link.href = dataUrl
                         link.click()
-                        setTimeout(() => {
-                            clip.classList.remove("to-screenshot")
-                            !saveCM ? clip.classList.remove("no-cm") : 0
-                            //svgDefs2.remove()
-                            ButtonPNG.innerHTML = "剪藏为 PNG"
-                        }, 5000)
-                    })
-                    ButtonPNG.innerHTML = "请稍待片刻✅<br>查看下载记录"
+                        ButtonPNG.innerHTML = "请稍待片刻✅<br>查看下载记录"
+                        setTimeout(() => { ButtonPNG.innerHTML = "剪藏为 PNG" }, 5000)
+                    } finally {
+                        clip.classList.remove("to-screenshot")
+                        !saveCM ? clip.classList.remove("no-cm") : 0
+                        if (svgDefs) svgDefs.style.visibility = svgVisibility
+                    }
                 } catch (e) {
                     console.log(e)
                     ButtonPNG.innerHTML = "发生错误❌<br>请打开控制台查看"
@@ -266,7 +314,7 @@ const main = async () => {
                 }
             }))
 
-            const ButtonText = parent_dom.querySelector(".to-text")
+            const ButtonText = aButtonContainer.querySelector(".to-text") as HTMLElement
             ButtonText.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     const res = await dealItem(RichText, 'text', event)
@@ -290,7 +338,7 @@ const main = async () => {
                 }
             }))
 
-            const ButtonObsidian = parent_dom.querySelector(".to-obsidian")
+            const ButtonObsidian = aButtonContainer.querySelector(".to-obsidian") as HTMLElement
             ButtonObsidian.addEventListener("click", throttle(async (event: Event) => {
                 try {
                     let saveType = await selectObsidianVault()
@@ -323,23 +371,27 @@ const main = async () => {
                         let saveCM = getCommentSwitch(RichText)
                         !saveCM ? clip.classList.add("no-cm") : 0
                         let svgDefs = document.querySelector("#MathJax_SVG_glyphs") as HTMLElement
+                        let svgVisibility = svgDefs?.style.visibility
                         svgDefs ? svgDefs.style.visibility = "visible" : 0
 
-                        domToPng(clip, {
-                            backgroundColor: "#fff",
-                            filter(el) {
-                                if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
-                                else return true
-                            },
-                        }).then(async (dataUrl: any) => {
+                        try {
+                            const dataUrl = await domToPng(clip, {
+                                backgroundColor: "#fff",
+                                filter(el) {
+                                    if ((el as HTMLElement).tagName == 'DIV' && (el as HTMLElement).classList.contains('zhihubackup-wrap')) return false
+                                    else return true
+                                },
+                            })
                             result = {
                                 textString: dataUrl,
                                 title: res.title,
                             }
+                            await saveFile(result, saveType as any)
+                        } finally {
                             clip.classList.remove("to-screenshot")
                             !saveCM ? clip.classList.remove("no-cm") : 0
-                            await saveFile(result, saveType as any)
-                        })
+                            if (svgDefs) svgDefs.style.visibility = svgVisibility
+                        }
                     }
                 } catch (e) {
                     console.log(e)

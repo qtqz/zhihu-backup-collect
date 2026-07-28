@@ -1,5 +1,6 @@
 import * as JSZip from "jszip";
 import { showToast } from './toast';
+import { sanitizeFilename } from './utils';
 
 // showToast('欢迎使用知乎助手-备份到obsidian插件');
 /**
@@ -379,14 +380,23 @@ function bindOptionButtons(): void {
  * 保存选中的选项到localStorage
  */
 function saveSelectedOption(optionText: string): void {
-    localStorage.setItem('zhihu-obsidian-selected-option', optionText);
+    try {
+        localStorage.setItem('zhihu-obsidian-selected-option', optionText);
+    } catch (error) {
+        console.warn('保存 Obsidian 选项失败:', error);
+    }
 }
 
 /**
  * 从localStorage加载选中的选项
  */
 function loadSelectedOption(): string | null {
-    return localStorage.getItem('zhihu-obsidian-selected-option');
+    try {
+        return localStorage.getItem('zhihu-obsidian-selected-option');
+    } catch (error) {
+        console.warn('读取 Obsidian 选项失败:', error);
+        return null;
+    }
 }
 
 /**
@@ -397,7 +407,9 @@ function restoreButtonSelection(): void {
     let targetButton;
 
     if (selectedOption) {
-        targetButton = obsidianModal?.querySelector(`[data-text="${selectedOption}"]`);
+        const optionButtons = obsidianModal?.querySelectorAll('.option-btn');
+        targetButton = Array.from(optionButtons || [])
+            .find(button => button.getAttribute('data-text') === selectedOption);
     }
 
     // 如果没有保存的选项，默认选中第4个按钮
@@ -628,13 +640,10 @@ function updateFolderHighlight(selectedPath: string): void {
         item.classList.remove('selected');
     });
 
-    // 高亮选中的文件夹
-    setTimeout(() => {
-        const selectedItem = structureElement.querySelector(`[data-path="${selectedPath}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('selected');
-        }
-    }, 100);
+    // 用 dataset 比拼接 CSS selector 更安全，路径中的引号或括号不会破坏选择器。
+    const selectedItem = Array.from(structureElement.querySelectorAll('.folder-item'))
+        .find(item => item.getAttribute('data-path') === selectedPath);
+    selectedItem?.classList.add('selected');
 
 }
 
@@ -642,7 +651,8 @@ function updateFolderHighlight(selectedPath: string): void {
  * 启用确认按钮
  */
 function enableConfirmButton(): void {
-    (obsidianModal?.querySelector('#confirm-save-btn') as HTMLButtonElement).disabled = false;
+    const confirmButton = obsidianModal?.querySelector('#confirm-save-btn') as HTMLButtonElement | null;
+    if (confirmButton) confirmButton.disabled = false;
 }
 
 // ============= 4. 文件夹管理 =============
@@ -1007,14 +1017,20 @@ export interface ObsidianConfig {
  * 从 localStorage 加载 Obsidian 配置
  */
 function loadObsidianConfig(): ObsidianConfig {
-    const config = localStorage.getItem("zhihu-obsidian-config");
-    if (config) {
-        const parsed = JSON.parse(config);
-        return {
-            attachmentFolder: parsed.attachmentFolder || "assets",
-            lastRootName: parsed.lastRootName,
-            lastSelectedPath: parsed.lastSelectedPath,
-        };
+    try {
+        const config = localStorage.getItem("zhihu-obsidian-config");
+        if (config) {
+            const parsed = JSON.parse(config);
+            if (parsed && typeof parsed === "object") {
+                return {
+                    attachmentFolder: typeof parsed.attachmentFolder === "string" ? parsed.attachmentFolder : "assets",
+                    lastRootName: typeof parsed.lastRootName === "string" ? parsed.lastRootName : undefined,
+                    lastSelectedPath: typeof parsed.lastSelectedPath === "string" ? parsed.lastSelectedPath : undefined,
+                };
+            }
+        }
+    } catch (error) {
+        console.warn('读取 Obsidian 配置失败，已使用默认配置:', error);
     }
     return {
         attachmentFolder: "assets",
@@ -1027,7 +1043,11 @@ function loadObsidianConfig(): ObsidianConfig {
 export function saveObsidianConfig(config: Partial<ObsidianConfig>): void {
     const current = loadObsidianConfig();
     const updated = { ...current, ...config };
-    localStorage.setItem("zhihu-obsidian-config", JSON.stringify(updated));
+    try {
+        localStorage.setItem("zhihu-obsidian-config", JSON.stringify(updated));
+    } catch (error) {
+        console.warn('保存 Obsidian 配置失败:', error);
+    }
 }
 
 /**
@@ -1049,38 +1069,6 @@ function loadDirectorySelection(): { rootName?: string; selectedPath?: string } 
         rootName: config.lastRootName,
         selectedPath: config.lastSelectedPath,
     };
-}
-
-/**
- * 清理文件名，移除所有不允许的字符
- * Windows/macOS/Linux 文件系统禁止的字符：< > : " / \ | ? * 以及控制字符
- */
-function sanitizeFilename(filename: string): string {
-    if (!filename || typeof filename !== 'string') {
-        return 'untitled';
-    }
-
-    return filename
-        // 移除所有控制字符（包括换行、回车、制表符等）
-        .replace(/[\x00-\x1f\x7f-\x9f]/g, '')
-        // 移除或替换文件系统非法字符
-        .replace(/[<>:"/\\|?*]/g, '-')
-        // 移除 Unicode 零宽字符和其他不可见字符
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        // 替换连续空白字符为单个空格
-        .replace(/\s+/g, ' ')
-        // 移除前后空格
-        .trim()
-        // 移除连续的点（避免 .. 等）
-        .replace(/\.{2,}/g, '.')
-        // 移除文件名开头和结尾的点和空格
-        .replace(/^[.\s]+|[.\s]+$/g, '')
-        // 限制长度（Windows 文件名最大255字节，保守起见限制200字符）
-        .substring(0, 200)
-        // 再次移除末尾的空格和点
-        .replace(/[.\s]+$/, '')
-        // 如果清理后为空，使用默认名称
-        || 'untitled';
 }
 
 // ============= 7. 主函数 =============
@@ -1185,6 +1173,7 @@ export type SaveType = 'zip-single' | 'zip-common' | 'zip-none' | 'png' | 'text'
 function dataUrlToBlob(dataUrl: string): Blob {
     // 分离dataUrl的元数据和数据部分
     const parts = dataUrl.split(',');
+    if (parts.length < 2 || !parts[1]) throw new Error('无效的图片数据');
     const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
     const bstr = atob(parts[1]); // base64解码
 
@@ -1197,6 +1186,15 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
     // 创建Blob
     return new Blob([u8arr], { type: mime });
+}
+
+async function writeFileContents(fileHandle: FileSystemFileHandle, content: any): Promise<void> {
+    const writable = await fileHandle.createWritable();
+    try {
+        await writable.write(content as FileSystemWriteChunkType);
+    } finally {
+        await writable.close();
+    }
 }
 
 /**
@@ -1239,9 +1237,7 @@ async function unpackZipToFolder(zip: JSZip, targetFolder: FileSystemDirectoryHa
 
             // 创建并写入文件
             const fileHandle = await currentFolder.getFileHandle(safeFilename, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(content as FileSystemWriteChunkType);
-            await writable.close();
+            await writeFileContents(fileHandle, content as FileSystemWriteChunkType);
             console.log(`已保存文件: ${filepath} -> ${safeFilename}`);
         } catch (error) {
             console.error(`保存文件失败 ${filepath}:`, error);
@@ -1304,9 +1300,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         try {
             const zipBlob = await result.zip.generateAsync({ type: 'blob' });
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(zipBlob);
-            await writable.close();
+            await writeFileContents(fileHandle, zipBlob);
             console.log(`成功保存ZIP文件: ${filename}`);
             showToast('✅ 保存成功');
         } catch (error) {
@@ -1324,9 +1318,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         try {
             const blob = dataUrlToBlob(result.textString);
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
+            await writeFileContents(fileHandle, blob);
             console.log(`成功保存图片文件: ${filename}`);
             showToast('✅ 保存成功');
         } catch (error) {
@@ -1343,9 +1335,7 @@ export async function saveFile(result: SaveResult, saveType: SaveType): Promise<
         const filename = result.title + '.md';
         try {
             const fileHandle = await finalHandle.getFileHandle(filename, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(result.textString);
-            await writable.close();
+            await writeFileContents(fileHandle, result.textString);
             console.log(`成功保存MD文件: ${filename}`);
             showToast('✅ 保存成功');
         } catch (error) {
@@ -1408,9 +1398,7 @@ async function unpackZipCommon(
                 const mdFileHandle = await targetFolder.getFileHandle(mdFilename, {
                     create: true,
                 });
-                const writable = await mdFileHandle.createWritable();
-                await writable.write(content as FileSystemWriteChunkType);
-                await writable.close();
+                await writeFileContents(mdFileHandle, content as FileSystemWriteChunkType);
 
                 console.log(`已保存MD文件: ${mdFilename}`);
             } else {
@@ -1418,9 +1406,7 @@ async function unpackZipCommon(
                 const fileHandle = await assetsDirHandle.getFileHandle(safeFilename, {
                     create: true,
                 });
-                const writable = await fileHandle.createWritable();
-                await writable.write(content as FileSystemWriteChunkType);
-                await writable.close();
+                await writeFileContents(fileHandle, content as FileSystemWriteChunkType);
 
                 console.log(`已保存资源文件: ${safeAssetsFolder}/${safeFilename}`);
             }
