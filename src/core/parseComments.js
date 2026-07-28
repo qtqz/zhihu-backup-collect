@@ -4,8 +4,10 @@
 class CommentParser {
     constructor(articleKey) {
         this.articleKey = articleKey;
+        window.ArticleComments = window.ArticleComments || {};
         // 确保文章的评论存储空间存在
-        window.ArticleComments[articleKey] = window.ArticleComments[articleKey] || {
+        const current = window.ArticleComments[articleKey];
+        window.ArticleComments[articleKey] = current && current.comments instanceof Map ? current : {
             comments: new Map(), // 使用Map存储评论，key为评论ID
             lastUpdateTime: null
         };
@@ -19,60 +21,69 @@ class CommentParser {
     parseComment(commentElement) {
         const commentId = commentElement.getAttribute('data-id');
 
-        // 查找评论作者与被回复者
-        const authorElement = commentElement.children[0].children[1].children[0].querySelectorAll('a');
-        const author = authorElement[0].textContent
+        // 查找评论作者与被回复者。知乎评论 DOM 经常会增加一层包装，所有节点都按可选值处理。
+        const authorContainer = commentElement.children[0]?.children[1]?.children[0] ||
+            commentElement.querySelector('.CommentItem-meta, .AuthorInfo');
+        const authorElement = authorContainer?.querySelectorAll('a') || [];
+        const author = authorElement[0]?.textContent?.trim() ||
+            commentElement.querySelector('.AuthorInfo-name, .UserLink-link')?.textContent?.trim() ||
+            '匿名用户';
         let author2
         if (authorElement[1]) {
-            author2 = authorElement[1].textContent
+            author2 = authorElement[1].textContent?.trim()
         }
 
         // 查找评论内容
         const contentElement = commentElement.querySelector('.CommentContent');
         let textContentPlain = '' // string | string[]
         let img = ''
-        Array.from(contentElement.childNodes).map(node => {
+        Array.from(contentElement?.childNodes || []).forEach(node => {
             //评论内容最小元素
             if (node.nodeName == 'DIV') {
                 if (node.classList.contains('comment_img') || node.classList.contains('comment_sticker')) {
-                    img = node.querySelector('img').getAttribute('data-original')
+                    const image = node.querySelector('img');
+                    img = image?.getAttribute('data-original') || image?.getAttribute('src') || '';
                 }
                 else if (node.classList.contains('css-1gomreu')) {//评论中的@ answer/105002650041
-                    let link = node.querySelector('a').href
-                    textContentPlain += '[' + node.textContent + '](' + link + ')'
+                    const link = node.querySelector('a');
+                    textContentPlain += link
+                        ? '[' + (node.textContent || '') + '](' + ZhihuLink2NormalLink(link.href) + ')'
+                        : node.textContent || '';
                 }
             }
-            else if (node.nodeName == 'IMG') textContentPlain += node.alt//小表情
+            else if (node.nodeName == 'IMG') textContentPlain += node.alt || ''//小表情
             else if (node.nodeName == 'A') {
                 let link = ZhihuLink2NormalLink(node.href)
-                textContentPlain += '[' + node.textContent + '](' + link + ')'
+                textContentPlain += '[' + (node.textContent || '') + '](' + link + ')'
             }
             else if (node.nodeName == 'BR') textContentPlain += '\n'
             else if (node.nodeName == 'P') {//如果一条评论有且仅有多个小表情，会用P包裹，有时分段内容也会，还有带链接内容
                 node.childNodes.forEach(c => {
                     if (c.nodeName == 'A') {
                         let link = ZhihuLink2NormalLink(c.href)
-                        textContentPlain += '[' + c.textContent + '](' + link + ')'
+                        textContentPlain += '[' + (c.textContent || '') + '](' + link + ')'
                     }
                     else if (c.nodeName == 'BR') textContentPlain += '\n'
-                    else textContentPlain += c.alt || c.textContent
+                    else textContentPlain += c.alt || c.textContent || ''
                 })
             }
-            else textContentPlain += node.textContent
+            else textContentPlain += node.textContent || ''
             //暂不处理图片，因为图片只会存在于文末。每条评论最多只有一张图片应该
         });
 
         let content = textContentPlain
 
         const timeElement = commentElement.querySelector('.css-12cl38p');
-        const time = timeElement ? relativeToAbsoluteDate(timeElement.textContent) : '';
+        const time = timeElement ? relativeToAbsoluteDate(timeElement.textContent || '') : '';
 
         const locationElement = commentElement.querySelector('.css-ntkn7q');
-        const location = locationElement ? locationElement.textContent : '';
+        const location = locationElement?.textContent?.trim() || '';
 
         const likeBox = commentElement.querySelector('.css-140jo2'),
-            likeButton = likeBox.querySelector('.css-1vd72tl') || likeBox.querySelector('.css-1staphk') //赞过的
-        const likes = likeButton?.textContent.match(/\d+/) ? parseInt(likeButton.textContent.match(/\d+/)[0]) : 0
+            likeButton = likeBox?.querySelector('.css-1vd72tl') || likeBox?.querySelector('.css-1staphk') //赞过的
+        const likeText = likeButton?.textContent || '';
+        const likeMatch = likeText.match(/\d+/);
+        const likes = likeMatch ? parseInt(likeMatch[0], 10) : 0
 
         //const isAuthor = !!commentElement.querySelector('.css-8v0dsd');
 
@@ -100,41 +111,49 @@ class CommentParser {
         const commentElements = Array.from(container.querySelectorAll('[data-id]'));
         const commentsData = window.ArticleComments[this.articleKey].comments;
 
+        // 先完整收集评论，再统一建立父子关系，避免回复先于父评论出现在 DOM 时丢失关系。
+        const parsedComments = [];
         commentElements.forEach(element => {
-            //console.log(element)
             const commentId = element.getAttribute('data-id');
-            const comment = this.parseComment(element);
+            if (!commentId) return;
 
-            // 判断是否为回复评论
-            // 如果当前评论元素的子元素有css-1kwt8l8类名（一个缩进），说明这是一条回复评论
-            let parentElement, isReplyComment = element.firstElementChild.classList.contains('css-1kwt8l8');
+            const comment = this.parseComment(element);
+            let parentElement;
+            let isReplyComment = !!element.firstElementChild?.classList.contains('css-1kwt8l8');
+
             // 另一种情况，弹出框的回复评论（因回复太多而弹出的，和弹出框子页面的，非单纯弹出框）
             if (!isReplyComment) {
-                isReplyComment = element.closest('.css-16zdamy')
-                parentElement = container.querySelector('.css-tpyajk [data-id]')
-            } else parentElement = element.parentElement;
-            if (isReplyComment) {
-                // 向上或向里查找最近的不是回复评论的data-id元素
-                const parentCommentElement = parentElement.closest('[data-id]');
-
-                const parentId = parentCommentElement.getAttribute('data-id');
-                comment.parentId = parentId;
-
-                // 更新父评论的replies
-                const parentComment = commentsData.get(parentId);
-                if (parentComment && !parentComment.replies.includes(commentId)) {
-                    parentComment.replies.push(commentId);
-                }
+                isReplyComment = !!element.closest('.css-16zdamy');
+                parentElement = container.querySelector('.css-tpyajk [data-id]');
+            } else {
+                parentElement = element.parentElement;
             }
 
-            // 更新或添加评论
-            if (commentsData.has(commentId)) {
-                // 合并新数据，保留原有的replies
-                const oldComment = commentsData.get(commentId);
-                comment.replies = oldComment.replies;
-                commentsData.set(commentId, { ...oldComment, ...comment });
-            } else {
-                commentsData.set(commentId, comment);
+            const parentCommentElement = isReplyComment ? parentElement?.closest('[data-id]') : null;
+            const parentId = parentCommentElement?.getAttribute('data-id');
+            if (parentId && parentId !== commentId) comment.parentId = parentId;
+            parsedComments.push(comment);
+        });
+
+        parsedComments.forEach(comment => {
+            const oldComment = commentsData.get(comment.id);
+            commentsData.set(comment.id, oldComment ? {
+                ...oldComment,
+                ...comment,
+                // 增量解析时新 DOM 可能暂时没有父评论上下文，保留已知关系。
+                parentId: comment.parentId || oldComment.parentId || null,
+                replies: []
+            } : comment);
+        });
+
+        commentsData.forEach(comment => {
+            comment.replies = [];
+        });
+        commentsData.forEach(comment => {
+            if (!comment.parentId) return;
+            const parentComment = commentsData.get(comment.parentId);
+            if (parentComment && !parentComment.replies.includes(comment.id)) {
+                parentComment.replies.push(comment.id);
             }
         });
 
@@ -199,6 +218,7 @@ function addParseButton(ContentItem, itemId) {
     if (modal) {
         itemId = modal.getAttribute('itemId')
         cc = ContentItem.querySelector('.css-tpyajk')
+        if (!cc) return;
         toolbar = cc?.querySelector('.css-1onritu')
         cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
@@ -207,32 +227,38 @@ function addParseButton(ContentItem, itemId) {
         cc.querySelector('.comment-parser-container-wrap')?.remove()// 避免重复添加
     }
 
-    if (!cc || cc.querySelector('.css-189h5o3')?.textContent.match('还没有')) return;
+    if (!cc || !itemId || cc.querySelector('.css-189h5o3')?.textContent?.match('还没有')) return;
 
     if (!toolbar) {
         toolbar = cc.querySelector('.css-14eeh9e')// 去兼容知乎美化 暗黑模式
         cc.querySelector('.comment-parser-container-wrap')?.remove()
     }
+    if (!toolbar) return;
     toolbar.appendChild(buttonContainer.cloneNode(true))
 
-    cc.querySelector(".save").addEventListener('click', (e) => {
-        e.target.textContent = ' 暂存中……… '
+    const saveButton = cc.querySelector(".save");
+    const unsaveButton = cc.querySelector(".unsave");
+    const sumButton = cc.querySelector(".sum");
+
+    saveButton?.addEventListener('click', (e) => {
+        e.currentTarget.textContent = ' 暂存中……… '
         setTimeout(() => {
-            e.target.textContent = '暂存此页评论'
+            e.currentTarget.textContent = '暂存此页评论'
         }, 700)
         const parser = new CommentParser(itemId);
         parser.parseComments(cc);
         //const comments = parser.getComments();
         //console.log(cc, comments);
     })
-    cc.querySelector(".unsave").addEventListener('click', (e) => {
-        e.target.textContent = ' 清空中……… '
+    unsaveButton?.addEventListener('click', (e) => {
+        e.currentTarget.textContent = ' 清空中……… '
         setTimeout(() => {
-            e.target.textContent = '清空暂存区'
+            e.currentTarget.textContent = '清空暂存区'
         }, 700)
+        window.ArticleComments = window.ArticleComments || {};
         window.ArticleComments[itemId] = undefined
     })
-    cc.querySelector(".sum").addEventListener('click', () => {
+    sumButton?.addEventListener('click', () => {
         try {
             alert('已存 ' + window.ArticleComments[itemId].comments.size + ' 条')
         } catch (e) {
@@ -287,8 +313,9 @@ function addParseButton(ContentItem, itemId) {
 export const mountParseComments = () => {
     const autoAdd = () => setTimeout(() => {
         let c = document.querySelector('.Post-content') || document.querySelector('.ContentItem')
+        if (!c) return
         let itemId = getItemId(c, c)
-        addParseButton(c, itemId)
+        if (itemId) addParseButton(c, itemId)
     }, 2000)
     if (location.href.match(/\/pin\/|\/p\//)) {
         // 想法页文章页直接呈现评论
@@ -296,42 +323,45 @@ export const mountParseComments = () => {
     }
     document.addEventListener("click", (e) => {
         let itemId
-        const btn = e.target.closest('button')
+        const target = e.target instanceof Element ? e.target : null
+        if (!target) return
+        const btn = target.closest('button')
         // 1
         if (btn?.closest('.ContentItem-actions') && /评论/.test(btn.textContent)) {
-            let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
+            let father = target.closest(".ContentItem") || target.closest(".Post-content")
             //注意文章页，搜索结果页
-            itemId = getItemId(father, e.target)
+            itemId = getItemId(father, target)
+            if (!itemId) return
             setTimeout(() => {
                 let modal = document.querySelector('.Modal-content')
                 if (modal) {
                     modal.setAttribute('itemId', itemId)
                     addParseButton(modal, itemId)
                 }
-                else addParseButton(father, itemId)
+                else if (father) addParseButton(father, itemId)
             }, 1200);
             return;
         }
         // 23 4
-        else if (btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')) {
-            let click = btn || e.target.closest('.css-wu78cf') || e.target.closest('.css-tpyajk .css-1jm49l2') || e.target.closest('.css-1r40vb1')
-            if (click.textContent.match(/(查看.*(评论|回复))|评论回复/)) {
+        else if (btn || target.closest('.css-wu78cf') || target.closest('.css-tpyajk .css-1jm49l2') || target.closest('.css-1r40vb1')) {
+            let click = btn || target.closest('.css-wu78cf') || target.closest('.css-tpyajk .css-1jm49l2') || target.closest('.css-1r40vb1')
+            if (click?.textContent?.match(/(查看.*(评论|回复))|评论回复/)) {
 
-                let father = e.target.closest(".ContentItem") || e.target.closest(".Post-content")
+                let father = target.closest(".ContentItem") || target.closest(".Post-content")
                 //注意文章页，搜索结果页
                 setTimeout(() => {
                     let modal = document.querySelector('.Modal-content')
                     if (father) {// 4:false，不需要获取
                         //非Modal内 23
                         //console.log(2233)
-                        itemId = getItemId(father, e.target)
-                        modal.setAttribute('itemId', itemId)
+                        itemId = getItemId(father, target)
+                        if (modal && itemId) modal.setAttribute('itemId', itemId)
                     }
-                    addParseButton(modal, itemId)// 最终都是给Modal挂
+                    if (modal && itemId) addParseButton(modal, itemId)// 最终都是给Modal挂
                 }, 1200);
             }
         }
-        if (e.target.closest('button.hint')) {
+        if (target.closest('button.hint')) {
             try {
                 var skip_empty_p = GM_getValue("skip_empty_p"),
                     zip_merge_cm = GM_getValue("zip_merge_cm"),
@@ -350,7 +380,7 @@ export const mountParseComments = () => {
         else if (btn?.getAttribute('aria-label') == "关闭") {
             autoAdd()// 文章页关闭弹出框后按钮消失
         }
-        if (e.target.closest('.ContentItem-more')) {
+        if (target.closest('.ContentItem-more')) {
             setTimeout(window.zhbf, 200)// 评论无关功能，展开后无需滚动即可保存
         }
     })
@@ -363,27 +393,50 @@ export const mountParseComments = () => {
  * @returns {String}
  */
 const getItemId = (father, etg) => {
-    let zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
+    if (!father || !etg) return null
+
+    let zopdata
+    try {
+        zopdata = JSON.parse(father.getAttribute("data-zop") || '{}')
+    } catch {
+        zopdata = {}
+    }
     if (!zopdata.itemId) {
         // 搜索结果页
-        father = etg.closest(".Card")
-        let zem = JSON.parse(father.getAttribute("data-za-extra-module")).card.content
+        father = etg.closest(".Card") || father.closest(".Card")
+        if (!father) return null
+        let zem
+        try {
+            zem = JSON.parse(father.getAttribute("data-za-extra-module") || '{}').card?.content
+        } catch {
+            zem = null
+        }
+        if (!zem?.type || !zem.token) return null
         zopdata.type = zem.type
         if (zopdata.type == 'Post') zopdata.type = 'article'
         zopdata.itemId = zem.token
     }
-    return zopdata.type.toLowerCase() + zopdata.itemId
+    if (!zopdata.type || !zopdata.itemId) return null
+    return String(zopdata.type).toLowerCase() + String(zopdata.itemId)
 }
 
-const ZhihuLink2NormalLink = (link) => {
-    const url = new URL(link)
-    if (url.hostname == "link.zhihu.com") {
-        const target = new URLSearchParams(url.search).get("target")
-        return decodeURIComponent(target)
-    }
-    else {
-        if (link.match(/#/)) return '#' + link.split('#')[1]
-        else return link
+function ZhihuLink2NormalLink(link) {
+    if (!link) return ''
+    try {
+        const base = typeof window !== 'undefined' ? window.location.href : undefined
+        const url = new URL(link, base)
+        if (url.hostname == "link.zhihu.com") {
+            const target = url.searchParams.get("target")
+            if (!target) return link
+            try {
+                return decodeURIComponent(target)
+            } catch {
+                return target
+            }
+        }
+        return url.hash ? url.hash : link
+    } catch {
+        return link
     }
 }
 
@@ -396,6 +449,8 @@ function relativeToAbsoluteDate(relativeTime) {
     //const now = new Date();
     //更精确一点了：推算日内可知部分并将不可知部分置为0
     let result = new Date();
+    relativeTime = String(relativeTime || '').trim();
+    if (!relativeTime) return '';
 
     if (relativeTime.includes('分钟前')) {
         const minutes = parseInt(relativeTime);
@@ -411,10 +466,10 @@ function relativeToAbsoluteDate(relativeTime) {
         result.setDate(result.getDate() - 1);
         result.setSeconds(0);
     }
-    /*     else if (relativeTime.includes('天前')) {
-            result.setDate(result.getDate() - relativeTime.match(/\d+/)[0]);
+    else if (/^\d+天前$/.test(relativeTime)) {
+            result.setDate(result.getDate() - parseInt(relativeTime, 10));
             result.setSeconds(0);
-        } */
+    }
     // 处理 "MM-DD" 格式
     else if (/^\d{2}-\d{2}$/.test(relativeTime)) {
         const [month, day] = relativeTime.split('-').map(num => parseInt(num));

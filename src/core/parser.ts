@@ -17,7 +17,8 @@ export const parser = (input: LexType[]): string[] => {
 
         switch (token.type) {
             case TokenType.Code: {
-                output.push(`\`\`\`${token.language ? token.language : ""}\n${token.content}${token.content.endsWith("\n") ? "" : "\n"
+                const code = token.content || ""
+                output.push(`\`\`\`${token.language ? token.language : ""}\n${code}${code.endsWith("\n") ? "" : "\n"
                     }\`\`\``)
                 break
             }
@@ -33,12 +34,12 @@ export const parser = (input: LexType[]): string[] => {
             }
 
             case TokenType.H2: {
-                output.push(`## ${token.text}`)
+                output.push(`## ${token.text || ""}`)
                 break
             }
 
             case TokenType.H3: {
-                output.push(`### ${token.text}`)
+                output.push(`### ${token.text || ""}`)
                 break
             }
 
@@ -58,7 +59,7 @@ export const parser = (input: LexType[]): string[] => {
             }
 
             case TokenType.Link: {
-                output.push(`[${token.text}](${token.href})`)
+                output.push(`[${token.text || ""}](${token.href || ""})`)
                 break
             }
 
@@ -68,14 +69,14 @@ export const parser = (input: LexType[]): string[] => {
                 // @ts-ignore
                 window.no_save_img && !token.local ?
                     output.push(`[图片]`) :
-                    output.push(`![](${token.local ? token.localSrc : token.src})`)
+                    output.push(`![](${token.local ? token.localSrc || token.src : token.src})`)
                 break
             }
 
             case TokenType.Video: {
                 // 创建一个虚拟的 DOM 节点
                 const dom = document.createElement("video")
-                dom.setAttribute("src", token.local ? token.localSrc : token.src)
+                dom.setAttribute("src", token.local ? token.localSrc || token.src : token.src)
                 if (!token.local) dom.setAttribute("data-info", "文件还未下载，随时可能失效，请使用`下载全文为Zip`将视频一同下载下来")
 
                 output.push(dom.outerHTML)
@@ -85,21 +86,25 @@ export const parser = (input: LexType[]): string[] => {
             case TokenType.Table: {
                 //console.log(token)
 
-                const rows = token.content
-                const cols = rows[0].length
+                const rows = Array.isArray(token.content) ? token.content : []
+                if (!rows.length) break
+
+                const cols = rows.reduce((max, row) => Math.max(max, row.length), 0)
+                if (!cols) break
+
                 const widths = new Array(cols).fill(0)
                 const res = []
 
-                for (let i in rows) {
-                    for (let j in rows[i]) {
-                        widths[j] = Math.max(widths[j], rows[i][j].length)
+                for (const row of rows) {
+                    for (let j = 0; j < cols; j++) {
+                        widths[j] = Math.max(widths[j], (row[j] || "").length)
                     }
                 }
 
                 const renderRow = (row: string[]): string => {
                     let res = ""
                     for (let i = 0; i < cols; i++) {
-                        res += `| ${row[i].padEnd(widths[i])} `
+                        res += `| ${(row[i] || "").padEnd(widths[i])} `
                     }
                     res += "|"
                     return res
@@ -128,7 +133,7 @@ export const parser = (input: LexType[]): string[] => {
             case TokenType.FootnoteList: {
                 // 渲染脚注定义列表
                 const footnotes = (token as TokenFootnoteList).items.map(item => 
-                    `[^${item.id}]: ${item.content}`
+                    `[^${item.id}]: ${item.content || ""}`
                 )
                 output.push(footnotes.join("\n"))
                 break
