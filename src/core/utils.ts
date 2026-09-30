@@ -161,20 +161,20 @@ export const getTime = async (dom: HTMLElement, scene: string, type?: string): P
     let created, modified, time_dom
     if (scene != "article") {
         time_dom = dom.closest('.ContentItem').querySelector(".ContentItem-time")
-        created = time_dom.querySelector("a").getAttribute("data-tooltip").slice(4)//2023-12-30 16:12
-        modified = time_dom.querySelector("a").innerText.slice(4)
+        created = time_dom.querySelector("a").getAttribute("data-tooltip").replace(/^\s*(?:发布于|编辑于)\s*/, "").trim()//2023-12-30 16:12
+        modified = time_dom.querySelector("a").innerText.replace(/^\s*(?:发布于|编辑于)\s*/, "").trim()
         return { created, modified }
     }
     else {//文章
         time_dom = dom.closest('.Post-content').querySelector(".ContentItem-time") as HTMLElement
-        modified = time_dom.childNodes[0].textContent.slice(4)
+        modified = time_dom.childNodes[0].textContent.replace(/^\s*(?:发布于|编辑于)\s*/, "").trim()
         time_dom.click()
         await new Promise<void>((resolve) => {
             setTimeout(() => {
                 resolve()
             }, 1000)
         })
-        created = time_dom.childNodes[0].textContent.slice(4)
+        created = time_dom.childNodes[0].textContent.replace(/^\s*(?:发布于|编辑于)\s*/, "").trim()
         time_dom.click()
         return { created, modified }
     }
