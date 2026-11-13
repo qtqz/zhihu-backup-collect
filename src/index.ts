@@ -712,6 +712,19 @@ setTimeout(() => {
             right: -10em;
             z-index: 2;
         }
+        .zhihubackup-wrap.zhihubackup-chevron-mode {
+            pointer-events: none;
+        }
+        .zhihubackup-wrap.zhihubackup-chevron-mode.is-open {
+            right: 0;
+        }
+        .zhihubackup-chevron-mode .zhihubackup-sticky-box {
+            flex-direction: row-reverse;
+        }
+        .zhihubackup-chevron-mode .zhihubackup-trigger {
+            margin-right: 0;
+            margin-left: -12px;
+        }
         .zhihubackup-container {
             float: right;
             background-color: rgb(244, 246, 249);
